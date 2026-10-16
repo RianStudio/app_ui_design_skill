@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
-"""Build an app UI theme from the same three traditional colours as the app icon.
+"""Build an app UI theme in the minimal line style, using the same accent colour as the app icon.
 
-    python3 scripts/build.py --name Tide -o out/                          # default: 霜白 · 黛 · 月白
-    python3 scripts/build.py --name Tide --ground 玄青 --solid 石青 --glaze 天青 -o out/
+    python3 scripts/build.py --name Tide -o out/                 # default accent: 蓝 (blue)
+    python3 scripts/build.py --name Tide --accent 紫 -o out/     # or --accent violet
 
 Writes tokens.json, theme.css, Theme.swift, Theme.kt and tailwind.preset.js to the output folder.
-Colour names come from assets/palette.json (Chinese or English names both work).
+Accent names come from assets/palette.json (Chinese or English names both work). Warm accents
+(珊瑚 coral, 黄 yellow) stay in the app icon and never become the UI primary: the script uses 蓝 instead.
 Every text and accent colour is checked against WCAG contrast and nudged until it passes.
 """
-import argparse, json, os, sys
+import argparse, json, os, re, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 PALETTE = json.load(open(os.path.join(HERE, "..", "assets", "palette.json"), encoding="utf-8"))
+DEFAULT_ACCENT = "蓝"
 
 
 # ---------- colour maths ----------
@@ -60,94 +62,77 @@ def rgba(h, a):
     return f"rgba({r}, {g}, {b}, {a})"
 
 
-def find(kind, name):
-    for k, v in PALETTE[kind].items():
+def split(c):
+    """'#RRGGBB' or 'rgba(r, g, b, a)' -> ('RRGGBB', alpha)"""
+    if c.startswith("#"):
+        return c.lstrip("#").upper(), 1.0
+    r, g, b, a = (float(v) for v in re.findall(r"[\d.]+", c))
+    return "%02X%02X%02X" % (int(r), int(g), int(b)), a
+
+
+def find(name):
+    for k, v in PALETTE["accent"].items():
         if name in (k, v["en"]):
             return k, v
-    sys.exit(f"unknown {kind} colour {name!r}; choose from: " + ", ".join(PALETTE[kind]))
+    sys.exit(f"unknown accent {name!r}; choose from: " +
+             ", ".join(f"{k} ({v['en']})" for k, v in PALETTE["accent"].items()))
 
 
 # ---------- derive ----------
-# warm colours stay in the app icon; the UI's primary is always a cool colour
-WARM = ("淡朱砂", "淡藤黄")
+def derive(name, accent):
+    ak, a = find(accent)
+    source = {"accent": ak, "en": a["en"]}
+    if a.get("warm"):
+        # warm accents stay in the app icon; the UI primary is never coral or yellow
+        print(f"note: {ak} ({a['en']}) is a warm accent and never the UI primary; "
+              f"using {DEFAULT_ACCENT} instead (keep {ak} in the app icon)")
+        source["icon-accent"] = ak
+        ak, a = find(DEFAULT_ACCENT)
+        source.update(accent=ak, en=a["en"])
+    hi, main = a["tones"]
 
-
-def derive(name, ground, solid, glaze):
-    gk, g = find("ground", ground)
-    sk, s = find("solid", solid)
-    if sk in WARM:
-        print(f"note: {sk} is a warm colour and never the UI primary; using 黛 instead (keep {sk} in the icon)")
-        sk, s = find("solid", "黛")
-    zk, z = find("glaze", glaze)
-    hi, main, shade = s["tones"]
-    zt, zb, zp = z["tones"]
-
-    # dark surfaces come from the icon's ground; a light ground (霜白) borrows 玄青 for dark mode
-    dark_ground = g if lum(g["tones"][1]) < 0.2 else PALETTE["ground"]["玄青"]
-    deep, mid = dark_ground["tones"][2], dark_ground["tones"][1]
-    # light surfaces are 霜白, faintly tinted by the ground's hue
-    tint = g["tones"][1]
-    L = {
-        "bg": mix("#F4F7F7", tint, 0.03),
-        "surface": "#FFFFFF",
-        "surface-2": mix("#EDF1F2", tint, 0.04),
-        "border": mix("#D8DFE2", tint, 0.06),
-        "text": "#161D24",
-        "text-2": "#4A5661",
-        "text-3": "#7A8791",
-    }
-    D = {
-        "bg": mix(deep, mid, 0.08),
-        "surface": mix(deep, mid, 0.42),
-        "surface-2": mix(deep, mid, 0.72),
-        "border": mix(mid, "#FFFFFF", 0.10),
-        "text": "#E8EEF1",
-        "text-2": "#A6B2BC",
-        "text-3": "#76838E",
-    }
+    L = dict(PALETTE["neutral"]["light"])
+    D = dict(PALETTE["neutral"]["dark"])
+    shadow = {"light": L.pop("shadow"), "dark": D.pop("shadow")}
     for M, ink in ((L, "#000000"), (D, "#FFFFFF")):
         M["text-2"] = reach(M["text-2"], ink, M["surface-2"], 4.5)
         M["text-3"] = reach(M["text-3"], ink, M["surface"], 3.0)
 
-    def accent(c_light_start, c_light_dir, c_dark_start, c_dark_dir):
-        lt = reach(c_light_start, c_light_dir, L["surface"], 4.5)
-        dk = reach(c_dark_start, c_dark_dir, D["surface"], 4.5)
-        return lt, dk
+    def tone(lt, mn):
+        """an accent's text-safe colour: light mode darkens the main tone, dark mode lifts it toward the light tone"""
+        return (reach(mn, mix(mn, "#000000", 0.5), L["surface"], 4.5),
+                reach(mn, lt, D["surface"], 4.5))
 
-    pL, pD = accent(main, shade, main, hi)
-    for M, p in ((L, pL), (D, pD)):
+    pL, pD = tone(hi, main)
+    for M, p, k in ((L, pL, 0.90), (D, pD, 0.80)):
         M["primary"] = p
-        M["on-primary"] = max(("#FFFFFF", "#0B0F13"), key=lambda c: contrast(c, p))
-        M["primary-container"] = mix(p, M["surface"], 0.86 if M is L else 0.78)
-        M["on-primary-container"] = reach(p, "#000000" if M is L else "#FFFFFF", M["primary-container"], 7.0)
+        # white on the accent when it passes (the Apple look); otherwise a deep shade of the accent
+        # itself (the Material dark look), and plain near-black if even that falls short
+        deep = mix(p, "#000000", 0.82)
+        M["on-primary"] = next(c for c in ("#FFFFFF", deep, "#111113") if contrast(c, p) >= 4.5 or c == "#111113")
+        M["primary-container"] = mix(p, M["surface"], k)
+        M["on-primary-container"] = reach(p, "#000000" if M is L else "#FFFFFF", M["primary-container"], 4.5)
 
-    status = {
-        "success": ("#4E7A6C", "#2F5A4C", "#8FBFAE", "#D6EEE5"),
-        "warning": ("#A57F3A", "#6E531F", "#D9B46A", "#F4ECD4"),
-        "danger": ("#BF4639", "#8A2A23", "#E4836E", "#F6C9BE"),
-        "info": ("#3F7FB5", "#1F4A78", "#9CC3E0", "#D9E9F5"),
-    }
-    for k, (ls, ld, ds, dd) in status.items():
-        L[k], D[k] = reach(ls, ld, L["surface"], 4.5), reach(ds, dd, D["surface"], 4.5)
-        L[k + "-container"] = mix(L[k], L["surface"], 0.88)
-        D[k + "-container"] = mix(D[k], D["surface"], 0.80)
+    # status colours are text on their own container (chips, banners), so they pass 4.5:1 there,
+    # and with it on the plain surface too
+    for k, src in PALETTE["status"].items():
+        lt, mn = PALETTE["accent"][src]["tones"]
+        lc, dc = mix(mn, L["surface"], 0.90), mix(mn, D["surface"], 0.80)
+        L[k], D[k] = reach(mn, mix(mn, "#000000", 0.5), lc, 4.5), reach(mn, lt, dc, 4.5)
+        L[k + "-container"], D[k + "-container"] = lc, dc
 
-    # glaze: the translucent celadon material for bars, sheets and floating controls
-    L["glaze"] = rgba(mix(zt, "#FFFFFF", 0.35), 0.72)
-    L["glaze-tint"] = mix(zb, L["surface"], 0.55)
-    L["glaze-lip"] = "rgba(255, 255, 255, 0.95)"
-    L["glaze-pool"] = rgba(zp, 0.10)
-    D["glaze"] = rgba(mix(zp, D["surface-2"], 0.72), 0.66)
-    D["glaze-tint"] = mix(zp, D["surface"], 0.6)
-    D["glaze-lip"] = "rgba(255, 255, 255, 0.14)"
-    D["glaze-pool"] = rgba("#000000", 0.18)
-    L["shadow"], D["shadow"] = g["shadow"] if lum(g["tones"][1]) > 0.5 else "#1E2A33", "#000000"
+    # frost: the translucent material for bars, sheets, popovers and floating controls; no tint
+    L["frost"] = "rgba(255, 255, 255, 0.72)"
+    L["frost-border"] = "rgba(0, 0, 0, 0.06)"
+    D["frost"] = rgba(D["surface"], 0.6)
+    D["frost-border"] = "rgba(255, 255, 255, 0.08)"
+    L["shadow"], D["shadow"] = shadow["light"], shadow["dark"]
 
     return {
         "name": name,
-        "source": {"ground": gk, "solid": sk, "glaze": zk},
+        "source": source,
         "color": {"light": L, "dark": D},
-        "radius": {"xs": 6, "sm": 10, "md": 14, "lg": 20, "xl": 28, "full": 999},
+        "radius": {"xs": 4, "sm": 6, "md": 8, "lg": 12, "xl": 16, "full": 9999},
         "space": {"1": 4, "2": 8, "3": 12, "4": 16, "5": 20, "6": 24, "8": 32, "10": 40, "12": 48},
         "font": {
             "family": "-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'PingFang SC', Roboto, 'Noto Sans SC', 'Helvetica Neue', sans-serif",
@@ -159,28 +144,36 @@ def derive(name, ground, solid, glaze):
                 "caption": [12, 16, 500, 0.0],
             },
         },
+        # layers: [x, y, blur, spread, alpha]; dark mode multiplies alpha by 2.6
         "elevation": {
-            "1": [[0, 1, 2, 0.10], [0, 2, 6, 0.06]],
-            "2": [[0, 2, 4, 0.10], [0, 8, 20, 0.08], [0, 1, 1, 0.06]],
-            "3": [[0, 4, 8, 0.10], [0, 18, 40, 0.14], [0, 1, 2, 0.08]],
+            "1": [[0, 1, 2, 0, 0.06], [0, 0, 0, 1, 0.04]],
+            "2": [[0, 2, 6, 0, 0.06], [0, 8, 24, 0, 0.10]],
+            "3": [[0, 4, 12, 0, 0.08], [0, 20, 48, 0, 0.16]],
         },
-        "icon": {"size": {"sm": 16, "md": 20, "lg": 24, "xl": 28}, "stroke": 1.5, "stroke-active": 2.0,
-                 "ios": "SF Symbols, weight .light (.regular next to body text)",
-                 "android": "Material Symbols Rounded, weight 300, fill 0, grade 0",
-                 "web": "Phosphor Light, or Lucide at stroke-width 1.5"},
-        "blur": {"glaze": 26, "saturate": 1.25},
+        "icon": {"size": {"sm": 16, "md": 20, "lg": 24, "xl": 28}, "stroke": 1.75,
+                 "ios": "SF Symbols, weight .regular, scale .medium",
+                 "android": "Material Symbols Rounded, weight 400, fill 0, grade 0, optical size 24",
+                 "web": "Lucide at stroke-width 1.75, or Phosphor Regular"},
+        "blur": {"frost": 20, "saturate": 1.8},
         "motion": {"fast": "160ms cubic-bezier(.2, 0, 0, 1)", "standard": "240ms cubic-bezier(.2, 0, 0, 1)",
                    "spring": "420ms cubic-bezier(.34, 1.36, .64, 1)"},
     }
 
 
+def credit(t):
+    s = t["source"]
+    note = f"; app icon keeps {s['icon-accent']}" if "icon-accent" in s else ""
+    return f"accent {s['accent']} ({s['en']}){note}"
+
+
 # ---------- emit ----------
 def shadow_css(layers, colour, k=1.0):
-    return ", ".join(f"{x}px {y}px {b}px {rgba(colour, round(a * k, 3))}" for x, y, b, a in layers)
+    return ", ".join(f"{x}px {y}px {b}px{f' {s}px' if s else ''} {rgba(colour, round(min(a * k, 1), 3))}"
+                     for x, y, b, s, a in layers)
 
 
 def css(t):
-    out = [f"/* {t['name']} theme: generated by rian-app-theme from {t['source']['ground']} · {t['source']['solid']} · {t['source']['glaze']} */"]
+    out = [f"/* {t['name']} theme: generated by rian-app-theme, {credit(t)} */"]
 
     def block(sel, mode):
         C = t["color"][mode]
@@ -198,35 +191,34 @@ def css(t):
         common.append(f"  --tr-{k}: {tr / size:.4f}em;")
     common += [f"  --m-{k}: {v};" for k, v in t["motion"].items()]
     common += [f"  --icon-{k}: {v}px;" for k, v in t["icon"]["size"].items()]
-    common += [f"  --icon-stroke: {t['icon']['stroke']};", f"  --icon-stroke-active: {t['icon']['stroke-active']};"]
+    common.append(f"  --icon-stroke: {t['icon']['stroke']};")
     out.append(":root {\n" + "\n".join(common) + "\n}")
     out.append(block(":root, [data-theme=\"light\"]", "light"))
     out.append("@media (prefers-color-scheme: dark) {\n" + block(":root:not([data-theme=\"light\"])", "dark").replace("\n", "\n  ") + "\n}")
     out.append(block("[data-theme=\"dark\"]", "dark"))
-    out.append(f"""/* celadon glaze material: bars, sheets, floating controls */
-.glaze {{
-  background: linear-gradient(to bottom, transparent 55%, var(--c-glaze-pool)), var(--c-glaze);
-  -webkit-backdrop-filter: blur({t['blur']['glaze']}px) saturate({t['blur']['saturate']});
-  backdrop-filter: blur({t['blur']['glaze']}px) saturate({t['blur']['saturate']});
-  box-shadow: inset 0 1px 0 var(--c-glaze-lip), var(--elev-2);
+    out.append(f"""/* frost material: bars, sheets, popovers and floating controls (never cards).
+   Floating pieces add box-shadow: var(--elev-2); a full-width bar keeps only the hairline
+   on its content side, e.g. border-width: 0 0 1px. */
+.frost {{
+  background: var(--c-frost);
+  -webkit-backdrop-filter: blur({t['blur']['frost']}px) saturate({t['blur']['saturate']});
+  backdrop-filter: blur({t['blur']['frost']}px) saturate({t['blur']['saturate']});
+  border: 1px solid var(--c-frost-border);
 }}""")
     for k in t["font"]["scale"]:
         out.append(f".t-{k} {{ font: var(--t-{k}); letter-spacing: var(--tr-{k}); }}")
-    out.append("""/* line icons: one library, one stroke; selected = primary colour + heavier stroke */
+    out.append("""/* line icons: one library, one stroke; selected = primary colour, same stroke */
 .icon { width: var(--icon-lg); height: var(--icon-lg); fill: none; stroke: currentColor;
   stroke-width: var(--icon-stroke); stroke-linecap: round; stroke-linejoin: round; flex: none; }
 .icon.sm { width: var(--icon-sm); height: var(--icon-sm); }
 .icon.md { width: var(--icon-md); height: var(--icon-md); }
 .icon.xl { width: var(--icon-xl); height: var(--icon-xl); }
-.is-active > .icon, .icon.active { color: var(--c-primary); stroke-width: var(--icon-stroke-active); }""")
+.is-active > .icon, .icon.active { color: var(--c-primary); }""")
     return "\n\n".join(out) + "\n"
 
 
 def swift(t):
     L, D = t["color"]["light"], t["color"]["dark"]
-
-    def hx(h):
-        return "0x" + h.lstrip("#") if h.startswith("#") else None
 
     def camel(k):
         p = k.split("-")
@@ -234,17 +226,21 @@ def swift(t):
 
     rows = []
     for k in L:
-        if k == "shadow" or not L[k].startswith("#"):
+        if k == "shadow":
             continue
-        rows.append(f"    static let {camel(k)} = Color(light: {hx(L[k])}, dark: {hx(D[k])})")
-    radii = "\n".join(f"    static let {k} : CGFloat = {v}" for k, v in t["radius"].items() if k != "full")
-    space = "\n".join(f"    static let s{k} : CGFloat = {v}" for k, v in t["space"].items())
-    return f"""// {t['name']} theme: generated by rian-app-theme from {t['source']['ground']} · {t['source']['solid']} · {t['source']['glaze']}
+        (lh, la), (dh, da) = split(L[k]), split(D[k])
+        alpha = "" if la == da == 1 else f", lightAlpha: {la:g}, darkAlpha: {da:g}"
+        rows.append(f"    static let {camel(k)} = Color(light: 0x{lh}, dark: 0x{dh}{alpha})")
+    radii = "\n".join(f"    static let {k}: CGFloat = {v}" for k, v in t["radius"].items() if k != "full")
+    space = "\n".join(f"    static let s{k}: CGFloat = {v}" for k, v in t["space"].items())
+    return f"""// {t['name']} theme: generated by rian-app-theme, {credit(t)}
 import SwiftUI
 
 extension Color {{
-    init(light: UInt32, dark: UInt32) {{
-        self.init(uiColor: UIColor {{ $0.userInterfaceStyle == .dark ? UIColor(hex: dark) : UIColor(hex: light) }})
+    init(light: UInt32, dark: UInt32, lightAlpha: CGFloat = 1, darkAlpha: CGFloat = 1) {{
+        self.init(uiColor: UIColor {{
+            $0.userInterfaceStyle == .dark ? UIColor(hex: dark, alpha: darkAlpha) : UIColor(hex: light, alpha: lightAlpha)
+        }})
     }}
 }}
 
@@ -267,34 +263,42 @@ enum Space {{
 {space}
 }}
 
-/// Icons: SF Symbols, light weight; selected items use Palette.primary and .regular.
+/// Icons: SF Symbols, regular weight, medium scale; selected items only change colour to Palette.primary.
 enum Icon {{
     static let sm: CGFloat = {t['icon']['size']['sm']}
     static let md: CGFloat = {t['icon']['size']['md']}
     static let lg: CGFloat = {t['icon']['size']['lg']}
     static let xl: CGFloat = {t['icon']['size']['xl']}
-    static let weight: Font.Weight = .light
-    static let activeWeight: Font.Weight = .regular
+    static let weight: Font.Weight = .regular
 }}
 
-/// Celadon glaze: system material, a faint celadon tint and a bright top lip.
-struct Glaze: ViewModifier {{
+/// Card: solid surface, a 1 pt hairline and a barely-there shadow.
+struct Card: ViewModifier {{
     var radius: CGFloat = Radius.lg
+    private var shape: RoundedRectangle {{ RoundedRectangle(cornerRadius: radius, style: .continuous) }}
     func body(content: Content) -> some View {{
         content
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
-            .background(Palette.glazeTint.opacity(0.35), in: RoundedRectangle(cornerRadius: radius, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: radius, style: .continuous)
-                    .strokeBorder(LinearGradient(colors: [.white.opacity(0.9), .white.opacity(0)],
-                                                 startPoint: .top, endPoint: .center), lineWidth: 1)
-            )
-            .shadow(color: .black.opacity(0.10), radius: 10, y: 8)
+            .background(Palette.surface, in: shape)
+            .overlay(shape.strokeBorder(Palette.border, lineWidth: 1))
+            .shadow(color: .black.opacity(0.06), radius: 1, y: 1)
+    }}
+}}
+
+/// Frost: the system material (blur + saturation), a 1 pt hairline and no tint.
+/// For bars, sheets, popovers and floating controls; never for cards.
+struct Frost: ViewModifier {{
+    var radius: CGFloat = Radius.lg
+    private var shape: RoundedRectangle {{ RoundedRectangle(cornerRadius: radius, style: .continuous) }}
+    func body(content: Content) -> some View {{
+        content
+            .background(.regularMaterial, in: shape)
+            .overlay(shape.strokeBorder(Palette.frostBorder, lineWidth: 1))
     }}
 }}
 
 extension View {{
-    func glaze(radius: CGFloat = Radius.lg) -> some View {{ modifier(Glaze(radius: radius)) }}
+    func card(radius: CGFloat = Radius.lg) -> some View {{ modifier(Card(radius: radius)) }}
+    func frost(radius: CGFloat = Radius.lg) -> some View {{ modifier(Frost(radius: radius)) }}
 }}
 """
 
@@ -302,15 +306,22 @@ extension View {{
 def kotlin(t):
     L, D = t["color"]["light"], t["color"]["dark"]
 
-    def c(h):
-        return "Color(0xFF" + h.lstrip("#") + ")"
+    def c(colour):
+        h, a = split(colour)
+        return "Color(0x%02X%s)" % (round(a * 255), h)
 
     def scheme(M, fn):
         m = {"primary": "primary", "onPrimary": "on-primary", "primaryContainer": "primary-container",
-             "onPrimaryContainer": "on-primary-container", "secondary": "glaze-tint", "error": "danger",
-             "errorContainer": "danger-container", "background": "bg", "onBackground": "text",
-             "surface": "surface", "onSurface": "text", "surfaceVariant": "surface-2",
-             "onSurfaceVariant": "text-2", "outline": "border"}
+             "onPrimaryContainer": "on-primary-container",
+             "secondary": "text-2", "onSecondary": "surface",
+             "secondaryContainer": "primary-container", "onSecondaryContainer": "on-primary-container",
+             "error": "danger", "errorContainer": "danger-container", "onErrorContainer": "danger",
+             "background": "bg", "onBackground": "text", "surface": "surface", "onSurface": "text",
+             "surfaceVariant": "surface-2", "onSurfaceVariant": "text-2", "surfaceTint": "surface",
+             "surfaceContainerLowest": "surface", "surfaceContainerLow": "surface",
+             "surfaceContainer": "surface-2", "surfaceContainerHigh": "surface-2",
+             "surfaceContainerHighest": "surface-2",
+             "outline": "text-3", "outlineVariant": "border"}
         body = ",\n".join(f"    {k} = {c(M[v])}" for k, v in m.items())
         return f"val {fn} = {'lightColorScheme' if fn.startswith('Light') else 'darkColorScheme'}(\n{body}\n)"
 
@@ -322,7 +333,7 @@ def kotlin(t):
         type_rows.append(f"    {names[k]} = TextStyle(fontSize = {size}.sp, lineHeight = {lh}.sp, "
                          f"fontWeight = FontWeight.W{w}, letterSpacing = ({tr / size:.4f}).em)")
     r = t["radius"]
-    return f"""// {t['name']} theme: generated by rian-app-theme from {t['source']['ground']} · {t['source']['solid']} · {t['source']['glaze']}
+    return f"""// {t['name']} theme: generated by rian-app-theme, {credit(t)}
 package theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -340,11 +351,18 @@ import androidx.compose.ui.unit.sp
 
 {scheme(D, 'DarkColors')}
 
-/** Icons: Material Symbols Rounded, weight 300, fill 0; selected = primary colour, weight 400. */
+/** Frost: translucent fill + 1 dp hairline for bars, sheets and floating controls (never cards).
+ *  Compose has no built-in backdrop blur: use the fill as is, or blur with a library such as Haze. */
+object Frost {{
+    fun fill(dark: Boolean) = if (dark) {c(D['frost'])} else {c(L['frost'])}
+    fun border(dark: Boolean) = if (dark) {c(D['frost-border'])} else {c(L['frost-border'])}
+}}
+
+/** Icons: Material Symbols Rounded, weight 400, fill 0, grade 0; selected = primary colour. */
 object IconSize {{
     val sm = {t['icon']['size']['sm']}.dp; val md = {t['icon']['size']['md']}.dp
     val lg = {t['icon']['size']['lg']}.dp; val xl = {t['icon']['size']['xl']}.dp
-    const val WEIGHT = 300; const val WEIGHT_ACTIVE = 400
+    const val WEIGHT = 400
 }}
 
 val AppShapes = Shapes(
@@ -368,7 +386,7 @@ def tailwind(t):
     keys = [k for k in t["color"]["light"] if k != "shadow"]
     colors = ",\n".join(f"        '{k}': 'var(--c-{k})'" for k in keys)
     radius = ",\n".join(f"        '{k}': 'var(--r-{k})'" for k in t["radius"])
-    return f"""// {t['name']} theme: Tailwind preset. Load theme.css first; values read its CSS variables.
+    return f"""// {t['name']} theme: Tailwind preset. Load theme.css first; values read its CSS variables (and it defines .frost).
 module.exports = {{
   theme: {{
     extend: {{
@@ -389,12 +407,10 @@ module.exports = {{
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--name", required=True)
-    ap.add_argument("--ground", default="霜白")
-    ap.add_argument("--solid", default="黛")
-    ap.add_argument("--glaze", default="月白")
+    ap.add_argument("--accent", default=DEFAULT_ACCENT, help="蓝 blue (default), 绿 green, 紫 violet, 灰 gray")
     ap.add_argument("-o", "--out", default="theme-out")
     a = ap.parse_args()
-    t = derive(a.name, a.ground, a.solid, a.glaze)
+    t = derive(a.name, a.accent)
     os.makedirs(a.out, exist_ok=True)
     files = {"tokens.json": json.dumps(t, ensure_ascii=False, indent=2), "theme.css": css(t),
              "Theme.swift": swift(t), "Theme.kt": kotlin(t), "tailwind.preset.js": tailwind(t)}
@@ -402,7 +418,8 @@ def main():
         open(os.path.join(a.out, f), "w", encoding="utf-8").write(body)
     for mode in ("light", "dark"):
         C = t["color"][mode]
-        checks = [("text-2", "surface-2"), ("primary", "surface"), ("on-primary", "primary"), ("danger", "surface")]
+        checks = [("text-2", "surface-2"), ("text-3", "surface"), ("primary", "surface"), ("on-primary", "primary"),
+                  ("on-primary-container", "primary-container"), ("danger", "danger-container")]
         print(mode + ": " + ", ".join(f"{a}/{b} {contrast(C[a], C[b]):.1f}" for a, b in checks))
     print("wrote", ", ".join(files), "to", a.out)
 

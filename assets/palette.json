@@ -1,21 +1,22 @@
 {
-  "_comment": "Same traditional colours as the rian-app-icon skill. ground = icon background (light/mid/deep), solid = icon solid (highlight/main/shade), glaze = icon glaze (top/bottom/pool).",
-  "ground": {
-    "玄青": {"en": "xuanqing", "tones": ["#3C4854", "#1A222B", "#070A0E"], "shadow": "#000000"},
-    "黛蓝": {"en": "dailan",   "tones": ["#56708A", "#2A3D52", "#0E1724"], "shadow": "#060B14"},
-    "霜白": {"en": "shuangbai","tones": ["#F6F8F8", "#E5EAEB", "#C6CFD2"], "shadow": "#1E2A33"},
-    "苍绿": {"en": "canglv",   "tones": ["#5F7A74", "#2C413D", "#0E1817"], "shadow": "#050B0A"}
+  "_comment": "accent: the same six accent colours as the rian-app-icon skill (references/style.md), tones = [light, main]; warm accents stay in the icon and never become the UI primary. neutral: page, surfaces, hairlines and text for light and dark, after Notion and Apple. status: which accent each status colour comes from.",
+  "accent": {
+    "蓝":   {"en": "blue",   "tones": ["#7AAEFF", "#3B7BEA"]},
+    "绿":   {"en": "green",  "tones": ["#6FD3A6", "#23A36B"]},
+    "黄":   {"en": "yellow", "tones": ["#FFD978", "#F2AE2E"], "warm": true},
+    "珊瑚": {"en": "coral",  "tones": ["#FF9C86", "#EC5B45"], "warm": true},
+    "紫":   {"en": "violet", "tones": ["#B3A6FF", "#7A63F0"]},
+    "灰":   {"en": "gray",   "tones": ["#C8C7C3", "#8E8D89"]}
   },
-  "solid": {
-    "银白":   {"en": "silver",    "tones": ["#F3F6F7", "#B8C3CA", "#6F7C86"]},
-    "黛":     {"en": "dai",       "tones": ["#7D90A6", "#3E526A", "#1F2C3D"]},
-    "石青":   {"en": "shiqing",   "tones": ["#9CC3E0", "#3F7FB5", "#1F4A78"]},
-    "淡藤黄": {"en": "tenghuang", "tones": ["#F4ECD4", "#D9B46A", "#A57F3A"]},
-    "淡朱砂": {"en": "zhusha",    "tones": ["#E4836E", "#BF4639", "#8A2A23"]}
+  "neutral": {
+    "light": {
+      "bg": "#FFFFFF", "surface": "#FFFFFF", "surface-2": "#F7F7F5", "border": "#E9E9E7",
+      "text": "#1C1C1E", "text-2": "#6E6E73", "text-3": "#8E8E93", "shadow": "#0F0F0F"
+    },
+    "dark": {
+      "bg": "#191919", "surface": "#202020", "surface-2": "#2A2A2A", "border": "#313131",
+      "text": "#F5F5F7", "text-2": "#A1A1A6", "text-3": "#76767B", "shadow": "#000000"
+    }
   },
-  "glaze": {
-    "天青": {"en": "tianqing", "tones": ["#DCEDE8", "#A5C7C0", "#3E6B66"]},
-    "月白": {"en": "yuebai",   "tones": ["#F4F8F6", "#D6E3E1", "#5E7A86"]},
-    "粉青": {"en": "fenqing",  "tones": ["#E3EFE8", "#B3CFC3", "#4E7A6C"]}
-  }
+  "status": {"success": "绿", "warning": "黄", "danger": "珊瑚", "info": "蓝"}
 }

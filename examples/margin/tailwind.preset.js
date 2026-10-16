@@ -1,4 +1,4 @@
-// Margin theme: Tailwind preset. Load theme.css first; values read its CSS variables.
+// Margin theme: Tailwind preset. Load theme.css first; values read its CSS variables (and it defines .frost).
 module.exports = {
   theme: {
     extend: {
@@ -22,10 +22,8 @@ module.exports = {
         'danger-container': 'var(--c-danger-container)',
         'info': 'var(--c-info)',
         'info-container': 'var(--c-info-container)',
-        'glaze': 'var(--c-glaze)',
-        'glaze-tint': 'var(--c-glaze-tint)',
-        'glaze-lip': 'var(--c-glaze-lip)',
-        'glaze-pool': 'var(--c-glaze-pool)'
+        'frost': 'var(--c-frost)',
+        'frost-border': 'var(--c-frost-border)'
       },
       borderRadius: {
         'xs': 'var(--r-xs)',
