@@ -1,5 +1,6 @@
 // Tide theme: Tailwind (v3.3+) preset. Load theme.css first: every value reads its CSS variables
 // (and theme.css defines .frost). Opaque colours take opacity modifiers, e.g. bg-primary/10.
+// Text styles are not here: use theme.css's .t-* classes (class="t-body"), which also drop the tracking for CJK.
 module.exports = {
   theme: {
     extend: {

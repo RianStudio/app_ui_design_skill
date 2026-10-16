@@ -152,14 +152,17 @@ struct Card: ViewModifier {
 
 /// Frost: the one material, for bars, sheets, popovers and floating controls; never for cards.
 /// - edges: the sides that get the 1 pt hairline. A top bar uses .bottom, a bottom bar .top, floating pieces .all.
+/// - radius: defaults to Radius.lg for .all and to 0 otherwise, so a full-width bar stays square.
 /// - floating: tab bars, floating buttons and menus add elev-2.
 /// iOS 26 and later use Liquid Glass, which draws its own edge and depth. Earlier versions put the
 /// frost colour (88% surface) over the system blur, as theme.css does.
 struct Frost: ViewModifier {
-    var radius: CGFloat = Radius.lg
+    var radius: CGFloat? = nil
     var edges: Edge.Set = .all
     var floating = false
-    private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: radius, style: .continuous) }
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: radius ?? (edges == .all ? Radius.lg : 0), style: .continuous)
+    }
 
     @ViewBuilder func body(content: Content) -> some View {
         #if compiler(>=6.2)
@@ -207,7 +210,7 @@ struct Frost: ViewModifier {
 
 extension View {
     func card(radius: CGFloat = Radius.lg) -> some View { modifier(Card(radius: radius)) }
-    func frost(radius: CGFloat = Radius.lg, edges: Edge.Set = .all, floating: Bool = false) -> some View {
+    func frost(radius: CGFloat? = nil, edges: Edge.Set = .all, floating: Bool = false) -> some View {
         modifier(Frost(radius: radius, edges: edges, floating: floating))
     }
 }

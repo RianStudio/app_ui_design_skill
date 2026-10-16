@@ -50,12 +50,14 @@ python3 scripts/build.py --name Ledgerly --accent 绿 -o themes/ledgerly
 ### 3. 预览、自检
 
 ```bash
+ICON_SKILL=~/.claude/skills/rian-app-icon   # rian-app-icon 的目录，按实际改
+python3 $ICON_SKILL/scripts/render.py tide.svg -o icons --variants   # 写出 icons/tide-1024.png 和 icons/tide-dark.png
 python3 scripts/preview.py themes/tide --screen timer \
-  --icon tide-1024.png --icon-dark tide-dark.png
+  --icon icons/tide-1024.png --icon-dark icons/tide-dark.png
 ```
 
 - `--screen` 选最接近这个 app 的样例界面：`timer`（计时、工具类，默认）、`notes`（笔记、阅读类：长段中文、高亮、搜索框）、`list`（账本、列表类：金额、筛选标签、分组列表）。
-- `--icon` 用 `rian-app-icon` 的 `<name>-1024.png`；`--icon-dark` 用它的 `render.py --variants` 生成的 `<name>-dark.png`。没有深色版就省略，深色手机沿用 `--icon`。
+- `--icon` 用 `rian-app-icon` 的 `render.py` 写出的 `<name>-1024.png`；`--icon-dark` 用加 `--variants` 时同一个 `-o` 目录里的 `<name>-dark.png`。已经渲染过就直接用那个目录；没有深色版就省略，深色手机沿用 `--icon`。
 - 预览图第一行是浅色和深色的静止态，第二行是滚动态：内容滚到磨砂导航栏和标签栏下面。下面是所有颜色 token 的色板。
 - 脚本最后量一次磨砂：滚动态里栏上文字对身后内容的最低对比度，每种模式一行，例如 `frost light: lowest bar text contrast over scrolled content 4.6:1 (发现); target >= 3  PASS`。
 

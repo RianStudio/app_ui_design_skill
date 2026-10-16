@@ -10,7 +10,7 @@
 4. **磨砂是唯一的材质。** 导航栏、标签栏、浮层、底部弹窗用 Apple 式磨砂：88% 的磨砂色、背景模糊 20、饱和度 1.8、一道 1 px 细线，不加任何颜色。卡片和列表不用磨砂。
 5. **一个强调色，默认蓝。** 主色按映射表来自图标的强调色：蓝→蓝，绿→绿，紫→紫，珊瑚、黄、灰→蓝。暖色和灰只留在 app 图标里，界面上没有红色、橙色或黄色的主按钮。状态色（成功、警告、危险、信息）来自同一套强调色，只在状态出现时用。
 6. **深浅两套，同等对待。** 深色模式不是反色：页面 #191919，表面一层比一层亮（#202020、#2A2A2A、#333333），细线换成更亮的深灰，主色往浅处提亮。
-7. **可读性先于风格。** 所有要读的文字和强调色都过 WCAG 4.5:1，放在 bg、surface、surface-2、surface-3 和磨砂上都要过（状态色放在自己的 `-container` 底上也是）；占位文字、控件边框 3:1。脚本自动保证，不要手动调回去。
+7. **可读性先于风格。** 所有要读的文字和强调色都过 WCAG 4.5:1：放在 bg、surface、surface-2、surface-3 上，以及叠在页面和中灰 `#808080` 上的磨砂上都要过（状态色放在自己的 `-container` 底上也是）；占位文字、控件边框 3:1。`build.py` 检查这些，不过就不输出。内容真的滚到栏下面时，栏上文字对身后内容 ≥ 3:1，由 `preview.py` 在渲染图上量。不要手动调回去。
 8. **系统字体，克制的字重。** 用 SF Pro / PingFang SC / Roboto / Noto Sans SC；只用 400、500、600、700 四档，字号沿用 Apple 的文字样式。中文、日文、韩文不加字距。
 
 ## 颜色
@@ -70,7 +70,7 @@
 | 长段正文 | `body-long` 17/28（笔记、文章、说明）；短文字用 `body` |
 | 输入框、搜索框 | `surface` + 1 px `border-strong`，圆角 md，高 `control-h` md 44；占位文字和放大镜用 `text-placeholder`；聚焦时边框换成 `primary` |
 | 复选框、开关关闭态 | 边框 `border-strong`；打开、勾选后 `primary` |
-| 分段控件 | 高 `control-h` sm 32，1 px `border` 外框，圆角 md 8，内缩 3；选中段 `primary-container` 底、`on-primary-container` 字，圆角 xs 4（8 减去内缩 4，内外同心） |
+| 分段控件 | 高 `control-h` sm 32，1 px `border` 外框，圆角 md 8，内边距 3，选中段离外沿共 4（1 px 外框 + 3）；选中段 `primary-container` 底、`on-primary-container` 字，圆角 xs 4（8 减去 4，内外同心） |
 | 进度条轨道、代码块、侧栏 | `surface-2` |
 | 分隔线 | `border`，1 px，列表里从文字左边开始 |
 | 主按钮 | `primary` 底、`on-primary` 字，圆角 lg，高 `control-h` lg 50，不加投影 |
@@ -146,10 +146,10 @@
 ## 接入
 
 - **Web**：先引入 `theme.css`，用 `var(--c-primary)` 等变量；每个不透明颜色另有 `--c-*-rgb` 通道变量，可写 `rgb(var(--c-primary-rgb) / .1)`。`<html data-theme="dark">` 强制深色，不写则跟随系统。浮在内容上方的元素加 `class="frost"`，浮动的再加 `box-shadow: var(--elev-2)`。尺寸是 `--hit-min`、`--control-h-sm / md / lg`。
-- **Tailwind**：在 `presets` 里加 `tailwind.preset.js`（v3.3 以上，仍要先引入 `theme.css`）。可用 `bg-surface`、`text-text-2`、`border-border-strong`、`shadow-e1`、`rounded-lg`、`min-h-hit`、`h-control-md`；透明度修饰符可用，如 `bg-primary/10`。不写颜色的 `border` 默认是 `border` 色，`ring` 默认是 `focus` 色。
-- **SwiftUI**：把 `Theme.swift` 加进项目，需要 iOS 15 以上。颜色 `Palette.primary`、圆角 `Radius.lg`、间距 `Space.s4`、尺寸 `Size.hitMin`、`Size.controlLg`；字体 `.font(.appBody)` 等（基于系统文字样式，支持动态字体），长段正文 `.bodyLong()`；动效 `Motion`。卡片加 `.card()`；浮层加 `.frost()`，顶部导航栏 `.frost(edges: .bottom)`，标签栏、浮动按钮 `.frost(radius: 高度的一半, floating: true)`。用 Xcode 26 编译、运行在 iOS 26 及以上时，`.frost()` 自动改用系统的 Liquid Glass（`glassEffect`），它自带边缘和层次，所以不再画细线和投影；更早的系统仍是磨砂色 + 系统模糊 + 细线。
+- **Tailwind**：在 `presets` 里加 `tailwind.preset.js`（v3.3 以上，仍要先引入 `theme.css`）。可用 `bg-surface`、`text-text-2`、`border-border-strong`、`shadow-e1`、`rounded-lg`、`min-h-hit`、`h-control-md`；透明度修饰符可用，如 `bg-primary/10`。不写颜色的 `border` 默认是 `border` 色，`ring` 默认是 `focus` 色。preset 里没有字号：文字样式用 `theme.css` 的 `.t-*` 类（如 `class="t-body"`），中日韩文字会自动去掉字距。
+- **SwiftUI**：把 `Theme.swift` 加进项目，需要 iOS 15 以上。颜色 `Palette.primary`、圆角 `Radius.lg`、间距 `Space.s4`、尺寸 `Size.hitMin`、`Size.controlLg`；字体 `.font(.appBody)` 等（基于系统文字样式，支持动态字体），长段正文 `.bodyLong()`；动效 `Motion`。卡片加 `.card()`；浮层加 `.frost()`，顶部导航栏 `.frost(edges: .bottom)`，标签栏、浮动按钮 `.frost(radius: 高度的一半, floating: true)`。只给一侧细线（`edges` 不是 `.all`）时圆角默认 0，贴边的栏是直角。用 Xcode 26 编译、运行在 iOS 26 及以上时，`.frost()` 自动改用系统的 Liquid Glass（`glassEffect`），它自带边缘和层次，所以不再画细线和投影；更早的系统仍是磨砂色 + 系统模糊 + 细线。
 - **Jetpack Compose**：把 `Theme.kt` 放进 `theme` 包，用 `AppTheme { … }` 包住界面，需要 Compose Material 3 1.2 以上。所有 Material 3 颜色角色都已填好，组件自动取 `MaterialTheme.colorScheme`；Material 3 没有的颜色用 `AppTheme.colors`（如 `AppTheme.colors.success`、`AppTheme.colors.textPlaceholder`）。
   - 主按钮用 `AppButton`，次按钮用 `AppOutlinedButton`，筛选标签用 `AppChip(selected, onClick, label)`，状态标签用 `StatusTag("已完成", AppTheme.colors.success, AppTheme.colors.successContainer)`。不要直接用 `Button`、`FilterChip`：它们会变成 Material 默认的胶囊按钮和 8 dp 圆角的标签。
   - 危险操作：`AppOutlinedButton(onClick) { Text("删除", color = MaterialTheme.colorScheme.error) }`。
-  - 卡片用 `OutlinedCard`（边框取 `outlineVariant`，即 `border`）；输入框的 `outline` 是 `border-strong`。磨砂用 `Frost.fill(dark)` 和 `Frost.border(dark)`，Compose 没有自带的背景模糊，需要时用 Haze 这类库。尺寸是 `AppSize.hitMin`、`AppSize.controlLg`。
+  - 卡片用 `OutlinedCard`（边框取 `outlineVariant`，即 `border`）；输入框的 `outline` 是 `border-strong`。磨砂用 `Frost.fill(dark)` 和 `Frost.border(dark)`，Compose 没有自带的背景模糊，需要时用 Haze 这类库。圆角 `Radius.lg`、间距 `Space.s4`、尺寸 `AppSize.hitMin`、`AppSize.controlLg`。
 - **其他框架**（UIKit、Flutter、React Native 等）：按 `tokens.json` 同名 key 映射，例如 `color.light.primary`、`color.dark.text-2`、`radius.lg`、`size.control-h.md`、`font.scale.body-long`（字号、行高、字重、字距）。

@@ -197,6 +197,28 @@ object IconSize {
     const val WEIGHT = 400
 }
 
+/** Corner radii; full is ChipShape (CircleShape). */
+object Radius {
+    val xs = 4.dp
+    val sm = 6.dp
+    val md = 8.dp
+    val lg = 12.dp
+    val xl = 16.dp
+}
+
+/** Spacing: multiples of 4, e.g. Modifier.padding(Space.s4). */
+object Space {
+    val s1 = 4.dp
+    val s2 = 8.dp
+    val s3 = 12.dp
+    val s4 = 16.dp
+    val s5 = 20.dp
+    val s6 = 24.dp
+    val s8 = 32.dp
+    val s10 = 40.dp
+    val s12 = 48.dp
+}
+
 /** Sizes: the minimum touch target, and control heights (lg is the primary button). */
 object AppSize {
     val hitMin = 48.dp
@@ -300,7 +322,9 @@ fun AppOutlinedButton(
     content = content,
 )
 
-/** Filter chip: full pill; selected = primary-container fill and on-primary-container label. Use it instead of FilterChip. */
+/** Filter chip: full pill, subhead label (bodyMedium; FilterChip's default labelLarge is the 17 sp headline);
+ *  unselected = surface fill, 1 dp border and text-2 label; selected = primary-container fill, on-primary-container
+ *  label, no border. Use it instead of FilterChip. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppChip(
@@ -313,11 +337,17 @@ fun AppChip(
 ) = FilterChip(
     selected = selected,
     onClick = onClick,
-    label = { Text(label) },
+    label = { Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = if (selected) FontWeight.W600 else null) },
     modifier = modifier,
     enabled = enabled,
     leadingIcon = leadingIcon,
     shape = ChipShape,
+    colors = FilterChipDefaults.filterChipColors(containerColor = MaterialTheme.colorScheme.surface),
+    border = FilterChipDefaults.filterChipBorder(
+        enabled = enabled,
+        selected = selected,
+        borderColor = MaterialTheme.colorScheme.outlineVariant,
+    ),
 )
 
 /** Status tag: the status colour on its own container, full pill,

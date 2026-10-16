@@ -30,8 +30,10 @@ pip install playwright pillow && playwright install chromium
 
 ```bash
 python3 scripts/build.py --name Tide --accent 珊瑚 -o themes/tide   # 传图标的强调色，中英文都可以；珊瑚 → 界面蓝
-python3 scripts/preview.py themes/tide --screen timer --icon tide-1024.png --icon-dark tide-dark.png
+python3 scripts/preview.py themes/tide --screen timer --icon icons/tide-1024.png --icon-dark icons/tide-dark.png
 ```
+
+`icons/` 是 rian-app-icon 的 `render.py tide.svg -o icons --variants` 的输出目录，里面有 `tide-1024.png` 和深色版 `tide-dark.png`。
 
 ## 示例
 
@@ -44,9 +46,14 @@ python3 scripts/preview.py themes/tide --screen timer --icon tide-1024.png --ico
 Tide 和 Margin 的图标是暖色，界面都换成蓝，所以两套 token 只差名字和记下的图标色；Ledgerly 的图标是绿，界面跟着用绿。图标来自 rian-app-icon 的示例，深色图标由它的 `render.py --variants` 生成。重新生成：
 
 ```bash
+ICON_SKILL=~/.claude/skills/rian-app-icon   # rian-app-icon 仓库的位置，按实际改
+python3 $ICON_SKILL/scripts/render.py $ICON_SKILL/examples/ledgerly.svg -o /tmp/icons --variants   # 写出 /tmp/icons/ledgerly-dark.png
 python3 scripts/build.py --name Ledgerly --accent 绿 -o examples/ledgerly
-python3 scripts/preview.py examples/ledgerly --screen list --icon ledgerly-1024.png --icon-dark ledgerly-dark.png
+python3 scripts/preview.py examples/ledgerly --screen list \
+  --icon $ICON_SKILL/examples/renders/ledgerly-1024.png --icon-dark /tmp/icons/ledgerly-dark.png
 ```
+
+Tide、Margin 把 `ledgerly`、`绿`、`list` 换成表里的名字、图标色和样例界面。
 
 ## 结构
 

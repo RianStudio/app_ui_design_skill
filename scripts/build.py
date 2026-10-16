@@ -453,14 +453,17 @@ struct Card: ViewModifier {
 
 /// Frost: the one material, for bars, sheets, popovers and floating controls; never for cards.
 /// - edges: the sides that get the 1 pt hairline. A top bar uses .bottom, a bottom bar .top, floating pieces .all.
+/// - radius: defaults to Radius.lg for .all and to 0 otherwise, so a full-width bar stays square.
 /// - floating: tab bars, floating buttons and menus add elev-2.
 /// iOS 26 and later use Liquid Glass, which draws its own edge and depth. Earlier versions put the
 /// frost colour (88% surface) over the system blur, as theme.css does.
 struct Frost: ViewModifier {
-    var radius: CGFloat = Radius.lg
+    var radius: CGFloat? = nil
     var edges: Edge.Set = .all
     var floating = false
-    private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: radius, style: .continuous) }
+    private var shape: RoundedRectangle {
+        RoundedRectangle(cornerRadius: radius ?? (edges == .all ? Radius.lg : 0), style: .continuous)
+    }
 
     @ViewBuilder func body(content: Content) -> some View {
         #if compiler(>=6.2)
@@ -508,7 +511,7 @@ struct Frost: ViewModifier {
 
 extension View {
     func card(radius: CGFloat = Radius.lg) -> some View { modifier(Card(radius: radius)) }
-    func frost(radius: CGFloat = Radius.lg, edges: Edge.Set = .all, floating: Bool = false) -> some View {
+    func frost(radius: CGFloat? = nil, edges: Edge.Set = .all, floating: Bool = false) -> some View {
         modifier(Frost(radius: radius, edges: edges, floating: floating))
     }
 }
@@ -670,6 +673,16 @@ object IconSize {
     const val WEIGHT = 400
 }
 
+/** Corner radii; full is ChipShape (CircleShape). */
+object Radius {
+@@radius@@
+}
+
+/** Spacing: multiples of 4, e.g. Modifier.padding(Space.s4). */
+object Space {
+@@space@@
+}
+
 /** Sizes: the minimum touch target, and control heights (lg is the primary button). */
 object AppSize {
     val hitMin = @@hit@@.dp
@@ -751,7 +764,9 @@ fun AppOutlinedButton(
     content = content,
 )
 
-/** Filter chip: full pill; selected = primary-container fill and on-primary-container label. Use it instead of FilterChip. */
+/** Filter chip: full pill, subhead label (bodyMedium; FilterChip's default labelLarge is the 17 sp headline);
+ *  unselected = surface fill, 1 dp border and text-2 label; selected = primary-container fill, on-primary-container
+ *  label, no border. Use it instead of FilterChip. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppChip(
@@ -764,11 +779,17 @@ fun AppChip(
 ) = FilterChip(
     selected = selected,
     onClick = onClick,
-    label = { Text(label) },
+    label = { Text(label, style = MaterialTheme.typography.bodyMedium, fontWeight = if (selected) FontWeight.W600 else null) },
     modifier = modifier,
     enabled = enabled,
     leadingIcon = leadingIcon,
     shape = ChipShape,
+    colors = FilterChipDefaults.filterChipColors(containerColor = MaterialTheme.colorScheme.surface),
+    border = FilterChipDefaults.filterChipBorder(
+        enabled = enabled,
+        selected = selected,
+        borderColor = MaterialTheme.colorScheme.outlineVariant,
+    ),
 )
 
 /** Status tag: the status colour on its own container, full pill,
@@ -828,6 +849,8 @@ def kotlin(t):
         ext_dark="\n".join(f"    {camel(k)} = {kt_colour(D[k])}," for k in EXTENDED),
         icon_sm=t["icon"]["size"]["sm"], icon_md=t["icon"]["size"]["md"],
         icon_lg=t["icon"]["size"]["lg"], icon_xl=t["icon"]["size"]["xl"],
+        radius="\n".join(f"    val {k} = {v}.dp" for k, v in r.items() if k != "full"),
+        space="\n".join(f"    val s{k} = {v}.dp" for k, v in t["space"].items()),
         hit=t["size"]["hit-min"]["android"],
         controls="\n".join(f"    val control{pascal(k)} = {v}.dp" for k, v in t["size"]["control-h"].items()),
         motion="\n".join(mot),
@@ -847,6 +870,7 @@ def tailwind(t):
     heights = ", ".join(f"'control-{k}': 'var(--control-h-{k})'" for k in t["size"]["control-h"])
     return f"""// {t['name']} theme: Tailwind (v3.3+) preset. Load theme.css first: every value reads its CSS variables
 // (and theme.css defines .frost). Opaque colours take opacity modifiers, e.g. bg-primary/10.
+// Text styles are not here: use theme.css's .t-* classes (class="t-body"), which also drop the tracking for CJK.
 module.exports = {{
   theme: {{
     extend: {{

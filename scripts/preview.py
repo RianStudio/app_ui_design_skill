@@ -40,6 +40,11 @@ ICONS = {
     "bus": '<rect x="5" y="4" width="14" height="13" rx="2.5"/><path d="M5 11h14M8 20v-3M16 20v-3M8.5 14h.01M15.5 14h.01"/>',
     "bag": '<path d="M5 8h14l-1.2 12H6.2z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>',
     "income": '<circle cx="12" cy="12" r="8"/><path d="m15 9-6 6M9 10v5h5"/>',
+    # status icons for status chips: a chip whose status shares the primary's accent is told apart by its icon
+    "success": '<circle cx="12" cy="12" r="8"/><path d="m8.5 12.2 2.4 2.4 4.6-4.8"/>',
+    "warning": '<path d="M10.7 5.3a1.5 1.5 0 0 1 2.6 0l6.9 12a1.5 1.5 0 0 1-1.3 2.2H5.1a1.5 1.5 0 0 1-1.3-2.2z"/><path d="M12 10v3.5M12 16.5h.01"/>',
+    "danger": '<circle cx="12" cy="12" r="8"/><path d="M12 8v4.5M12 16h.01"/>',
+    "info": '<circle cx="12" cy="12" r="8"/><path d="M12 11v5M12 8h.01"/>',
 }
 
 STATUS_GLYPHS = ('<svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor">'
@@ -67,6 +72,11 @@ def money(amount):
     """a ledger row's amount; income in the success colour, spending in plain text with a real minus sign (U+2212)"""
     cls = "amt in" if amount.startswith("+") else "amt"
     return f'<span class="{cls} t-body num">{amount}</span>'
+
+
+def chip(status, text):
+    """a status chip: status colour on its container, with the status icon"""
+    return f'<span class="chip {status} t-caption">{ic(status, "sm")}{text}</span>'
 
 
 def note(title, snippet, date):
@@ -102,8 +112,8 @@ SCREENS = {
         {row("review", "复盘", "未开始")}
       </section>
       <div class="chips">
-        <span class="chip success t-caption">已完成</span><span class="chip warning t-caption">将到期</span>
-        <span class="chip danger t-caption">已超时</span><span class="chip info t-caption">新功能</span>
+        {chip("success", "已完成")}{chip("warning", "将到期")}
+        {chip("danger", "已超时")}{chip("info", "新功能")}
       </div>
       <button class="btn primary t-headline">开始专注</button>
       <button class="btn line t-headline">稍后提醒</button>
@@ -130,7 +140,7 @@ SCREENS = {
         <div class="t-footnote muted">置顶 · 10 月 14 日 · 386 字</div>
         <p class="long">这周把讲专注的那一章又读了一遍。作者说，真正消耗精力的不是工作本身，而是在几件事之间来回切换：每切换一次，都要花时间重新找回刚才的思路。</p>
         <p class="long">所以我打算试一个简单的办法：<mark>每天上午只做一件最重要的事</mark>，消息和邮件留到下午统一处理。先坚持两周，再回来看看效果。</p>
-        <div class="chips"><span class="chip info t-caption">读书</span><span class="chip success t-caption">已同步</span></div>
+        <div class="chips">{chip("info", "读书")}{chip("success", "已同步")}</div>
       </article>
       <h2 class="sec t-footnote">最近笔记</h2>
       <section class="card list">
@@ -264,7 +274,7 @@ body { width: 1080px; padding: 36px 40px 44px; background: #F0F0EE; font-family:
 .amt.in { color: var(--c-success); }
 
 .chips { display: flex; gap: 8px; flex-wrap: wrap; }
-.chip { padding: 3px 10px; border-radius: var(--r-full); }
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px 3px 7px; border-radius: var(--r-full); }
 .chip.success { background: var(--c-success-container); color: var(--c-success); }
 .chip.warning { background: var(--c-warning-container); color: var(--c-warning); }
 .chip.danger { background: var(--c-danger-container); color: var(--c-danger); }
@@ -275,7 +285,7 @@ body { width: 1080px; padding: 36px 40px 44px; background: #F0F0EE; font-family:
 
 .btn { border: 0; height: var(--control-h-lg, 50px); border-radius: var(--r-lg); font-family: var(--font); }
 .btn.primary { background: var(--c-primary); color: var(--c-on-primary); }
-.btn.line { background: var(--c-surface); color: var(--c-text); border: 1px solid var(--c-border); box-shadow: var(--elev-1); }
+.btn.line { background: var(--c-surface); color: var(--c-text); border: 1px solid var(--c-border); }
 
 .chart { padding: 14px 16px 10px; }
 .cols { display: flex; justify-content: space-between; height: 128px; }
