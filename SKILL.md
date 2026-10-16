@@ -1,11 +1,11 @@
 ---
 name: rian-app-theme
-description: Design an app's UI theme (colour tokens for light and dark, type scale, spacing, radii, elevation and a celadon-glaze material) in Rian's cool, minimal Chinese-aesthetic style, matched to the app's icon, and export it as CSS variables, SwiftUI, Jetpack Compose and Tailwind. Use when asked for an app theme, design tokens, colour scheme, dark mode palette or UI style for an app. 用于按 Rian 的清冷东方风格生成 app UI 主题和设计 token。
+description: Design an app's UI theme (colour tokens for light and dark, type scale, spacing, radii, elevation, UI icon guidelines and a celadon-glaze material) in Rian's cool, minimal Chinese-aesthetic style, matched to the app's icon, and export it as CSS variables, SwiftUI, Jetpack Compose and Tailwind. Use when asked for an app theme, design tokens, colour scheme, dark mode palette or UI style for an app. 用于按 Rian 的清冷东方风格生成 app UI 主题和设计 token。
 ---
 
 # Rian App Theme
 
-把 app 图标的三种传统色变成一整套 UI 主题：浅色和深色两套颜色 token、字号、间距、圆角、投影和「青瓷釉」材质，导出成 CSS、SwiftUI、Compose 和 Tailwind，并渲染一张样例界面对照图。
+把 app 图标的三种传统色变成一整套 UI 主题：浅色和深色两套颜色 token、字号、间距、圆角、投影、界面图标规范和「青瓷釉」材质，导出成 CSS、SwiftUI、Compose 和 Tailwind，并渲染一张样例界面对照图。
 
 风格和图标 skill（`rian-app-icon`）是同一种：**清冷的东方质感**，极简、偏科技、偏冷淡。规则在 `references/rules.md`，动笔前要读。
 
@@ -45,9 +45,10 @@ python3 scripts/preview.py themes/tide --icon path/to/tide-1024.png
 | 深色模式的主色发灰、没精神 | 正常：深色模式的主色是实色往高光方向提亮的版本；觉得太灰就换更饱和的实色 |
 | 釉面导航栏在深色模式下发绿 | 釉色换成月白（天青、粉青在深色上会偏绿） |
 | 和图标对不上 | 确认三种颜色和图标一致 |
+| 用户想用 Font Awesome 等粗图标 | 说明不合适的原因（见 `rules.md`「图标」），推荐各平台的细线图标库 |
 
 ### 4. 交付
 
-给用户：预览图、三行说明（三种颜色、主色在浅色和深色下的色值、生成了哪些文件）和输出目录。告诉他们各平台怎么接入（见 `references/rules.md` 的「接入」）。
+给用户：预览图、三行说明（三种颜色、主色在浅色和深色下的色值、生成了哪些文件）和输出目录。告诉他们各平台怎么接入（见 `references/rules.md` 的「接入」），以及该用哪套界面图标库（见「图标」：iOS 用 SF Symbols，Android 用 Material Symbols Rounded，Web 用 Phosphor Light 或 Lucide）。
 
 用户用什么语言说话，说明就用什么语言。

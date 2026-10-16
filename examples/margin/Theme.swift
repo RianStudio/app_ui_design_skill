@@ -57,6 +57,16 @@ enum Space {
     static let s12 : CGFloat = 48
 }
 
+/// Icons: SF Symbols, light weight; selected items use Palette.primary and .regular.
+enum Icon {
+    static let sm: CGFloat = 16
+    static let md: CGFloat = 20
+    static let lg: CGFloat = 24
+    static let xl: CGFloat = 28
+    static let weight: Font.Weight = .light
+    static let activeWeight: Font.Weight = .regular
+}
+
 /// Celadon glaze: system material, a faint celadon tint and a bright top lip.
 struct Glaze: ViewModifier {
     var radius: CGFloat = Radius.lg

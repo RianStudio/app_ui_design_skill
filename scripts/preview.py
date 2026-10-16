@@ -8,12 +8,29 @@ set CHROMIUM_PATH to use an existing Chromium).
 """
 import argparse, base64, glob, json, os
 
+ICONS = {
+    "home": '<path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5.5h-5V20H5a1 1 0 0 1-1-1z"/>',
+    "chart": '<path d="M5 20v-8M12 20V5M19 20v-5"/>',
+    "compass": '<circle cx="12" cy="12" r="8"/><path d="m15 9-2 4-4 2 2-4z"/>',
+    "sliders": '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>',
+    "timer": '<circle cx="12" cy="13" r="7"/><path d="M12 9.5V13l2.5 1.5M10 3h4"/>',
+    "book": '<path d="M4 5.5A1.5 1.5 0 0 1 5.5 4H11v16H5.5A1.5 1.5 0 0 1 4 18.5zM13 4h5.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H13z"/>',
+    "review": '<path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v4h-4"/>',
+    "plus": '<path d="M12 5v14M5 12h14"/>',
+    "chev": '<path d="m9 6 6 6-6 6"/>',
+}
+
+
+def ic(name, cls=""):
+    return f'<svg class="icon {cls}" viewBox="0 0 24 24">{ICONS[name]}</svg>'
+
+
 PHONE = """
 <div class="phone" data-theme="{mode}">
   <div class="screen">
     <div class="status t-subhead"><b>9:41</b><span>●●● ▮</span></div>
     <header class="nav glaze">
-      <div class="row between"><span class="t-callout link">编辑</span>{icon}<span class="t-callout link">＋</span></div>
+      <div class="row between"><span class="t-callout link">编辑</span>{icon}<span class="link">{plus}</span></div>
       <h1 class="t-large-title">{name}</h1>
     </header>
     <main>
@@ -25,9 +42,9 @@ PHONE = """
       </section>
       <div class="seg"><span class="on t-subhead">今天</span><span class="t-subhead">本周</span><span class="t-subhead">本月</span></div>
       <section class="card list">
-        <div class="li"><i class="dot"></i><div><div class="t-body">深度工作</div><div class="t-footnote muted">25 分钟 · 已完成</div></div><span class="chev">›</span></div>
-        <div class="li"><i class="dot"></i><div><div class="t-body">阅读</div><div class="t-footnote muted">40 分钟 · 进行中</div></div><span class="chev">›</span></div>
-        <div class="li"><i class="dot"></i><div><div class="t-body">复盘</div><div class="t-footnote faint">未开始</div></div><span class="chev">›</span></div>
+        <div class="li"><i class="tile">{timer}</i><div><div class="t-body">深度工作</div><div class="t-footnote muted">25 分钟 · 已完成</div></div><span class="chev">{chev}</span></div>
+        <div class="li"><i class="tile">{book}</i><div><div class="t-body">阅读</div><div class="t-footnote muted">40 分钟 · 进行中</div></div><span class="chev">{chev}</span></div>
+        <div class="li"><i class="tile">{review}</i><div><div class="t-body">复盘</div><div class="t-footnote faint">未开始</div></div><span class="chev">{chev}</span></div>
       </section>
       <div class="chips">
         <span class="chip success t-caption">已完成</span><span class="chip warning t-caption">将到期</span>
@@ -37,8 +54,8 @@ PHONE = """
       <button class="btn tonal t-headline">稍后提醒</button>
     </main>
     <nav class="tabs glaze">
-      <span class="tab on"><i></i><b class="t-caption">首页</b></span><span class="tab"><i></i><b class="t-caption">统计</b></span>
-      <span class="tab"><i></i><b class="t-caption">发现</b></span><span class="tab"><i></i><b class="t-caption">设置</b></span>
+      <span class="tab is-active">{home}<b class="t-caption">首页</b></span><span class="tab">{chart}<b class="t-caption">统计</b></span>
+      <span class="tab">{compass}<b class="t-caption">发现</b></span><span class="tab">{sliders}<b class="t-caption">设置</b></span>
     </nav>
   </div>
   <div class="label t-footnote">{mode}</div>
@@ -70,9 +87,9 @@ main { padding: 14px 16px 0; display: flex; flex-direction: column; gap: 12px; }
 .list { padding: 0 0 0 16px; }
 .li { display: flex; align-items: center; gap: 12px; padding: 10px 16px 10px 0; border-bottom: 1px solid var(--c-border); }
 .li:last-child { border-bottom: 0; } .li > div { flex: 1; }
-.dot { width: 30px; height: 30px; border-radius: 9px; background: var(--c-primary-container);
-  box-shadow: inset 0 0 0 9px var(--c-primary-container), inset 0 0 0 30px var(--c-primary); }
-.chev { color: var(--c-text-3); font-size: 22px; }
+.tile { width: 32px; height: 32px; border-radius: 9px; background: var(--c-primary-container); color: var(--c-primary);
+  display: grid; place-items: center; }
+.chev { color: var(--c-text-3); display: flex; }
 .chips { display: flex; gap: 8px; }
 .chip { padding: 4px 10px; border-radius: var(--r-full); }
 .chip.success { background: var(--c-success-container); color: var(--c-success); }
@@ -85,8 +102,7 @@ main { padding: 14px 16px 0; display: flex; flex-direction: column; gap: 12px; }
 .tabs { position: absolute; left: 16px; right: 16px; bottom: 26px; height: 64px; border-radius: var(--r-full);
   display: flex; justify-content: space-around; align-items: center; }
 .tab { display: flex; flex-direction: column; align-items: center; gap: 3px; color: var(--c-text-3); }
-.tab i { width: 22px; height: 22px; border-radius: 7px; border: 2px solid currentColor; }
-.tab.on { color: var(--c-primary); } .tab.on i { background: currentColor; }
+.tab.is-active { color: var(--c-primary); }
 .swatches { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
 .sw { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; padding: 16px; border-radius: 18px; background: var(--c-bg); }
 .sw div { height: 54px; border-radius: 10px; display: flex; align-items: flex-end; padding: 4px 6px; font: 500 9px var(--font);
@@ -123,7 +139,9 @@ def main():
     icon = ""
     if a.icon:
         icon = f'<img src="data:image/png;base64,{base64.b64encode(open(a.icon, "rb").read()).decode()}">'
-    phones = "".join(PHONE.format(mode=m, name=t["name"], icon=icon) for m in ("light", "dark"))
+    icons = {"plus": ic("plus"), "timer": ic("timer", "md"), "book": ic("book", "md"), "review": ic("review", "md"),
+             "chev": ic("chev", "sm"), "home": ic("home"), "chart": ic("chart"), "compass": ic("compass"), "sliders": ic("sliders")}
+    phones = "".join(PHONE.format(mode=m, name=t["name"], icon=icon, **icons) for m in ("light", "dark"))
     sw = ""
     for m in ("light", "dark"):
         C = t["color"][m]

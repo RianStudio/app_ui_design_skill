@@ -46,6 +46,13 @@ val DarkColors = darkColorScheme(
     outline = Color(0xFF313840)
 )
 
+/** Icons: Material Symbols Rounded, weight 300, fill 0; selected = primary colour, weight 400. */
+object IconSize {
+    val sm = 16.dp; val md = 20.dp
+    val lg = 24.dp; val xl = 28.dp
+    const val WEIGHT = 300; const val WEIGHT_ACTIVE = 400
+}
+
 val AppShapes = Shapes(
     extraSmall = RoundedCornerShape(6.dp), small = RoundedCornerShape(10.dp),
     medium = RoundedCornerShape(14.dp), large = RoundedCornerShape(20.dp),

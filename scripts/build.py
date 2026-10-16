@@ -156,6 +156,10 @@ def derive(name, ground, solid, glaze):
             "2": [[0, 2, 4, 0.10], [0, 8, 20, 0.08], [0, 1, 1, 0.06]],
             "3": [[0, 4, 8, 0.10], [0, 18, 40, 0.14], [0, 1, 2, 0.08]],
         },
+        "icon": {"size": {"sm": 16, "md": 20, "lg": 24, "xl": 28}, "stroke": 1.5, "stroke-active": 2.0,
+                 "ios": "SF Symbols, weight .light (.regular next to body text)",
+                 "android": "Material Symbols Rounded, weight 300, fill 0, grade 0",
+                 "web": "Phosphor Light, or Lucide at stroke-width 1.5"},
         "blur": {"glaze": 26, "saturate": 1.25},
         "motion": {"fast": "160ms cubic-bezier(.2, 0, 0, 1)", "standard": "240ms cubic-bezier(.2, 0, 0, 1)",
                    "spring": "420ms cubic-bezier(.34, 1.36, .64, 1)"},
@@ -185,6 +189,8 @@ def css(t):
         common.append(f"  --t-{k}: {w} {size}px/{lh}px var(--font);")
         common.append(f"  --tr-{k}: {tr / size:.4f}em;")
     common += [f"  --m-{k}: {v};" for k, v in t["motion"].items()]
+    common += [f"  --icon-{k}: {v}px;" for k, v in t["icon"]["size"].items()]
+    common += [f"  --icon-stroke: {t['icon']['stroke']};", f"  --icon-stroke-active: {t['icon']['stroke-active']};"]
     out.append(":root {\n" + "\n".join(common) + "\n}")
     out.append(block(":root, [data-theme=\"light\"]", "light"))
     out.append("@media (prefers-color-scheme: dark) {\n" + block(":root:not([data-theme=\"light\"])", "dark").replace("\n", "\n  ") + "\n}")
@@ -198,6 +204,13 @@ def css(t):
 }}""")
     for k in t["font"]["scale"]:
         out.append(f".t-{k} {{ font: var(--t-{k}); letter-spacing: var(--tr-{k}); }}")
+    out.append("""/* line icons: one library, one stroke; selected = primary colour + heavier stroke */
+.icon { width: var(--icon-lg); height: var(--icon-lg); fill: none; stroke: currentColor;
+  stroke-width: var(--icon-stroke); stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.icon.sm { width: var(--icon-sm); height: var(--icon-sm); }
+.icon.md { width: var(--icon-md); height: var(--icon-md); }
+.icon.xl { width: var(--icon-xl); height: var(--icon-xl); }
+.is-active > .icon, .icon.active { color: var(--c-primary); stroke-width: var(--icon-stroke-active); }""")
     return "\n\n".join(out) + "\n"
 
 
@@ -244,6 +257,16 @@ enum Radius {{
 
 enum Space {{
 {space}
+}}
+
+/// Icons: SF Symbols, light weight; selected items use Palette.primary and .regular.
+enum Icon {{
+    static let sm: CGFloat = {t['icon']['size']['sm']}
+    static let md: CGFloat = {t['icon']['size']['md']}
+    static let lg: CGFloat = {t['icon']['size']['lg']}
+    static let xl: CGFloat = {t['icon']['size']['xl']}
+    static let weight: Font.Weight = .light
+    static let activeWeight: Font.Weight = .regular
 }}
 
 /// Celadon glaze: system material, a faint celadon tint and a bright top lip.
@@ -308,6 +331,13 @@ import androidx.compose.ui.unit.sp
 {scheme(L, 'LightColors')}
 
 {scheme(D, 'DarkColors')}
+
+/** Icons: Material Symbols Rounded, weight 300, fill 0; selected = primary colour, weight 400. */
+object IconSize {{
+    val sm = {t['icon']['size']['sm']}.dp; val md = {t['icon']['size']['md']}.dp
+    val lg = {t['icon']['size']['lg']}.dp; val xl = {t['icon']['size']['xl']}.dp
+    const val WEIGHT = 300; const val WEIGHT_ACTIVE = 400
+}}
 
 val AppShapes = Shapes(
     extraSmall = RoundedCornerShape({r['xs']}.dp), small = RoundedCornerShape({r['sm']}.dp),

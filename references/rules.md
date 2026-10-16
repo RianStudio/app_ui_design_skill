@@ -20,6 +20,7 @@
 | 间距 | 4 的倍数：4 8 12 16 20 24 32 40 48 |
 | 字号 | large-title 34 · title-1 28 · title-2 22 · title-3 20 · headline 17/600 · body 17 · callout 16 · subhead 15 · footnote 13 · caption 12 |
 | 投影 | elev-1 卡片、elev-2 浮层与釉面、elev-3 弹窗；多层，颜色同图标投影色，深色模式加深 |
+| 图标 | 尺寸 16 / 20 / 24 / 28，线宽 1.5，选中 2；各平台图标库见「图标」 |
 | 动效 | fast 160 ms、standard 240 ms（缓出），spring 420 ms（轻回弹）；不用夸张的弹跳和视差 |
 
 ## 用法速查
@@ -35,6 +36,28 @@
 | 导航栏、标签栏、底部弹窗、浮动按钮 | 釉面（CSS `.glaze`、SwiftUI `.glaze()`） |
 | 选中的标签、链接、开关 | `primary` |
 | 标签 / 徽章 | 状态色的 `-container` 底、状态色字，圆角 full |
+
+## 图标
+
+界面图标是**细线条、圆头圆角、统一网格**的一套，和清冷的整体气质一致。一个 app 只用一套图标库、一种线宽。
+
+| 平台 | 默认图标库 | 设置 |
+|---|---|---|
+| iOS | SF Symbols | 字重 `.light`；和正文并排时 `.regular`；scale `.medium` |
+| Android | Material Symbols **Rounded** | weight 300、fill 0、grade 0、optical size 24 |
+| Web / 跨平台 | Phosphor **Light**，或 Lucide | Lucide 设 `stroke-width: 1.5`；都用 `currentColor` 着色 |
+
+| 项目 | 规则 |
+|---|---|
+| 尺寸 | sm 16（列表箭头、行内）· md 20（列表图标）· lg 24（导航栏、标签栏）· xl 28（空状态、大按钮）；token 为 `--icon-*`、`Icon.*`、`IconSize.*` |
+| 线宽 | 1.5 px（24 网格）；选中态 2 px，或换成同一套的 fill 版本，但一个 app 只选一种做法 |
+| 颜色 | 默认 `text-2`；不可点的装饰图标 `text-3`；选中、可点的强调 `primary`；状态图标用对应状态色 |
+| 列表图标 | 放在 32 × 32、圆角 9 的 `primary-container` 方块里，图标 md、颜色 `primary` |
+| 对齐 | 与文字基线居中；图标和文字间距 8（行内）或 12（列表） |
+
+**不用 Font Awesome 当主力图标库**：免费版只有粗的 Solid 和 Regular，细的 Light / Thin 只在付费版；图标线宽、圆角不统一，和系统图标并排时显得粗笨。已经在用 Pro 版时，可以全站统一用 Light 或 Thin，不与 Solid 混用。
+
+也不要：混用两套图标库；实心和线性图标随意混排；彩色或渐变图标；给图标加投影。App 图标（主屏图标）不在此列，用 `rian-app-icon` 做。
 
 ## 不要
 
@@ -52,6 +75,7 @@
 - [ ] 正文、次要文字、按钮文字都清楚（脚本输出的对比度都 ≥ 4.5）
 - [ ] 图标放在导航栏里和界面颜色协调
 - [ ] 状态色只在对应状态出现
+- [ ] 图标只用一套库、一种线宽，选中态做法统一
 
 ## 接入
 
