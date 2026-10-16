@@ -1,23 +1,35 @@
-// Ledgerly theme: Tailwind (v3.3+) preset. Load theme.css first: every value reads its CSS variables
-// (and theme.css defines .frost). Opaque colours take opacity modifiers, e.g. bg-primary/10.
-// Text styles are not here: use theme.css's .t-* classes (class="t-body"), which also drop the tracking for CJK.
+// Ledgerly theme: Tailwind (v3.3+) preset, graphite style. Load theme.css first: colours, radii, shadows,
+// heights and durations read its CSS variables (and it defines .frost, .kbd and .hoverable). Opaque colours take
+// opacity modifiers, e.g. bg-primary/10. fontSize holds the desktop scale (text-body, text-small, text-caption …);
+// the .td-* classes in theme.css add Inter's opsz and the cv01 / ss03 features, so prefer them for display text.
+// focus-visible:ring is the focus ring: 2 px of focus, 2 px away, the gap in bg (ring-offset-surface etc. elsewhere).
 module.exports = {
   theme: {
     extend: {
       colors: {
+        'canvas': 'rgb(var(--c-canvas-rgb) / <alpha-value>)',
         'bg': 'rgb(var(--c-bg-rgb) / <alpha-value>)',
         'surface': 'rgb(var(--c-surface-rgb) / <alpha-value>)',
         'surface-2': 'rgb(var(--c-surface-2-rgb) / <alpha-value>)',
         'surface-3': 'rgb(var(--c-surface-3-rgb) / <alpha-value>)',
-        'border': 'rgb(var(--c-border-rgb) / <alpha-value>)',
+        'elevated': 'rgb(var(--c-elevated-rgb) / <alpha-value>)',
+        'menu-active': 'rgb(var(--c-menu-active-rgb) / <alpha-value>)',
+        'border': 'var(--c-border)',
         'border-strong': 'rgb(var(--c-border-strong-rgb) / <alpha-value>)',
         'text': 'rgb(var(--c-text-rgb) / <alpha-value>)',
         'text-2': 'rgb(var(--c-text-2-rgb) / <alpha-value>)',
+        'text-3': 'rgb(var(--c-text-3-rgb) / <alpha-value>)',
         'text-placeholder': 'rgb(var(--c-text-placeholder-rgb) / <alpha-value>)',
         'primary': 'rgb(var(--c-primary-rgb) / <alpha-value>)',
         'on-primary': 'rgb(var(--c-on-primary-rgb) / <alpha-value>)',
+        'primary-hover': 'rgb(var(--c-primary-hover-rgb) / <alpha-value>)',
+        'primary-pressed': 'rgb(var(--c-primary-pressed-rgb) / <alpha-value>)',
+        'primary-text': 'rgb(var(--c-primary-text-rgb) / <alpha-value>)',
         'primary-container': 'rgb(var(--c-primary-container-rgb) / <alpha-value>)',
         'on-primary-container': 'rgb(var(--c-on-primary-container-rgb) / <alpha-value>)',
+        'selected': 'rgb(var(--c-selected-rgb) / <alpha-value>)',
+        'focus': 'rgb(var(--c-focus-rgb) / <alpha-value>)',
+        'selection': 'rgb(var(--c-selection-rgb) / <alpha-value>)',
         'success': 'rgb(var(--c-success-rgb) / <alpha-value>)',
         'success-container': 'rgb(var(--c-success-container-rgb) / <alpha-value>)',
         'on-success': 'rgb(var(--c-on-success-rgb) / <alpha-value>)',
@@ -30,20 +42,26 @@ module.exports = {
         'info': 'rgb(var(--c-info-rgb) / <alpha-value>)',
         'info-container': 'rgb(var(--c-info-container-rgb) / <alpha-value>)',
         'on-info': 'rgb(var(--c-on-info-rgb) / <alpha-value>)',
-        'disabled-fg': 'var(--c-disabled-fg)',
-        'disabled-bg': 'var(--c-disabled-bg)',
-        'state-hover': 'var(--c-state-hover)',
-        'state-pressed': 'var(--c-state-pressed)',
-        'focus': 'rgb(var(--c-focus-rgb) / <alpha-value>)',
+        'hover': 'var(--c-hover)',
+        'pressed': 'var(--c-pressed)',
+        'disabled-fg': 'rgb(var(--c-disabled-fg-rgb) / <alpha-value>)',
+        'disabled-bg': 'rgb(var(--c-disabled-bg-rgb) / <alpha-value>)',
         'scrim': 'var(--c-scrim)',
-        'selection': 'rgb(var(--c-selection-rgb) / <alpha-value>)',
+        'scrim-menu': 'var(--c-scrim-menu)',
+        'frost': 'var(--c-frost)',
+        'frost-border': 'var(--c-frost-border)',
+        'frost-highlight': 'var(--c-frost-highlight)',
         'inverse-surface': 'rgb(var(--c-inverse-surface-rgb) / <alpha-value>)',
         'on-inverse': 'rgb(var(--c-on-inverse-rgb) / <alpha-value>)',
-        'frost': 'var(--c-frost)',
-        'frost-border': 'var(--c-frost-border)'
+        'inverse-primary': 'rgb(var(--c-inverse-primary-rgb) / <alpha-value>)',
+        // old names, kept for one version
+        'state-hover': 'var(--c-hover)',
+        'state-pressed': 'var(--c-pressed)'
       },
       borderColor: { DEFAULT: 'var(--c-border)' },
       ringColor: { DEFAULT: 'var(--c-focus)' },
+      ringWidth: { DEFAULT: '2px' },
+      ringOffsetWidth: { DEFAULT: '2px' },
       ringOffsetColor: { DEFAULT: 'var(--c-bg)' },
       borderRadius: {
         'xs': 'var(--r-xs)',
@@ -53,11 +71,25 @@ module.exports = {
         'xl': 'var(--r-xl)',
         'full': 'var(--r-full)'
       },
-      boxShadow: { e1: 'var(--elev-1)', e2: 'var(--elev-2)', e3: 'var(--elev-3)' },
+      fontSize: {
+        'display': ['32px', { lineHeight: '38px', letterSpacing: '-0.022em', fontWeight: '590' }],
+        'title-1': ['24px', { lineHeight: '32px', letterSpacing: '-0.0195em', fontWeight: '590' }],
+        'title-2': ['18px', { lineHeight: '24px', letterSpacing: '-0.0143em', fontWeight: '590' }],
+        'title-3': ['15px', { lineHeight: '20px', letterSpacing: '-0.0088em', fontWeight: '590' }],
+        'body': ['14px', { lineHeight: '20px', letterSpacing: '-0.0062em', fontWeight: '400' }],
+        'body-medium': ['14px', { lineHeight: '20px', letterSpacing: '-0.0062em', fontWeight: '510' }],
+        'small': ['13px', { lineHeight: '18px', letterSpacing: '-0.0032em', fontWeight: '400' }],
+        'caption': ['12px', { lineHeight: '16px', letterSpacing: '0.0005em', fontWeight: '510' }],
+        'micro': ['11px', { lineHeight: '14px', letterSpacing: '0.0048em', fontWeight: '510' }]
+      },
+      boxShadow: { e2: 'var(--elev-2)', e3: 'var(--elev-3)', e1: 'var(--elev-1)' /* old name: none, cards have no shadow */ },
       fontFamily: { sans: ['var(--font)'], mono: ['var(--font-mono)'] },
+      transitionDuration: { 'hover-in': 'var(--m-hover-in)', 'hover-out': 'var(--m-hover-out)', 'fast': 'var(--m-fast)', 'standard': 'var(--m-standard)', 'slow': 'var(--m-slow)', 'fast-exit': 'var(--m-fast-exit)', 'standard-exit': 'var(--m-standard-exit)', 'slow-exit': 'var(--m-slow-exit)' },
+      transitionTimingFunction: { enter: 'var(--ease-enter)', exit: 'var(--ease-exit)' },
+      height: { 'control-xs': 'var(--control-h-xs)', 'control-sm': 'var(--control-h-sm)', 'control-md': 'var(--control-h-md)', 'control-lg': 'var(--control-h-lg)', 'control-mobile-md': 'var(--control-h-mobile-md)', 'control-mobile-lg': 'var(--control-h-mobile-lg)', row: 'var(--row-h)', 'row-compact': 'var(--row-h-compact)', 'row-mobile': 'var(--row-h-mobile)', 'view-header': 'var(--view-header-h)', kbd: 'var(--kbd-h)' },
       minHeight: { hit: 'var(--hit-min)' },
-      minWidth: { hit: 'var(--hit-min)' },
-      height: { 'control-sm': 'var(--control-h-sm)', 'control-md': 'var(--control-h-md)', 'control-lg': 'var(--control-h-lg)' },
+      minWidth: { hit: 'var(--hit-min)', kbd: 'var(--kbd-h)' },
+      width: { sidebar: 'var(--sidebar-w)' },
     },
   },
 };
