@@ -598,7 +598,8 @@ COMPOSE_TYPE = [("displaySmall", "large-title", None), ("headlineMedium", "title
                 ("headlineSmall", "title-2", None), ("titleLarge", "title-3", None),
                 ("titleMedium", "headline", None), ("titleSmall", "subhead", 600),
                 ("bodyLarge", "body", None), ("bodyMedium", "subhead", None), ("bodySmall", "footnote", None),
-                ("labelLarge", "headline", None), ("labelSmall", "caption", None)]
+                ("labelLarge", "headline", None), ("labelMedium", "caption", None),
+                ("labelSmall", "caption", None)]
 COMPOSE_EXTRA_TYPE = ["callout", "body-long"]  # no Material 3 slot
 
 KOTLIN = """// @@title@@
@@ -628,6 +629,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -708,6 +710,9 @@ val AppShapes = Shapes(
 val ButtonShape = RoundedCornerShape(@@button_r@@.dp)
 val ChipShape = CircleShape
 
+/** Material 3's own line height style: centred, not trimmed, so single-line text keeps its full line height. */
+private val CentredLine = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None)
+
 val AppTypography = Typography(
 @@type@@
 )
@@ -764,8 +769,10 @@ fun AppOutlinedButton(
     colors = ButtonDefaults.outlinedButtonColors(
         containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
+        disabledContainerColor = MaterialTheme.colorScheme.surface,
+        disabledContentColor = AppTheme.colors.disabledFg,
     ),
-    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    border = BorderStroke(1.dp, if (enabled) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)),
     content = content,
 )
 
@@ -789,7 +796,13 @@ fun AppChip(
     enabled = enabled,
     leadingIcon = leadingIcon,
     shape = ChipShape,
-    colors = FilterChipDefaults.filterChipColors(containerColor = MaterialTheme.colorScheme.surface),
+    colors = FilterChipDefaults.filterChipColors(
+        containerColor = MaterialTheme.colorScheme.surface,
+        labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    ),
     border = FilterChipDefaults.filterChipBorder(
         enabled = enabled,
         selected = selected,
@@ -801,6 +814,7 @@ fun AppChip(
  *  (✓ / ! / i at IconSize.sm, tinted with the status colour). Always pass the icon when the status
  *  shares the primary's accent (info on a blue theme, success on a green one): without it the tag
  *  reads as a selected chip.
+ *  Danger is Material's error role: MaterialTheme.colorScheme.error / errorContainer.
  *  e.g. StatusTag("已完成", AppTheme.colors.success, AppTheme.colors.successContainer,
  *           icon = { Icon(Icons.Rounded.Check, contentDescription = null) }) */
 @Composable
@@ -817,7 +831,7 @@ fun StatusTag(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) Box(Modifier.size(IconSize.sm), contentAlignment = Alignment.Center) { icon() }
-        Text(text, style = MaterialTheme.typography.labelSmall)
+        Text(text, style = MaterialTheme.typography.labelSmall, maxLines = 1)
     }
 }
 """
@@ -830,7 +844,7 @@ def kt_colour(colour):
 
 def kt_text(size, lh, w, tr):
     return (f"TextStyle(fontSize = {size}.sp, lineHeight = {lh}.sp, fontWeight = FontWeight.W{w}, "
-            f"letterSpacing = ({tr / size:.4f}).em)")
+            f"letterSpacing = ({tr / size:.4f}).em, lineHeightStyle = CentredLine)")
 
 
 def kotlin(t):

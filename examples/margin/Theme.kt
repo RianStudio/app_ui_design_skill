@@ -25,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
@@ -255,24 +256,28 @@ val AppShapes = Shapes(
 val ButtonShape = RoundedCornerShape(12.dp)
 val ChipShape = CircleShape
 
+/** Material 3's own line height style: centred, not trimmed, so single-line text keeps its full line height. */
+private val CentredLine = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None)
+
 val AppTypography = Typography(
-    displaySmall = TextStyle(fontSize = 34.sp, lineHeight = 41.sp, fontWeight = FontWeight.W700, letterSpacing = (0.0109).em),
-    headlineMedium = TextStyle(fontSize = 28.sp, lineHeight = 34.sp, fontWeight = FontWeight.W700, letterSpacing = (0.0129).em),
-    headlineSmall = TextStyle(fontSize = 22.sp, lineHeight = 28.sp, fontWeight = FontWeight.W600, letterSpacing = (0.0159).em),
-    titleLarge = TextStyle(fontSize = 20.sp, lineHeight = 25.sp, fontWeight = FontWeight.W600, letterSpacing = (0.0190).em),
-    titleMedium = TextStyle(fontSize = 17.sp, lineHeight = 22.sp, fontWeight = FontWeight.W600, letterSpacing = (-0.0241).em),
-    titleSmall = TextStyle(fontSize = 15.sp, lineHeight = 20.sp, fontWeight = FontWeight.W600, letterSpacing = (-0.0160).em),
-    bodyLarge = TextStyle(fontSize = 17.sp, lineHeight = 22.sp, fontWeight = FontWeight.W400, letterSpacing = (-0.0241).em),
-    bodyMedium = TextStyle(fontSize = 15.sp, lineHeight = 20.sp, fontWeight = FontWeight.W400, letterSpacing = (-0.0160).em),
-    bodySmall = TextStyle(fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.W400, letterSpacing = (-0.0062).em),
-    labelLarge = TextStyle(fontSize = 17.sp, lineHeight = 22.sp, fontWeight = FontWeight.W600, letterSpacing = (-0.0241).em),
-    labelSmall = TextStyle(fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.W500, letterSpacing = (0.0000).em),
+    displaySmall = TextStyle(fontSize = 34.sp, lineHeight = 41.sp, fontWeight = FontWeight.W700, letterSpacing = (0.0109).em, lineHeightStyle = CentredLine),
+    headlineMedium = TextStyle(fontSize = 28.sp, lineHeight = 34.sp, fontWeight = FontWeight.W700, letterSpacing = (0.0129).em, lineHeightStyle = CentredLine),
+    headlineSmall = TextStyle(fontSize = 22.sp, lineHeight = 28.sp, fontWeight = FontWeight.W600, letterSpacing = (0.0159).em, lineHeightStyle = CentredLine),
+    titleLarge = TextStyle(fontSize = 20.sp, lineHeight = 25.sp, fontWeight = FontWeight.W600, letterSpacing = (0.0190).em, lineHeightStyle = CentredLine),
+    titleMedium = TextStyle(fontSize = 17.sp, lineHeight = 22.sp, fontWeight = FontWeight.W600, letterSpacing = (-0.0241).em, lineHeightStyle = CentredLine),
+    titleSmall = TextStyle(fontSize = 15.sp, lineHeight = 20.sp, fontWeight = FontWeight.W600, letterSpacing = (-0.0160).em, lineHeightStyle = CentredLine),
+    bodyLarge = TextStyle(fontSize = 17.sp, lineHeight = 22.sp, fontWeight = FontWeight.W400, letterSpacing = (-0.0241).em, lineHeightStyle = CentredLine),
+    bodyMedium = TextStyle(fontSize = 15.sp, lineHeight = 20.sp, fontWeight = FontWeight.W400, letterSpacing = (-0.0160).em, lineHeightStyle = CentredLine),
+    bodySmall = TextStyle(fontSize = 13.sp, lineHeight = 18.sp, fontWeight = FontWeight.W400, letterSpacing = (-0.0062).em, lineHeightStyle = CentredLine),
+    labelLarge = TextStyle(fontSize = 17.sp, lineHeight = 22.sp, fontWeight = FontWeight.W600, letterSpacing = (-0.0241).em, lineHeightStyle = CentredLine),
+    labelMedium = TextStyle(fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.W500, letterSpacing = (0.0000).em, lineHeightStyle = CentredLine),
+    labelSmall = TextStyle(fontSize = 12.sp, lineHeight = 16.sp, fontWeight = FontWeight.W500, letterSpacing = (0.0000).em, lineHeightStyle = CentredLine),
 )
 
 /** Text styles with no Material 3 slot. */
 object AppTextStyles {
-    val callout = TextStyle(fontSize = 16.sp, lineHeight = 21.sp, fontWeight = FontWeight.W400, letterSpacing = (-0.0200).em)
-    val bodyLong = TextStyle(fontSize = 17.sp, lineHeight = 28.sp, fontWeight = FontWeight.W400, letterSpacing = (-0.0241).em)
+    val callout = TextStyle(fontSize = 16.sp, lineHeight = 21.sp, fontWeight = FontWeight.W400, letterSpacing = (-0.0200).em, lineHeightStyle = CentredLine)
+    val bodyLong = TextStyle(fontSize = 17.sp, lineHeight = 28.sp, fontWeight = FontWeight.W400, letterSpacing = (-0.0241).em, lineHeightStyle = CentredLine)
 }
 
 @Composable
@@ -322,8 +327,10 @@ fun AppOutlinedButton(
     colors = ButtonDefaults.outlinedButtonColors(
         containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
+        disabledContainerColor = MaterialTheme.colorScheme.surface,
+        disabledContentColor = AppTheme.colors.disabledFg,
     ),
-    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    border = BorderStroke(1.dp, if (enabled) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)),
     content = content,
 )
 
@@ -347,7 +354,13 @@ fun AppChip(
     enabled = enabled,
     leadingIcon = leadingIcon,
     shape = ChipShape,
-    colors = FilterChipDefaults.filterChipColors(containerColor = MaterialTheme.colorScheme.surface),
+    colors = FilterChipDefaults.filterChipColors(
+        containerColor = MaterialTheme.colorScheme.surface,
+        labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+    ),
     border = FilterChipDefaults.filterChipBorder(
         enabled = enabled,
         selected = selected,
@@ -359,6 +372,7 @@ fun AppChip(
  *  (✓ / ! / i at IconSize.sm, tinted with the status colour). Always pass the icon when the status
  *  shares the primary's accent (info on a blue theme, success on a green one): without it the tag
  *  reads as a selected chip.
+ *  Danger is Material's error role: MaterialTheme.colorScheme.error / errorContainer.
  *  e.g. StatusTag("已完成", AppTheme.colors.success, AppTheme.colors.successContainer,
  *           icon = { Icon(Icons.Rounded.Check, contentDescription = null) }) */
 @Composable
@@ -375,6 +389,6 @@ fun StatusTag(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) Box(Modifier.size(IconSize.sm), contentAlignment = Alignment.Center) { icon() }
-        Text(text, style = MaterialTheme.typography.labelSmall)
+        Text(text, style = MaterialTheme.typography.labelSmall, maxLines = 1)
     }
 }
