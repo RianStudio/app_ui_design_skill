@@ -22,12 +22,14 @@ pip install playwright && playwright install chromium
 
 直接对 Claude 说，例如：
 
-> 给 Tide 做一套 UI 主题，图标是玄青底、淡朱砂、天青釉。
+> 给 Tide 做一套 UI 主题。
+
+默认配色是**霜白 · 黛 · 月白**：霜白做界面底色，黛做主色，月白做釉面。朱砂、藤黄这类暖色只留在 app 图标里，不做界面主色。
 
 也可以直接跑脚本：
 
 ```bash
-python3 scripts/build.py --name Tide --ground 玄青 --solid 淡朱砂 --glaze 天青 -o themes/tide
+python3 scripts/build.py --name Tide -o themes/tide          # 霜白 · 黛 · 月白
 python3 scripts/preview.py themes/tide --icon tide-1024.png
 ```
 
@@ -35,7 +37,7 @@ python3 scripts/preview.py themes/tide --icon tide-1024.png
 
 | 示例 | 三种颜色 | 主色（浅 / 深） |
 |---|---|---|
-| [Tide 专注计时](examples/tide/) | 玄青 · 淡朱砂 · 天青 | 朱砂红，深色下提亮 |
+| [Tide 专注计时](examples/tide/) | 霜白 · 黛 · 月白 | 黛蓝，深色下提亮为灰蓝；图标仍是朱砂 |
 | [Margin 笔记](examples/margin/) | 霜白 · 黛 · 月白 | 黛蓝，深色下提亮为灰蓝 |
 
 ## 结构

@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Build an app UI theme from the same three traditional colours as the app icon.
 
-    python3 scripts/build.py --name Tide --ground 玄青 --solid 淡朱砂 --glaze 天青 -o out/
+    python3 scripts/build.py --name Tide -o out/                          # default: 霜白 · 黛 · 月白
+    python3 scripts/build.py --name Tide --ground 玄青 --solid 石青 --glaze 天青 -o out/
 
 Writes tokens.json, theme.css, Theme.swift, Theme.kt and tailwind.preset.js to the output folder.
 Colour names come from assets/palette.json (Chinese or English names both work).
@@ -67,9 +68,16 @@ def find(kind, name):
 
 
 # ---------- derive ----------
+# warm colours stay in the app icon; the UI's primary is always a cool colour
+WARM = ("淡朱砂", "淡藤黄")
+
+
 def derive(name, ground, solid, glaze):
     gk, g = find("ground", ground)
     sk, s = find("solid", solid)
+    if sk in WARM:
+        print(f"note: {sk} is a warm colour and never the UI primary; using 黛 instead (keep {sk} in the icon)")
+        sk, s = find("solid", "黛")
     zk, z = find("glaze", glaze)
     hi, main, shade = s["tones"]
     zt, zb, zp = z["tones"]
@@ -381,9 +389,9 @@ module.exports = {{
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--name", required=True)
-    ap.add_argument("--ground", required=True)
-    ap.add_argument("--solid", required=True)
-    ap.add_argument("--glaze", required=True)
+    ap.add_argument("--ground", default="霜白")
+    ap.add_argument("--solid", default="黛")
+    ap.add_argument("--glaze", default="月白")
     ap.add_argument("-o", "--out", default="theme-out")
     a = ap.parse_args()
     t = derive(a.name, a.ground, a.solid, a.glaze)
