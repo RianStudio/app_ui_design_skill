@@ -608,9 +608,13 @@ package theme
 import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -619,6 +623,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
@@ -792,13 +797,29 @@ fun AppChip(
     ),
 )
 
-/** Status tag: the status colour on its own container, full pill,
- *  e.g. StatusTag("已完成", AppTheme.colors.success, AppTheme.colors.successContainer). */
+/** Status tag: the status colour on its own container, full pill, with a leading status icon
+ *  (✓ / ! / i at IconSize.sm, tinted with the status colour). Always pass the icon when the status
+ *  shares the primary's accent (info on a blue theme, success on a green one): without it the tag
+ *  reads as a selected chip.
+ *  e.g. StatusTag("已完成", AppTheme.colors.success, AppTheme.colors.successContainer,
+ *           icon = { Icon(Icons.Rounded.Check, contentDescription = null) }) */
 @Composable
-fun StatusTag(text: String, color: Color, container: Color, modifier: Modifier = Modifier) =
-    Surface(modifier = modifier, shape = ChipShape, color = container, contentColor = color) {
-        Text(text, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
+fun StatusTag(
+    text: String,
+    color: Color,
+    container: Color,
+    modifier: Modifier = Modifier,
+    icon: (@Composable () -> Unit)? = null,
+) = Surface(modifier = modifier, shape = ChipShape, color = container, contentColor = color) {
+    Row(
+        modifier = Modifier.padding(start = if (icon != null) 7.dp else 10.dp, end = 10.dp, top = 3.dp, bottom = 3.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        if (icon != null) Box(Modifier.size(IconSize.sm), contentAlignment = Alignment.Center) { icon() }
+        Text(text, style = MaterialTheme.typography.labelSmall)
     }
+}
 """
 
 
