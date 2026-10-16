@@ -815,8 +815,9 @@ fun AppChip(
  *  shares the primary's accent (info on a blue theme, success on a green one): without it the tag
  *  reads as a selected chip.
  *  Danger is Material's error role: MaterialTheme.colorScheme.error / errorContainer.
- *  e.g. StatusTag("已完成", AppTheme.colors.success, AppTheme.colors.successContainer,
- *           icon = { Icon(Icons.Rounded.Check, contentDescription = null) }) */
+ *  Use the Material Symbols Rounded check / warning / error / info glyphs at fill 0 (as vector drawables), e.g.
+ *  StatusTag("已完成", AppTheme.colors.success, AppTheme.colors.successContainer,
+ *      icon = { Icon(painterResource(R.drawable.check_rounded), contentDescription = null) }) */
 @Composable
 fun StatusTag(
     text: String,
