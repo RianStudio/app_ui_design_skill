@@ -1,15 +1,15 @@
 ---
 name: rian-app-theme
-description: Design an app's UI theme in Rian's house style, the graphite style after Linear with Apple and Google platform specs - graphite and paper-white neutral ladders derived in LCh, 1 px hairlines and lightness steps instead of card shadows, one accent taken from the app icon, and a high-contrast set built alongside the standard one. Exports colour tokens (light, dark and both high-contrast), type, spacing, radii, elevation, motion and a frost material as CSS, SwiftUI, Jetpack Compose and Tailwind, asserts WCAG contrast, and renders a preview with iPhone, Android and a desktop window with the command menu open. Also covers keyboard-first UX: command menu, shortcuts, optimistic updates, inline editing. Use when asked for an app theme, design tokens, colour scheme, dark mode or UI style, and when building screens of an app that uses this theme. Not for chart palettes, slides or marketing sites. 用于按 Rian 的石墨风格（Linear 式：LCh 中性色阶梯、发丝线分层、单一强调色、键盘优先）生成 app UI 主题、配色、深色和高对比模式、设计 token，以及用这套主题写界面。
+description: Design an app's UI theme in Rian's house style, the graphite style after Linear with Apple and Google platform specs - graphite and paper-white neutral ladders derived in LCh, hairlines and lightness steps instead of card shadows, one accent taken from the app icon, a high-contrast set alongside. Phone first. Exports colour, type, spacing, radii, elevation, motion, haptics, media tokens (neutral canvas, viewer scrim, checkerboard) and a frost material as CSS, SwiftUI, Jetpack Compose and Tailwind, asserts WCAG contrast, and renders a phone preview (list, photo editor or AI chat screens; a desktop window is optional). Also covers editors and viewers, AI chat and generation, long tasks, paywalls, onboarding, settings and an optional keyboard layer. Use when asked for an app theme, design tokens, colour scheme, dark mode or UI style, and when building screens of an app that uses this theme. Not for chart palettes, slides or marketing sites. 用于按 Rian 的石墨风格生成 app UI 主题、配色、深色和高对比模式、设计 token，以及用这套主题写界面。
 ---
 
 # Rian App Theme
 
-把 app 图标的强调色变成一整套 UI 主题：深浅两种模式 × 标准和高对比两档，共四套颜色 token；桌面和手机两套字号，加上间距、圆角、阴影、尺寸、动效、界面图标规范和 frost 材质。导出成 CSS、SwiftUI、Compose 和 Tailwind，并渲染一张对照图：两部 iPhone、一部 Android、一个打开 ⌘K 命令菜单的桌面窗口。
+把 app 图标的强调色变成一整套 UI 主题：深浅两种模式 × 标准和高对比两档，共四套颜色 token；手机和桌面两套字号，加上间距、圆角、阴影、尺寸、动效、触感、媒体色组（编辑器和查看器用）、界面图标规范和 frost 材质。导出成 CSS、SwiftUI、Compose 和 Tailwind，并渲染一张以手机为主的对照图：样例界面的 iPhone 浅色和深色、Android，再加三部共用外壳或媒体、AI 页面；桌面窗口可选。
 
-风格和图标 skill（`rian-app-icon`）是同一种：**石墨**。深石墨和纸白两套 LCh 中性色阶梯（色相 265，和图标的底是同一种石墨），用 1 px 发丝线和明度差分层，单一强调色，键盘优先，排得密但不挤。线条、密度和克制来自 Linear；材质、字体和图标规格来自 Apple；无障碍硬指标和动效参数来自 Google。
+风格和图标 skill（`rian-app-icon`）是同一种：**石墨**。深石墨和纸白两套 LCh 中性色阶梯（色相 265，和图标的底是同一种石墨），用 1 px 发丝线和明度差分层，单一强调色，排得密但不挤；照片和生成结果放在彩度 0 的中性画布上。只有这一种风格，键盘层和桌面窗口是可选的附加层。线条、密度和克制来自 Linear；材质、字体和图标规格来自 Apple；无障碍硬指标和动效参数来自 Google。
 
-**生成主题不需要先读 `references/rules.md`**：颜色、对比度、尺寸都由脚本决定。之后写界面代码时，再读其中的「用法速查」「命令菜单」「UX 模式」「图标」「不要」。
+**生成主题不需要先读 `references/rules.md`**：颜色、对比度、尺寸都由脚本决定。之后写界面代码时，按 app 的类型读其中几节（见最后的「之后写界面」）。
 
 **节奏**：按第 1 步的表直接定主色，不用等用户确认；生成、预览各跑一次，第 3 步三项都过就交付。不要反复调色。
 
@@ -27,8 +27,17 @@ description: Design an app's UI theme in Rian's house style, the graphite style 
 | 珊瑚、黄、灰 | 蓝（原色只留在图标里） |
 
 - **有图标时**：把图标强调色的**色名**原样传给 `--accent`：蓝、绿、紫、珊瑚、黄、灰，中英文都可以（`--accent coral`）。脚本自己换算（珊瑚、黄、灰会打印一行提示，`tokens.json` 的 `source.icon-accent` 记下图标色）。传色值时只认六色表里的「浅」「主」两个值（如 `#3B7BEA`），别的色值会被拒。
-- **只有品牌色、没有图标时**：红、橙、黄、棕、灰 → 蓝；其余取最接近的蓝、绿、紫。不要自造颜色。
-- **什么都没有**：蓝。不传 `--accent` 就是蓝。
+- **还没有图标时**：按类别传 `--category`，脚本取图标 skill 给这个类别的强调色，再按上表换算：
+
+  | 类别 | 界面主色 |
+  |---|---|
+  | AI | 紫 |
+  | 工具、图片、视频 | 蓝 |
+  | 健康、财务 | 绿 |
+
+  两个都传时以图标为准（不一致时打印一行提示）。
+- **只有品牌色**：红、橙、黄、棕、灰 → 蓝；其余取最接近的蓝、绿、紫。不要自造颜色。
+- **什么都没有**：蓝。不传 `--accent` 和 `--category` 就是蓝。
 
 主色只取强调色的色相和彩度，明度由脚本按对比度定。中性色固定是石墨（色相 265），不跟主色变。
 
@@ -39,21 +48,23 @@ description: Design an app's UI theme in Rian's house style, the graphite style 
 ### 2. 生成
 
 ```bash
-python3 scripts/build.py --name Tide --accent 珊瑚 -o themes/tide   # 图标是珊瑚 → 界面蓝
+python3 scripts/build.py --name Tide --accent 珊瑚 -o themes/tide       # 图标是珊瑚 → 界面蓝
 python3 scripts/build.py --name Ledgerly --accent 绿 -o themes/ledgerly
+python3 scripts/build.py --name Ask --category AI -o themes/ask         # 还没有图标 → 紫
 ```
 
-色名中英文都可以（`--accent green`）。脚本在 CIE LCh（D65）里推导所有颜色：
+色名中英文都可以（`--accent green`、`--category image`）。脚本在 CIE LCh（D65）里推导所有颜色：
 
 - **中性色**：按 `assets/palette.json` 的 `base`（色相 265，彩度深 1.6、浅 1.2）和 `ladder` 生成 `canvas` → `surface-3` 的阶梯和四级文字。
-- **主色**：色相和彩度固定，只走 L（步长 0.5）。`primary` 是填充，取白字刚好 ≥ 4.5:1 的最高 L，深浅两种模式同值；`primary-text` 是链接和选中文字，深色往亮走、浅色往暗走，直到在每个底上 ≥ 4.5:1。状态色同法。
+- **主色**：色相和彩度固定，只走 L（步长 0.5）。`primary` 是填充，取白字刚好 ≥ 4.5:1 的最高 L，深浅两种模式同值；`primary-text` 是链接和选中文字，深色往亮走、浅色往暗走，直到在每个底上 ≥ 4.5:1。状态色同法；`in-progress` 等于 `info`。
+- **媒体色组**：四档彩度 0 的画布（`media-black`、`media-dark`、`media-mid`、`media-white`）、棋盘格、查看器遮罩、白色手柄和参考线、照片选中描边。编辑页和查看页在四套里都是深色，所以这组在四套里同值（选中描边跟 `primary-text`）。
 - **两档对比度一起生成**：`standard` 和 `high`，深浅各一，输出 `light`、`dark`、`light-hc`、`dark-hc` 四套。高对比档的 `text` 取端点（纯白 / L 6），`text-2` ≥ 10:1，`text-3`、`primary-text` 和状态色 ≥ 7:1，`border` 换成 `border-strong`，frost 不透明度从 .80 提到 .94。Web 按 `prefers-contrast: more`、iOS 按「增强对比度」、Android 14 以上按系统对比度设置自动切换，不用另外做。
 
-每个前景色都放在它可能出现的每个底上检查 WCAG 对比度（表见 `rules.md`「颜色」），标准和高对比各打印一张矩阵（`!` 是不过，`~` 是过了断言但没到目标）。全过时打印四套的主色和文字色、一行 `legend:`（重复图例，并列出所有 `~` 格子，用 `tail` 也看得到）和一行 `contrast: all pass (standard, high)`，再写文件；有不过的组合时，列出失败项、什么都不写、退出码 1。
+每个前景色都放在它可能出现的每个底上检查 WCAG 对比度（表见 `rules.md`「颜色」），包括滑块填充段对轨道、白色控件在遮罩叠白图上、播放头对深色画布。标准和高对比各打印一张矩阵（`!` 是不过，`~` 是过了断言但没到目标）。全过时打印四套的主色和文字色、一行 `legend:`（重复图例，并列出所有 `~` 格子，用 `tail` 也看得到）和一行 `contrast: all pass (standard, high)`，再写文件；有不过的组合时，列出失败项、什么都不写、退出码 1。
 
 输出 `tokens.json`、`theme.css`、`Theme.swift`、`Theme.kt`、`tailwind.preset.js`。
 
-**不要手改生成的颜色。** 想调颜色，就换一个强调色重新生成；中性色要改时改 `assets/palette.json`（`base`、`ladder`、`text`、`alpha`），规则本身要改时改 `build.py` 的 `derive()`。
+**不要手改生成的颜色。** 想调颜色，就换一个强调色重新生成；中性色要改时改 `assets/palette.json`（`base`、`ladder`、`text`、`alpha`、`media`），规则本身要改时改 `build.py` 的 `derive()`。
 
 ### 3. 预览、自检
 
@@ -64,35 +75,46 @@ python3 scripts/preview.py themes/tide --screen timer \
   --icon icons/tide-1024.png --icon-dark icons/tide-dark.png
 ```
 
-- `--screen` 选最接近这个 app 的样例界面：`timer`（计时、工具类，默认）、`notes`（笔记、阅读类：长段中文、高亮、搜索框）、`list`（账本、列表类：金额、筛选 pill、按天分组的列表）。三个都不贴的（翻译、聊天、天气、相机……）用 `timer`。每个界面都有手机和桌面两份内容，组件条、字号表和色板的示例字也跟着界面换。
+- `--screen` 选最接近这个 app 的样例界面：
+  - `timer`（计时、工具类，默认）、`notes`（笔记、阅读类：长段中文、高亮、搜索框）、`list`（账本、列表类：金额、筛选 pill、按天分组的列表）。第二行是共用外壳：设置、付费墙、引导。
+  - `editor`（照片、视频、相机类）：编辑、抠图和导出、裁剪，第二行是图库多选、查看器、权限预请求。
+  - `chat`（AI 聊天、生成类）：对话、生成的四种状态、新对话的示例空状态，第二行是第三方 AI 同意、点数付费墙、举报。
+
+  组件条、字号表和色板的示例字也跟着界面换。翻译、天气这类不贴的用 `timer`。
 - `--icon` 用 `rian-app-icon` 的 `render.py` 写出的 `<name>-1024.png`（默认石墨外观）；`--icon-dark` 用加 `--variants` 时同一个 `-o` 目录里的 `<name>-dark.png`。已经渲染过就直接用那个目录；没有深色版就省略，深色界面沿用 `--icon`。还没有图标就两个都省略：图标位置画一个石墨占位图，标题行注明「未传 --icon」。
-- 桌面窗口默认深色，`--desktop-mode light` 换成浅色；旁边的桌面字号表用另一种模式。
-- 第一次运行会从 Google Fonts 下载 Inter、Roboto Flex、Material Symbols Rounded 和用到的 Noto Sans SC 字，缓存在 `~/.cache/rian-app-theme/fonts`。没有网络时自动退回本机字体（`--offline` 强制），标题行注明，断言照常。iPhone 屏上用 Inter 代替 SF Pro。
+- `--desktop`（可选，只给 `timer`、`notes`、`list`）：再加一行 1280 × 800 的桌面窗口，倒 L 布局，有键盘光标行和两行多选，⌘K 命令菜单打开，旁边是另一种模式的桌面字号表和一个确认弹窗。桌面窗口默认深色，`--desktop-mode light` 换成浅色。app 有 iPad、Mac 或 Web 版时才加。
+- 第一次运行会从 Google Fonts 下载 Inter、Roboto Flex、Material Symbols Rounded 和用到的 Noto Sans SC 字，缓存在 `~/.cache/rian-app-theme/fonts`。没有网络时自动退回本机字体（`--offline` 强制），标题行注明，断言照常。iPhone 屏上用 Inter 代替 SF Pro。照片是脚本自己画的，不需要图片文件。
 
 预览图是 1960 宽的画板，按 2x 截图（3920 px 宽），从上到下：
 
-1. 标题行：app 名；图标色 → 界面主色；`primary` 和悬停 / 按下、深浅两种 `primary-text`；中性色色相；样例界面；字体；生成时间。
-2. 第一行：iPhone 浅色静止态（390 × 844 pt）；iPhone 深色滚动态（内容滚到玻璃栏下面，带一条 toast）；Android 浅色（M3，Pixel 412 × 915 dp，内容滚过一点，TopAppBar 只加 1 px `border`）；浅色和深色两列组件条（按钮各态、输入框、标签、徽章、kbd、复选框、开关、菜单）。
-3. 第二行：1280 × 800 的桌面窗口，倒 L 布局，有键盘光标行和两行多选，⌘K 命令菜单打开。右边一列：另一种模式的桌面字号表（9 级）；下面一格，图标是珊瑚、黄、灰时是「图标 × 界面」（图标配上回落到蓝的界面小窗口，深浅各一），否则是一个确认弹窗。
-4. 色板：`light`、`dark`、`light-hc`、`dark-hc` 四列，每列有中性色阶梯、各档文字在最差背景上的对比度、主色一族、状态色和 frost 条。
+1. 标题行：app 名；类别、图标色 → 界面主色；`primary` 和按下、深浅两种 `primary-text`；中性色色相；样例界面；字体；生成时间。
+2. 第一行：样例界面的三部手机（iPhone 390 × 844 pt，Android 是 M3 的 Pixel 412 × 915 dp）；浅色和深色两列手机尺寸的组件条（按钮、分段控件和步进器、滑块、输入框、标签和状态徽章、长任务进度、开关和单选、长按菜单，最后一行是键盘层）。
+3. 第二行：三部共用外壳或媒体、AI 页面；右边一列是手机字号表，下面一格，图标是珊瑚、黄、灰时是「图标 × 界面」（图标配上回落到蓝的界面小窗口，深浅各一），否则是这个界面的底部弹窗。
+4. 加 `--desktop` 时：桌面窗口这一行。
+5. 色板：`light`、`dark`、`light-hc`、`dark-hc` 四列，每列有中性色阶梯、各档文字在最差背景上的对比度、主色一族、状态色和 frost 条；下面是媒体色组和触感、手势参数。
 
-脚本先打印一行 `sizes:`，是实测的控件尺寸（iOS 工具栏按钮 44 × 44、筛选 pill 高 36、行高 60，M3 TopAppBar 64、FilterChip 32、列表项 72、FAB 56，桌面行 36、侧栏项 28、命令项 36、kbd 18），和 `references/rules.md` 对不上就是哪里改坏了。最后打印四行断言，每行 PASS 或 FAIL；有 FAIL 时退出码是 1，`preview.png` 照样写出：
+脚本先打印一行 `sizes:`，是实测的控件尺寸（iOS 玻璃按钮 44 × 44、筛选 pill 高 36、行高 60，M3 TopAppBar 64、FilterChip 32、列表项 72、FAB 56，手机按钮高 50、分段控件 32、滑块圆钮 24、工具托盘 64、提示词框 48 起，加 `--desktop` 时还有桌面行 36、侧栏项 28、命令项 36、kbd 18），和 `references/rules.md` 对不上就是哪里改坏了。最后打印断言，每行 PASS 或 FAIL；有 FAIL 时退出码是 1，`preview.png` 照样写出：
 
-- `frost light`、`frost dark`：栏上文字和图标对滚到下面的内容的最低对比度 ≥ 3:1。只量玻璃本身：量的时候隐藏 iOS 的滚动边缘渐隐，滚动态居中的小标题不量。深色在第二部 iPhone 上量；浅色在画板外另渲染的一部浅色滚动态 iPhone 上量（不在图里）。
-- `accent area desktop`：桌面窗口里主色像素（LCh 色相 ±25°、彩度 ≥ 20）≤ 5 %，命令菜单和遮罩隐藏后量；把 `selected` 浅底也算进去（彩度 ≥ 4）的数字只报 INFO。
-- `accent area phone`：每部手机的屏幕 ≤ 8 %，报三部里最高的一部；INFO 同上。
+- `frost light`、`frost dark`：栏上文字和图标对滚到下面的列表的最低对比度 ≥ 3:1；`frost photo light`、`frost photo dark`：同样的玻璃对滚到下面的照片网格（有亮天空和高饱和的照片）≥ 3:1。只量玻璃本身：量的时候隐藏 iOS 的滚动边缘渐隐。这四部手机在画板外另外渲染（不在图里）。
+- `viewer scrim`：查看器的白色控件透过遮罩、叠在亮照片上 ≥ 4.5:1。
+- `accent area phone`：每部手机屏幕上主色像素（LCh 色相 ±25°、彩度 ≥ 20）≤ 8 %，报最高的一部；照片、画布和生成的图挖掉不算，把它们算进去的数字只报 INFO。`accent area conversion`：引导、付费墙、权限预请求、同意页 ≤ 15 %。把 `selected` 浅底也算进去（彩度 ≥ 4）的数字只报 INFO。
+- 加 `--desktop` 时多一行 `accent area desktop`：桌面窗口 ≤ 5 %，命令菜单和遮罩隐藏后量。
 
 打开 `preview.png` 亲眼看，**只查三件事**：
 
 1. **主色符合第 1 步的表**。标题行写着主色和图标色；有「图标 × 界面」那一格时，暖色图标和蓝色界面放在一起站得住。
 2. **`build.py` 打印了 `contrast: all pass (standard, high)`**。
-3. **`preview.py` 的 `frost light`、`frost dark` 两行 PASS，且 `accent area desktop`、`accent area phone` 都 PASS**。
+3. **`preview.py` 的断言全是 PASS**（frost 四行、`viewer scrim`、`accent area` 各行）。
 
 三项都过就交付。用户之后提意见时，常见的情况：
 
 | 看到 | 改 |
 |---|---|
-| 整个界面太花，或 `accent area` FAIL | 主色只给七种用途（`rules.md`「主色」）；侧栏当前项、键盘光标行、菜单当前项、筛选 pill 选中一律中性；列表图标用 `text-3`；「完成」是默认态的列表不画每行的绿勾 |
+| 整个界面太花，或 `accent area` FAIL | 主色只给「主色的用途」（`rules.md`「主色」）；侧栏当前项、键盘光标行、菜单当前项、筛选 pill、比例 chip、当前工具一律中性；列表图标用 `text-3`；「完成」是默认态的列表不画每行的绿勾 |
+| 照片里的蓝天、绿树被算成主色 | 不会：量面积时照片、画布、生成的图都挖掉了（`data-photo`），INFO 行另报算进去的数字 |
+| 浅色模式下编辑页、查看页还是黑的 | 正常：媒体页在四套里都是深色，画布彩度 0，看颜色才准（`rules.md`「媒体色组」） |
+| 「进行中」是蓝色不是黄色 | 正常：`in-progress` 等于 `info`；`warning` 只给真要注意的事 |
+| 手机上没有 kbd 和快捷键提示 | 正常：键盘层只在桌面、Web 和接了键盘的 iPad / Mac 上出现；手机上 ⌘K 对应搜索 |
 | 线太多、显得乱 | 一个区域只用一道线；桌面列表行之间不画线，靠组头分组；卡片里不套描边 |
 | 深色下层次看不清 | 正常：每级只差约 2.5 L，层次靠明度差加 1 px `border`。不要给卡片加投影；菜单当前项用 `menu-active`，不用 `surface-3` |
 | 深色模式的主按钮没有提亮 | 正常：`primary` 是填充，深浅同值，保证白字 ≥ 4.5:1。深色下更亮的是 `primary-text`（链接、选中文字、焦点环） |
@@ -105,7 +127,7 @@ python3 scripts/preview.py themes/tide --screen timer \
 
 ### 4. 交付
 
-给用户：预览图、三行说明（图标色 → 界面主色；`primary` 和深浅两种模式下 `primary-text` 的色值；生成了哪些文件）和输出目录。告诉他们各平台怎么接入（见 `references/rules.md` 的「接入」），深色和高对比都会跟随系统设置，以及该用哪套界面图标库：
+给用户：预览图、三行说明（图标色或类别 → 界面主色；`primary` 和深浅两种模式下 `primary-text` 的色值；生成了哪些文件）和输出目录。告诉他们各平台怎么接入（见 `references/rules.md` 的「接入」），深色和高对比都会跟随系统设置，以及该用哪套界面图标库：
 
 | 平台 | 图标库 | 设置 |
 |---|---|---|
@@ -117,4 +139,14 @@ python3 scripts/preview.py themes/tide --screen timer \
 
 ### 之后写界面
 
-给用这套主题的 app 写界面时，先读 `references/rules.md` 的「用法速查」「命令菜单」「UX 模式」「图标」「不要」。颜色、圆角、尺寸、动效都用 token，不写死数值；写完按「写界面时自查」过一遍。
+给用这套主题的 app 写界面时，先读 `references/rules.md` 的这几节，按 app 的类型取：
+
+| app | 读 |
+|---|---|
+| 所有 app | 「用法速查」「共用外壳」（设置、关于、评分、反馈、交叉推广、术语表）「UX 模式」「图标」「不要」 |
+| 画布型（照片、视频、相机） | 加「编辑和查看」「视频」「长任务」，以及「平台适配 → 媒体页强制深色」 |
+| 对话型（AI） | 加「AI」「长任务」 |
+| 有引导、付费墙、权限请求 | 加「转化界面」 |
+| 有 iPad、Mac 或 Web 版 | 加「命令菜单和键盘层」 |
+
+颜色、圆角、尺寸、动效、触感都用 token，不写死数值；写完按「写界面时自查」过一遍。
