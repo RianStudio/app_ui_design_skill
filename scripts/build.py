@@ -9,7 +9,7 @@ Writes tokens.json, theme.css, Theme.swift, Theme.kt and tailwind.preset.js to t
 Accent names come from assets/palette.json (Chinese or English names both work). The UI primary
 follows the icon accent: 蓝→蓝, 绿→绿, 紫→紫. 珊瑚 coral, 黄 yellow and 灰 gray stay in the app icon
 and the UI primary falls back to 蓝 (the script prints a note). Without an icon, --category picks the accent the
-icon skill gives that category (AI 紫, 工具 蓝, 图片 黄, 视频 珊瑚, 健康 and 财务 绿); with both, the icon wins.
+icon skill gives that category (AI 紫, 工具 tools 蓝, 图片 黄, 视频 珊瑚, 健康 and 财务 绿); with both, the icon wins.
 
 Every colour comes from three inputs in CIE LCh (D65): the graphite base (one hue, near-zero chroma,
 an L ladder per mode), the accent (its hue and chroma; only L moves), and the contrast level. Text
@@ -19,7 +19,8 @@ surface-2, surface-3, elevated, menu-active, selected, and the frost over the pa
 content. The set is built twice, standard and high contrast, so tokens.json has four schemes:
 light, dark, light-hc and dark-hc. Each scheme also carries the media tokens the editor and viewer use (they are
 dark pages in every scheme): four chroma-0 canvas steps, the transparency checkerboard, the viewer scrim, white
-handles and guides, and the media selection outline; white controls are checked on the scrim over a white photo.
+handles and guides, the video scrubber's track and the media selection outline; white controls are checked on the scrim
+over a white photo, and the scrubber's white played part on its track there.
 
 The script prints the contrast matrix of every scheme. If any pair falls short, or a high-contrast
 row is lower than its standard row, it exits with status 1 and writes nothing.
@@ -56,7 +57,7 @@ ORDER = ["canvas", "bg", "surface", "surface-2", "surface-3", "elevated", "menu-
          "in-progress", "hover", "pressed", "disabled-fg", "disabled-bg", "scrim", "scrim-menu",
          "frost", "frost-border", "frost-highlight", "inverse-surface", "on-inverse", "inverse-primary",
          "media-black", "media-dark", "media-mid", "media-white", "checker-a", "checker-b",
-         "on-media", "viewer-scrim", "media-edge", "media-guide", "media-selected"]
+         "on-media", "viewer-scrim", "media-edge", "media-guide", "media-track", "media-selected"]
 
 
 # ---------- colour maths ----------
@@ -185,9 +186,10 @@ def backgrounds(C):
 
 
 def find_category(name):
-    """an app category by its Chinese or English name: 工具 tool, 图片 image, 视频 video, AI, 健康 health, 财务 finance"""
+    """an app category by its Chinese or English name (the icon skill's data-category): 工具 tools, 图片 image, 视频 video,
+    AI, 健康 health, 财务 finance"""
     for k, v in PALETTE["category"].items():
-        if name.strip() == k or name.strip().lower() == v["en"]:
+        if name.strip() == k or name.strip().lower() in [v["en"]] + v.get("aliases", []):
             return k, v
     sys.exit(f"unknown category {name!r}: " + ", ".join(f"{k} ({v['en']})" for k, v in PALETTE["category"].items()))
 
@@ -462,15 +464,15 @@ MOTION = {
     "gesture": {"zoom-double-tap": 2.5, "zoom-max": 8, "deceleration": 0.998, "rubber-band": 0.55,
                 "dismiss-distance": 0.25, "dismiss-velocity": 800, "detent": 0.02},
 }
-# media and AI component sizes (pt / dp / px): the editor's tool tray, sliders, crop handles, the video timeline, the
-# thumbnail grid and its selection, the transparency checkerboard and the viewer scrim's height
+# media and AI component sizes (pt / dp / px): the editor's tool tray, sliders, crop handles, the video timeline and
+# the audio waveform under it, the thumbnail grid and its selection, the transparency checkerboard and the viewer scrim's height
 MEDIA_SIZE = {"tool-tray": 64, "tool-item": 64, "slider-track": 4, "slider-thumb": 24, "slider-tick": 8,
               "crop-handle": 20, "crop-stroke": 3, "playhead": 2, "playhead-knob": 10, "timeline": 48, "trim-handle": 14,
-              "thumb-gap": 2, "select-outline": 3, "select-check": 22, "checker": 8, "viewer-scrim": 140}
+              "waveform": 24, "thumb-gap": 2, "select-outline": 3, "select-check": 22, "checker": 8, "viewer-scrim": 140}
 # the CSS variable of each (Swift Size and Kotlin AppSize use the key in camelCase)
 MEDIA_CSS = {"tool-tray": "tool-tray-h", "tool-item": "tool-item-w", "slider-track": "slider-track-h",
              "slider-tick": "slider-tick-h", "playhead": "playhead-w", "timeline": "timeline-h",
-             "trim-handle": "trim-handle-w", "checker": "checker-size", "viewer-scrim": "viewer-scrim-h"}
+             "trim-handle": "trim-handle-w", "waveform": "waveform-h", "checker": "checker-size", "viewer-scrim": "viewer-scrim-h"}
 # one haptic per role: SwiftUI sensoryFeedback (iOS 17+; Theme.swift falls back to the UIKit generators), Compose
 # HapticFeedbackType (Compose UI 1.8+) and the Android HapticFeedbackConstants it maps to, and a navigator.vibrate
 # pattern in ms for the web (Android browsers only; iOS Safari has no vibration)
@@ -531,6 +533,11 @@ def audit(t):
             checks.append(("M3 onPrimary / primary-text", ink_on(C["primary-text"], C), C["primary-text"], TEXT))
             # white viewer controls on the scrim over the worst photo, a white one (and so over any lighter canvas step)
             checks.append(("on-media / viewer-scrim over white", C["on-media"], over(C["viewer-scrim"], C["media-white"]), TEXT))
+            # the video scrubber: its white played part against the track, on black and on the scrim over a white photo
+            checks.append(("scrubber on-media / media-track over media-black", C["on-media"],
+                           over(C["media-track"], C["media-black"]), NON_TEXT))
+            checks.append(("scrubber on-media / media-track over scrim over white", C["on-media"],
+                           over(C["media-track"], over(C["viewer-scrim"], C["media-white"])), NON_TEXT))
             if mode == "dark":
                 # the editor and viewer are dark pages: their text, links, outline and playhead sit on the dark canvas steps
                 for b in ("media-black", "media-dark"):
@@ -544,7 +551,7 @@ def audit(t):
                 row.append(f"{label} {r:.2f}{'!' if r < need else ''}")
                 if r < need:
                     fails.append(f"{k}: {label} {r:.2f} < {need:g}")
-            out.append("  pairs (on-* and fills 4.5; borders, focus, slider fill, media outline and playhead 3; the rest as the matrix):")
+            out.append("  pairs (on-* and fills 4.5; borders, focus, slider fill, scrubber, media outline and playhead 3; the rest as the matrix):")
             for i in range(0, len(row), 4):
                 out.append("    " + "   ".join(row[i:i + 4]))
     # the viewer scrim holds at least the checked opacity under the controls: every stop but the last, which fades out
@@ -714,13 +721,16 @@ textarea.input { height: auto; min-height: var(--control-h-lg); padding: 6px 10p
 .inline-edit:focus { background: none; }
 .inline-edit:focus-visible { outline: none; }
 .inline-edit.kb-focus { outline: 2px solid var(--c-focus); outline-offset: 2px; }""")
-    out.append("""/* hover: rows, menu items and ghost buttons, only where a pointer can hover (touch screens get the pressed state).
-   The highlight appears at once and fades out over 150 ms. */
+    out.append("""/* hover: rows, menu items and ghost buttons, only where a pointer can hover. The highlight appears at once and
+   fades out over 150 ms. Touch screens get the pressed state instead: at once on touch, a fast fade on release. */
 .hoverable { transition: background-color var(--m-hover-out) var(--ease-exit); }
 @media (hover: hover) {
   .hoverable:hover { background-color: var(--c-hover); transition-duration: var(--m-hover-in); }
 }
-.hoverable:active { background-color: var(--c-pressed); }""")
+@media (hover: none) {
+  .hoverable { transition-duration: var(--m-fast); }
+}
+.hoverable:active { background-color: var(--c-pressed); transition-duration: 0ms; }""")
     out.append("""/* frost (glass): floating bars, the mobile-web tab bar and custom floating buttons; never cards, lists, menus,
    dialogs or toasts (those are elevated). A full-width bar keeps only the hairline on its content side, e.g. border-width: 0 0 1px. */
 .frost {
@@ -838,7 +848,8 @@ extension Color {
 /// inProgress (= info) is a running task. Media pages (editor, viewer) are dark: mediaBlack, mediaDark, mediaMid and
 /// mediaWhite are the chroma-0 canvas steps (viewer black, editor dark grey by default), checkerA / checkerB the
 /// transparency checkerboard, onMedia the white controls on viewerScrim, mediaEdge the dark edge under white handles,
-/// mediaGuide the white guides (thirds grid, scrubber track), mediaSelected the outline of a selected picture.
+/// mediaGuide the white guides (thirds grid, waveform), mediaTrack the video scrubber's track (its played part is
+/// onMedia, not the primary: the primary falls short over a bright frame), mediaSelected the outline of a selected picture.
 enum Palette {
 @@palette@@
 
@@ -863,9 +874,9 @@ enum Size {
     static let row: CGFloat = @@row@@
     static let rowSingle: CGFloat = @@row_single@@
     static let pill: CGFloat = 36
-    /// media and AI components: the editor's tool tray and slider, crop handles, the video timeline, the thumbnail grid
-    /// and its selection, checkerboard squares and the viewer scrim's height; the prompt field grows from promptMin
-    /// to promptMaxLines lines, then scrolls
+    /// media and AI components: the editor's tool tray and slider, crop handles, the video timeline and its waveform, the
+    /// thumbnail grid and its selection, checkerboard squares and the viewer scrim's height; the prompt field grows from
+    /// promptMin to promptMaxLines lines, then scrolls (its corner radius stays promptMin / 2)
 @@media_sizes@@
     static let promptMin: CGFloat = @@prompt_min@@
     static let promptMaxLines = @@prompt_lines@@
@@ -904,8 +915,9 @@ enum MediaGesture {
 
 /// Haptics, one per role: selection (a tool, a segment, a picture picked), snap (a slider or dial reaching its detent,
 /// a crop edge meeting a guide), success (an export or save finished), failure (it failed). Play them on the event,
-/// never on every frame. iOS 17 and later: .sensoryFeedback(Haptic.snap.feedback, trigger: value); earlier, call
-/// Haptic.snap.play() from the action.
+/// never on every frame: sensoryFeedback plays whenever its trigger changes, so a slider gives it a condition,
+/// .sensoryFeedback(Haptic.snap.feedback, trigger: value) { old, new in new == 0 && old != 0 } (iOS 17 and later);
+/// earlier, call Haptic.snap.play() from the action when the value lands on the detent.
 enum Haptic {
     case selection, snap, success, failure
 
@@ -1250,12 +1262,13 @@ EXTENDED = ["canvas", "surface", "surface-2", "surface-3", "elevated", "menu-act
             "info", "on-info", "info-container", "in-progress", "hover", "pressed", "disabled-fg", "disabled-bg",
             "scrim", "scrim-menu", "frost", "frost-border", "frost-highlight",
             "media-black", "media-dark", "media-mid", "media-white", "checker-a", "checker-b",
-            "on-media", "viewer-scrim", "media-edge", "media-guide", "media-selected"]
+            "on-media", "viewer-scrim", "media-edge", "media-guide", "media-track", "media-selected"]
 KT_NAME = {"primary": "primaryFill", "on-primary": "onPrimaryFill", "primary-hover": "primaryFillHover",
            "primary-pressed": "primaryFillPressed"}
 
 KOTLIN = """// @@title@@
-// Android, Compose Material 3 1.2 or later (1.4 stable is the baseline; Haptic needs Compose UI 1.8, which 1.4 brings).
+// Android, Compose UI 1.8 or later (Compose BOM 2025.04.01, Material 3 1.3.2; Haptic uses 1.8's feedback types).
+// Material 3 1.4 stable (BOM 2025.09.01) is the baseline.
 // A fixed brand scheme: no dynamic colour.
 package theme
 
@@ -1350,7 +1363,8 @@ val DarkHighContrastColors = darkColorScheme(
  *  Media pages (editor, viewer) are dark: AppTheme(dark = true) around them. mediaBlack, mediaDark, mediaMid and
  *  mediaWhite are the chroma-0 canvas steps (viewer black, editor dark grey by default), checkerA / checkerB the
  *  transparency checkerboard, onMedia the white controls on the viewer scrim, mediaEdge the dark edge under white
- *  handles, mediaGuide the white guides (thirds grid, scrubber track), mediaSelected the outline of a selected picture. */
+ *  handles, mediaGuide the white guides (thirds grid, waveform), mediaTrack the video scrubber's track (its played part
+ *  is onMedia, not the primary: the primary falls short over a bright frame), mediaSelected the outline of a selected picture. */
 @Immutable
 data class ExtendedColors(
 @@ext_fields@@
@@ -1438,9 +1452,9 @@ object AppSize {
     val navigationBar = 80.dp
     val fab = 56.dp
 
-    /** Media and AI components: the editor's tool tray and slider, crop handles, the video timeline, the thumbnail grid
-     *  and its selection, checkerboard squares and the viewer scrim's height; the prompt field grows from promptMin
-     *  to PROMPT_MAX_LINES lines, then scrolls. */
+    /** Media and AI components: the editor's tool tray and slider, crop handles, the video timeline and its waveform,
+     *  the thumbnail grid and its selection, checkerboard squares and the viewer scrim's height; the prompt field grows
+     *  from promptMin to PROMPT_MAX_LINES lines, then scrolls (its corner radius stays promptMin / 2). */
 @@media_sizes@@
     val promptMin = @@prompt_min@@.dp
     const val PROMPT_MAX_LINES = @@prompt_lines@@
@@ -1521,11 +1535,13 @@ fun Modifier.mediaSelected(selected: Boolean, colors: ExtendedColors): Modifier 
 }
 
 /** The keyboard layer (shortcut hints in menus and tooltips, hover) is optional: show it only while a hardware keyboard
- *  is attached (tablets, Chromebooks), never as a default on phones. Follows the keyboard as it comes and goes. */
+ *  is attached to a tablet or Chromebook (smallest width 600 dp and up), never on phones, as on iOS. Follows the
+ *  keyboard as it comes and goes. */
 @Composable
 fun hasHardwareKeyboard(): Boolean {
     val config = LocalConfiguration.current
-    return config.keyboard == Configuration.KEYBOARD_QWERTY && config.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO
+    return config.smallestScreenWidthDp >= 600 &&
+        config.keyboard == Configuration.KEYBOARD_QWERTY && config.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO
 }
 
 /** Material 3 picks corners by size key: text fields extraSmall, chips small, cards medium, sheets extraLarge. */
@@ -1710,7 +1726,8 @@ fun AppCard(
 )
 
 /** Slider: the filled part and the thumb are primaryFill (the slider is one of the primary's uses), the track is
- *  surface-3 (neutral). A slider with a zero (exposure, warmth) snaps to it: onValueChange = { v ->
+ *  surface-3 (neutral). Compose keeps Material's handle in the fill colour, where iOS and the web draw a white round
+ *  thumb (rules.md). A slider with a zero (exposure, warmth) snaps to it: onValueChange = { v ->
  *  val s = MediaGesture.snapped(v, range); if (s == 0f && value != 0f) haptics.performHapticFeedback(Haptic.snap); value = s } */
 @Composable
 fun appSliderColors(): SliderColors = SliderDefaults.colors(
@@ -1897,7 +1914,7 @@ def tailwind(t):
     heights += ["row: 'var(--row-h)'", "'row-compact': 'var(--row-h-compact)'", "'row-mobile': 'var(--row-h-mobile)'",
                 "'view-header': 'var(--view-header-h)'", "kbd: 'var(--kbd-h)'"]
     key = lambda k: k if k.isidentifier() else f"'{k}'"
-    heights += [f"{key(k)}: 'var(--{MEDIA_CSS.get(k, k)})'" for k in ("tool-tray", "slider-track", "timeline", "viewer-scrim")]
+    heights += [f"{key(k)}: 'var(--{MEDIA_CSS.get(k, k)})'" for k in ("tool-tray", "slider-track", "timeline", "waveform", "viewer-scrim")]
     widths = ["sidebar: 'var(--sidebar-w)'"] + [f"{key(k)}: 'var(--{MEDIA_CSS.get(k, k)})'" for k in ("tool-item", "playhead", "trim-handle")]
     M, tc = t["motion"], t["font"]["web"]["phone"]["timecode"]
     durations = [f"'{k}': 'var(--m-{k})'" for k in M["duration"]] + [f"'{k}-exit': 'var(--m-{k}-exit)'" for k in M["exit"]]
@@ -1907,9 +1924,13 @@ def tailwind(t):
 // the .td-* classes in theme.css add Inter's opsz and the cv01 / ss03 features, so prefer them for display text.
 // focus-visible:ring is the focus ring: 2 px of focus, 2 px away, the gap in bg (ring-offset-surface etc. elsewhere).
 // Media: bg-checker (the checkerboard, image and square size), bg-viewer-scrim-top / -bottom with h-viewer-scrim, and a
-// selected picture is ring-select ring-inset ring-media-selected (an outline, never a tint). text-timecode is the phone
-// timecode size: add tabular-nums. The kbd hints and hover are an optional layer (theme.css hides .kbd on touch screens).
+// selected picture is outline outline-select outline-offset-select outline-media-selected: an outline inside its edge,
+// drawn over the picture (a ring is an inset shadow, which an <img> covers), never a tint; theme.css's .media-selected
+// is the same. text-timecode is the phone timecode size: add tabular-nums. The kbd hints and hover are an optional
+// layer: theme.css hides .kbd on touch screens, and future.hoverOnlyWhenSupported keeps hover: off touch screens (a
+// future block in your own config replaces this one: add the flag there).
 module.exports = {{
+  future: {{ hoverOnlyWhenSupported: true }},
   theme: {{
     extend: {{
       colors: {{
@@ -1917,7 +1938,9 @@ module.exports = {{
       }},
       borderColor: {{ DEFAULT: 'var(--c-border)' }},
       ringColor: {{ DEFAULT: 'var(--c-focus)' }},
-      ringWidth: {{ DEFAULT: '2px', select: 'var(--select-outline)' }},
+      ringWidth: {{ DEFAULT: '2px' }},
+      outlineWidth: {{ select: 'var(--select-outline)' }},
+      outlineOffset: {{ select: 'calc(-1 * var(--select-outline))' }},
       ringOffsetWidth: {{ DEFAULT: '2px' }},
       ringOffsetColor: {{ DEFAULT: 'var(--c-bg)' }},
       borderRadius: {{
@@ -1952,7 +1975,7 @@ def main():
                          "灰 gray, 珊瑚 coral and 黄 yellow give a 蓝 UI primary. One of the two tones in "
                          "assets/palette.json (e.g. #3B7BEA) also works; any other colour value is refused")
     ap.add_argument("--category",
-                    help="the app's category when there is no icon yet: 工具 tool, 图片 image, 视频 video (蓝), "
+                    help="the app's category when there is no icon yet: 工具 tools, 图片 image, 视频 video (蓝), "
                          "AI (紫), 健康 health, 财务 finance (绿). With --accent too, the icon accent wins")
     ap.add_argument("-o", "--out", default="theme-out")
     a = ap.parse_args()
