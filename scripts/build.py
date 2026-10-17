@@ -195,10 +195,11 @@ def find_category(name):
 
 
 def find(name):
-    """an accent by its Chinese or English name, or by one of its two tones from the table (#3B7BEA -> 蓝)"""
+    """an accent by its Chinese or English name (or an alias: purple, grey), or by one of its two tones from the table
+    (#3B7BEA -> 蓝)"""
     tone = "#" + name.strip().lstrip("#").upper()
     for k, v in PALETTE["accent"].items():
-        if name.strip() in (k, v["en"]) or name.strip().lower() == v["en"] or tone in v["tones"]:
+        if name.strip() == k or name.strip().lower() in [v["en"]] + v.get("aliases", []) or tone in v["tones"]:
             return k, v
     sys.exit(f"unknown accent {name!r}; pass the colour name, not a colour value: " +
              ", ".join(f"{k} ({v['en']})" for k, v in PALETTE["accent"].items()) +
