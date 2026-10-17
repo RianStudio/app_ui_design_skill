@@ -3,11 +3,13 @@
 
     python3 scripts/build.py --name Tide -o out/                 # default accent: 蓝 (blue)
     python3 scripts/build.py --name Tide --accent 紫 -o out/     # or --accent violet
+    python3 scripts/build.py --name Ask --category AI -o out/   # no icon yet: the category picks the accent
 
 Writes tokens.json, theme.css, Theme.swift, Theme.kt and tailwind.preset.js to the output folder.
 Accent names come from assets/palette.json (Chinese or English names both work). The UI primary
 follows the icon accent: 蓝→蓝, 绿→绿, 紫→紫. 珊瑚 coral, 黄 yellow and 灰 gray stay in the app icon
-and the UI primary falls back to 蓝 (the script prints a note).
+and the UI primary falls back to 蓝 (the script prints a note). Without an icon, --category picks the accent the
+icon skill gives that category (AI 紫, 工具 蓝, 图片 黄, 视频 珊瑚, 健康 and 财务 绿); with both, the icon wins.
 
 Every colour comes from three inputs in CIE LCh (D65): the graphite base (one hue, near-zero chroma,
 an L ladder per mode), the accent (its hue and chroma; only L moves), and the contrast level. Text
@@ -15,7 +17,9 @@ tiers, control borders, primary-text and the status colours start from palette.j
 toward more contrast until they pass on every background they can sit on: canvas, bg, surface,
 surface-2, surface-3, elevated, menu-active, selected, and the frost over the page and over mid-grey
 content. The set is built twice, standard and high contrast, so tokens.json has four schemes:
-light, dark, light-hc and dark-hc.
+light, dark, light-hc and dark-hc. Each scheme also carries the media tokens the editor and viewer use (they are
+dark pages in every scheme): four chroma-0 canvas steps, the transparency checkerboard, the viewer scrim, white
+handles and guides, and the media selection outline; white controls are checked on the scrim over a white photo.
 
 The script prints the contrast matrix of every scheme. If any pair falls short, or a high-contrast
 row is lower than its standard row, it exits with status 1 and writes nothing.
@@ -49,8 +53,10 @@ ORDER = ["canvas", "bg", "surface", "surface-2", "surface-3", "elevated", "menu-
          "primary-container", "on-primary-container", "selected", "focus", "selection",
          "success", "success-container", "on-success", "warning", "warning-container", "on-warning",
          "danger", "danger-container", "on-danger", "info", "info-container", "on-info",
-         "hover", "pressed", "disabled-fg", "disabled-bg", "scrim", "scrim-menu",
-         "frost", "frost-border", "frost-highlight", "inverse-surface", "on-inverse", "inverse-primary"]
+         "in-progress", "hover", "pressed", "disabled-fg", "disabled-bg", "scrim", "scrim-menu",
+         "frost", "frost-border", "frost-highlight", "inverse-surface", "on-inverse", "inverse-primary",
+         "media-black", "media-dark", "media-mid", "media-white", "checker-a", "checker-b",
+         "on-media", "viewer-scrim", "media-edge", "media-guide", "media-selected"]
 
 
 # ---------- colour maths ----------
@@ -178,6 +184,14 @@ def backgrounds(C):
     return B
 
 
+def find_category(name):
+    """an app category by its Chinese or English name: 工具 tool, 图片 image, 视频 video, AI, 健康 health, 财务 finance"""
+    for k, v in PALETTE["category"].items():
+        if name.strip() == k or name.strip().lower() == v["en"]:
+            return k, v
+    sys.exit(f"unknown category {name!r}: " + ", ".join(f"{k} ({v['en']})" for k, v in PALETTE["category"].items()))
+
+
 def find(name):
     """an accent by its Chinese or English name, or by one of its two tones from the table (#3B7BEA -> 蓝)"""
     tone = "#" + name.strip().lstrip("#").upper()
@@ -271,14 +285,33 @@ def scheme(mode, level, ui_accent, prim, start):
             C[s], L[s], _ = reach(start[s] if hc else sL, sC, sH, up, B + [box], acc)
             C[s + "-container"] = box
         C["on-" + s] = ink_on(C[s], C)
+    C["in-progress"] = C["info"]  # a running task reads as information, never as a warning
 
     C["disabled-fg"], C["disabled-bg"] = C["text-placeholder"], C["surface-3"]
+
+    # media pages (editor, viewer) are dark in every scheme. The canvas steps and the checkerboard have chroma 0, so
+    # they never tint a photo; white controls sit on the viewer scrim, white handles and guides carry a dark edge.
+    # A selected picture gets an outline in primary-text and a check, never a tint over it.
+    M = P["media"]
+    for k, l in M["canvas"].items():
+        C["media-" + k] = lch_to_hex(l, 0, 0)
+    for k, l in M["checker"].items():
+        C["checker-" + k] = lch_to_hex(l, 0, 0)
+    C["on-media"] = W
+    for k, (base, a) in M["alpha"].items():
+        C[k] = rgba(base, a)
+    C["media-selected"] = C["primary-text"]
     return C, L
 
 
-def derive(name, accent):
-    ak, a = find(accent)
-    source = {"accent": ak, "en": a["en"]}
+def derive(name, accent=None, category=None):
+    """accent is the app icon's accent; without an icon the category gives the accent its icon would have"""
+    cat = find_category(category) if category else None
+    if cat and accent and PALETTE["accent"][find(accent)[0]].get("ui_primary") != PALETTE["accent"][cat[1]["icon"]]["ui_primary"]:
+        print(f"note: the icon accent {find(accent)[0]} and the category {cat[0]} ({cat[1]['en']}) give different UI primaries; "
+              f"following the icon (the app icon and its UI stay one family)")
+    ak, a = find(accent or (cat[1]["icon"] if cat else DEFAULT_ACCENT))
+    source = {"accent": ak, "en": a["en"], **({"category": cat[0]} if cat else {})}
     ui = a.get("ui_primary", ak)
     if ui != ak:
         why = ("a warm accent" if a.get("warm") else
@@ -318,10 +351,15 @@ def derive(name, accent):
             "row": {"desktop": 36, "compact": 32, "mobile": 60, "mobile-single": 44, "android": 72},
             "sidebar": {"width": 240, "item": 28},
             "view-header": 44, "filter-bar": 36, "kbd": 18,
+            "media": MEDIA_SIZE,
+            "prompt": {"min": 48, "max-lines": 6},
         },
         "font": FONT,
         "elevation": ELEVATION,
         "motion": MOTION,
+        "haptic": HAPTIC,
+        "gradient": {"viewer-scrim": {"color": PALETTE["media"]["alpha"]["viewer-scrim"][0],
+                                      "stops": PALETTE["media"]["scrim_stops"]}},
         "blur": {"frost": 24, "saturate": 1.5,
                  "opacity": {"standard": PALETTE["alpha"]["light"]["frost"][1], "high": PALETTE["alpha"]["frost_high"]}},
         "icon": {"size": {"sm": 16, "md": 20, "lg": 24}, "stroke": 1.5, "non-scaling": True,
@@ -354,8 +392,9 @@ PHONE_TYPE = {
     "section-header": ("footnote", "medium", 13, 18),
     "tag-label": ("caption", "medium", 12, 16),
     "amount": ("subheadline", "medium", 15, 20),
+    "timecode": ("footnote", "medium", 13, 18),
 }
-TABULAR = {"amount"}
+TABULAR = {"amount", "timecode"}  # digits keep one width, so a running time or a changing amount never jitters
 WEB_WEIGHT = {"regular": 400, "medium": 510, "semibold": 590, "bold": 590}  # the web never uses 700
 # long Chinese paragraphs need more air than the system body's 17/22: the web sets 17/28, iOS adds the difference
 # as line spacing (.longText())
@@ -375,6 +414,7 @@ ANDROID_TYPE = {
     "bodyLarge": (16, 24, 400, 0.5), "bodyMedium": (14, 20, 400, 0.25), "bodySmall": (12, 16, 400, 0.4),
     "labelLarge": (14, 20, 500, 0.1), "labelMedium": (12, 16, 500, 0.5), "labelSmall": (11, 16, 500, 0.5),
 }
+ANDROID_TIMECODE = "labelLarge"  # 14 sp, 500; tabular in Theme.kt (Typography.timecode)
 FONT = {
     "web": {
         "family": "InterVariable, Inter, 'PingFang SC', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
@@ -396,6 +436,7 @@ FONT = {
     "android": {
         "family": "Roboto Flex",
         "scale": {k: {"size": s, "line": lh, "weight": w, "tracking": tr} for k, (s, lh, w, tr) in ANDROID_TYPE.items()},
+        "timecode": {"style": ANDROID_TIMECODE, "tabular": True},
     },
 }
 # box-shadow layers per mode: [x, y, blur, spread, opacity of black]. elev-0 is none (cards and lists
@@ -404,15 +445,41 @@ ELEVATION = {
     "light": {"0": [], "2": [[0, 4, 12, 0, 0.06], [0, 8, 24, 0, 0.10]], "3": [[0, 8, 16, 0, 0.06], [0, 24, 64, 0, 0.12]]},
     "dark": {"0": [], "2": [[0, 8, 24, 0, 0.50]], "3": [[0, 16, 48, 0, 0.60]]},
 }
-DURATION = {"hover-in": 0, "hover-out": 150, "fast": 100, "standard": 180, "slow": 250}
+# zoom: the grid-to-viewer shared-element transition and a double-tap zoom
+DURATION = {"hover-in": 0, "hover-out": 150, "fast": 100, "standard": 180, "slow": 250, "zoom": 300}
 MOTION = {
     "duration": DURATION,
-    "exit": {k: round(DURATION[k] * 2 / 3) for k in ("fast", "standard", "slow")},  # exits take 2/3 of the entry
+    "exit": {k: round(DURATION[k] * 2 / 3) for k in ("fast", "standard", "slow", "zoom")},  # exits take 2/3 of the entry
     "ease": {"enter": [0.2, 0, 0, 1], "exit": [0.3, 0, 1, 1]},
     "ios": {"spring": {"response": 0.3, "dampingFraction": 0.9}},
     "android": {"scheme": "MotionScheme.standard()",
                 "spatial": {"dampingRatio": 0.9, "stiffness": 700}, "effects": {"dampingRatio": 1.0, "stiffness": 1600}},
     "reduced": "durations go to 0 ms: no movement or scaling, at most a fade",
+    # photos and video: pinch from fit (1) to zoom-max, a double tap toggles fit and zoom-double-tap; pans keep their
+    # momentum (deceleration per ms, iOS UIScrollView .normal; Android uses its own fling decay) and rubber-band at the
+    # edges; a swipe down closes the viewer past dismiss-distance of the height or dismiss-velocity pt/s; sliders and
+    # dials snap to their detent within detent of the range
+    "gesture": {"zoom-double-tap": 2.5, "zoom-max": 8, "deceleration": 0.998, "rubber-band": 0.55,
+                "dismiss-distance": 0.25, "dismiss-velocity": 800, "detent": 0.02},
+}
+# media and AI component sizes (pt / dp / px): the editor's tool tray, sliders, crop handles, the video timeline, the
+# thumbnail grid and its selection, the transparency checkerboard and the viewer scrim's height
+MEDIA_SIZE = {"tool-tray": 64, "tool-item": 64, "slider-track": 4, "slider-thumb": 24, "slider-tick": 8,
+              "crop-handle": 20, "crop-stroke": 3, "playhead": 2, "playhead-knob": 10, "timeline": 48, "trim-handle": 14,
+              "thumb-gap": 2, "select-outline": 3, "select-check": 22, "checker": 8, "viewer-scrim": 140}
+# the CSS variable of each (Swift Size and Kotlin AppSize use the key in camelCase)
+MEDIA_CSS = {"tool-tray": "tool-tray-h", "tool-item": "tool-item-w", "slider-track": "slider-track-h",
+             "slider-tick": "slider-tick-h", "playhead": "playhead-w", "timeline": "timeline-h",
+             "trim-handle": "trim-handle-w", "checker": "checker-size", "viewer-scrim": "viewer-scrim-h"}
+# one haptic per role: SwiftUI sensoryFeedback (iOS 17+; Theme.swift falls back to the UIKit generators), Compose
+# HapticFeedbackType (Compose UI 1.8+) and the Android HapticFeedbackConstants it maps to, and a navigator.vibrate
+# pattern in ms for the web (Android browsers only; iOS Safari has no vibration)
+HAPTIC = {
+    "selection": {"ios": "selection", "compose": "SegmentTick", "android": "SEGMENT_TICK", "web": [10]},
+    "snap": {"ios": "impact(weight: .light)", "compose": "GestureThresholdActivate",
+             "android": "GESTURE_THRESHOLD_ACTIVATE", "web": [16]},
+    "success": {"ios": "success", "compose": "Confirm", "android": "CONFIRM", "web": [12, 80, 24]},
+    "failure": {"ios": "error", "compose": "Reject", "android": "REJECT", "web": [32, 60, 32]},
 }
 
 
@@ -456,18 +523,34 @@ def audit(t):
             pairs += [("on-" + s, s, TEXT) for s in STATUS]
             pairs += [("text", "selection", N["text"][0]), ("text-2", "selection", N["text-2"][0])]
             pairs += [("on-inverse", "inverse-surface", TEXT), ("inverse-primary", "inverse-surface", TEXT)]
+            # the slider's filled part against its track, and the media selection outline on the pages a grid sits on
+            pairs += [("primary", "surface-3", NON_TEXT)] + [("media-selected", b, NON_TEXT) for b in ("bg", "surface")]
+            pairs += [("on-media", b, TEXT) for b in ("media-black", "media-dark")]
             checks = [(f"{f} / {b}", C[f], C[b], need) for f, b, need in pairs]
             # Compose's colorScheme.primary is primary-text, so its onPrimary (checkbox ticks, switch thumbs) sits on it
             checks.append(("M3 onPrimary / primary-text", ink_on(C["primary-text"], C), C["primary-text"], TEXT))
+            # white viewer controls on the scrim over the worst photo, a white one (and so over any lighter canvas step)
+            checks.append(("on-media / viewer-scrim over white", C["on-media"], over(C["viewer-scrim"], C["media-white"]), TEXT))
+            if mode == "dark":
+                # the editor and viewer are dark pages: their text, links, outline and playhead sit on the dark canvas steps
+                for b in ("media-black", "media-dark"):
+                    checks += [(f"{f} / {b}", C[f], C[b], N[f][0]) for f in TIERS[:3]]
+                    checks += [(f"primary-text / {b}", C["primary-text"], C[b], acc),
+                               (f"media-selected / {b}", C["media-selected"], C[b], NON_TEXT),
+                               (f"playhead primary / {b}", C["primary"], C[b], NON_TEXT)]
             row = []
             for label, f, b, need in checks:
                 r = contrast(f, b)
                 row.append(f"{label} {r:.2f}{'!' if r < need else ''}")
                 if r < need:
                     fails.append(f"{k}: {label} {r:.2f} < {need:g}")
-            out.append("  pairs (on-* and fills 4.5, borders and focus 3, the rest as the matrix):")
+            out.append("  pairs (on-* and fills 4.5; borders, focus, slider fill, media outline and playhead 3; the rest as the matrix):")
             for i in range(0, len(row), 4):
                 out.append("    " + "   ".join(row[i:i + 4]))
+    # the viewer scrim holds at least the checked opacity under the controls: every stop but the last, which fades out
+    held = min(o for _, o in PALETTE["media"]["scrim_stops"][:-1])
+    if held < PALETTE["media"]["alpha"]["viewer-scrim"][1]:
+        fails.append(f"viewer scrim gradient drops to {held:g} under the controls, below the checked viewer-scrim opacity")
     # high contrast only ever adds contrast: every row's lowest value is at least the standard one
     for mode in MODES:
         for fg in list(TIERS) + ["primary-text"] + STATUS:
@@ -547,6 +630,10 @@ def css(t):
                f"  --sidebar-w: {S['sidebar']['width']}px;", f"  --sidebar-item-h: {S['sidebar']['item']}px;",
                f"  --view-header-h: {S['view-header']}px;", f"  --filter-bar-h: {S['filter-bar']}px;",
                f"  --kbd-h: {S['kbd']}px;"]
+    common.append("  /* media and AI components: tool tray, sliders, crop handles, video timeline, thumbnail grid and its selection,\n"
+                  "     checkerboard squares, viewer scrim; the prompt field grows from its minimum height to max-lines, then scrolls */")
+    common += [f"  --{MEDIA_CSS.get(k, k)}: {v}px;" for k, v in S["media"].items()]
+    common += [f"  --prompt-min-h: {S['prompt']['min']}px;", f"  --prompt-max-lines: {S['prompt']['max-lines']};"]
     common += [f"  --font: {F['family']};", f"  --font-mono: {F['mono']};"]
     common.append("  /* desktop and web text: --td-* is a font shorthand, --tr-td-* its tracking (the .td-* classes add opsz and features) */")
     for k, v in F["scale"].items():
@@ -568,6 +655,18 @@ def css(t):
     common += [f"  --icon-{k}: {v}px;" for k, v in t["icon"]["size"].items()]
     common.append(f"  --icon-stroke: {t['icon']['stroke']};")
     common += [f"  --frost-blur: {t['blur']['frost']}px;", f"  --frost-saturate: {t['blur']['saturate']};"]
+    G = t["gradient"]["viewer-scrim"]
+    stops = ", ".join(f"{rgba(G['color'], o)} {p * 100:g}%" for p, o in G["stops"])
+    common += ["  /* the viewer scrim, from the screen edge inward: white controls of the photo and video viewer sit on it */",
+               f"  --viewer-scrim-top: linear-gradient(to bottom, {stops});",
+               f"  --viewer-scrim-bottom: linear-gradient(to top, {stops});",
+               "  --checker-image: repeating-conic-gradient(var(--c-checker-a) 0 25%, var(--c-checker-b) 0 50%);"]
+    common.append("  /* gestures, for your scripts: zoom range from fit, pan momentum per ms, rubber band, viewer dismissal\n"
+                  "     (share of the height, pt/s), slider and dial detent (share of the range) */")
+    common += [f"  --gesture-{k}: {num(v)};" for k, v in M["gesture"].items()]
+    common.append("  /* haptics: navigator.vibrate patterns in ms (Android browsers; iOS Safari has no vibration), e.g.\n"
+                  "     navigator.vibrate?.(getComputedStyle(document.documentElement).getPropertyValue('--haptic-snap').split(',').map(Number)) */")
+    common += [f"  --haptic-{k}: {', '.join(str(x) for x in v['web'])};" for k, v in t["haptic"].items()]
     common += ["  /* old names, kept for one version: --m-spring bounced and is now the standard entry; --icon-xl (28) is lg (24).",
                "     --control-h-sm / md / lg changed meaning (desktop 24 / 28 / 32): see rules.md, upgrading */",
                "  --m-spring: var(--m-standard) var(--ease-enter);", "  --icon-xl: var(--icon-lg);"]
@@ -615,9 +714,12 @@ textarea.input { height: auto; min-height: var(--control-h-lg); padding: 6px 10p
 .inline-edit:focus { background: none; }
 .inline-edit:focus-visible { outline: none; }
 .inline-edit.kb-focus { outline: 2px solid var(--c-focus); outline-offset: 2px; }""")
-    out.append("""/* hover: rows, menu items and ghost buttons. The highlight appears at once and fades out over 150 ms. */
+    out.append("""/* hover: rows, menu items and ghost buttons, only where a pointer can hover (touch screens get the pressed state).
+   The highlight appears at once and fades out over 150 ms. */
 .hoverable { transition: background-color var(--m-hover-out) var(--ease-exit); }
-.hoverable:hover { background-color: var(--c-hover); transition-duration: var(--m-hover-in); }
+@media (hover: hover) {
+  .hoverable:hover { background-color: var(--c-hover); transition-duration: var(--m-hover-in); }
+}
 .hoverable:active { background-color: var(--c-pressed); }""")
     out.append("""/* frost (glass): floating bars, the mobile-web tab bar and custom floating buttons; never cards, lists, menus,
    dialogs or toasts (those are elevated). A full-width bar keeps only the hairline on its content side, e.g. border-width: 0 0 1px. */
@@ -635,7 +737,20 @@ textarea.input { height: auto; min-height: var(--control-h-lg); padding: 6px 10p
   padding: 0 4px; border-radius: var(--r-xs); font: var(--td-micro); letter-spacing: var(--tr-td-micro);
   font-variant-numeric: tabular-nums; color: var(--c-text-2); background: var(--c-surface-2); border: 1px solid var(--c-border); }
 .kbd + .kbd { margin-left: 4px; }
-.kbd-then { margin: 0 4px; font: var(--td-micro); color: var(--c-text-3); }""")
+.kbd-then { margin: 0 4px; font: var(--td-micro); color: var(--c-text-3); }
+/* the keyboard layer (kbd hints, shortcuts in tooltips and menus, hover) is optional: it shows where a pointer can hover
+   (Mac, desktop, an iPad or tablet with a trackpad), or once your script sets data-keyboard on <html> after a
+   hardware-keyboard shortcut. Phones never show it; the command menu's phone entry is the search field */
+@media (hover: none) {
+  :root:not([data-keyboard]) :is(.kbd, .kbd-then) { display: none; }
+}""")
+    out.append("""/* media pages: the transparency checkerboard; the viewer scrim at the top and bottom edges, under white controls
+   (tapping the picture hides both); a selected picture gets an outline inside its edge plus a check badge, never a tint */
+.checker { background: var(--checker-image) 0 0 / calc(2 * var(--checker-size)) calc(2 * var(--checker-size)); }
+.viewer-scrim-top, .viewer-scrim-bottom { height: var(--viewer-scrim-h); pointer-events: none; }
+.viewer-scrim-top { background: var(--viewer-scrim-top); }
+.viewer-scrim-bottom { background: var(--viewer-scrim-bottom); }
+.media-selected { outline: var(--select-outline) solid var(--c-media-selected); outline-offset: calc(-1 * var(--select-outline)); }""")
     feats = ", ".join(f'"{x}"' for x in F["features"])
     # each text style keeps its tracking in --tr, which inherits: Latin runs inside CJK text take it back from there
     td = [f'.td-{k} {{ font: var(--td-{k}); --tr: var(--tr-td-{k}); letter-spacing: var(--tr); '
@@ -671,9 +786,15 @@ textarea.input { height: auto; min-height: var(--control-h-lg); padding: 6px 10p
 
 # ---------- emit: SwiftUI ----------
 SWIFT_DEFAULT_WEIGHT = {"headline": "semibold"}  # every other system text style is regular
+# the UIKit generator for each sensoryFeedback, for iOS 15 and 16
+UIKIT_HAPTIC = {"selection": "UISelectionFeedbackGenerator().selectionChanged()",
+                "impact(weight: .light)": "UIImpactFeedbackGenerator(style: .light).impactOccurred()",
+                "success": "UINotificationFeedbackGenerator().notificationOccurred(.success)",
+                "error": "UINotificationFeedbackGenerator().notificationOccurred(.error)"}
 
 SWIFT = """// @@title@@
 // iOS 15 or later. On iOS 26 and later .frost() is Liquid Glass; earlier versions get a material fallback.
+import GameController
 import SwiftUI
 import UIKit
 
@@ -714,6 +835,10 @@ extension Color {
 /// disabled, decoration; never text that must be read). primary is the fill (white text on it, same in both
 /// modes); primaryText is links, the selected tab, the focus ring and income amounts. selected tints
 /// multi-selected rows. borderStrong is only for inputs, checkboxes and switches that are off; border is the hairline.
+/// inProgress (= info) is a running task. Media pages (editor, viewer) are dark: mediaBlack, mediaDark, mediaMid and
+/// mediaWhite are the chroma-0 canvas steps (viewer black, editor dark grey by default), checkerA / checkerB the
+/// transparency checkerboard, onMedia the white controls on viewerScrim, mediaEdge the dark edge under white handles,
+/// mediaGuide the white guides (thirds grid, scrubber track), mediaSelected the outline of a selected picture.
 enum Palette {
 @@palette@@
 
@@ -738,6 +863,12 @@ enum Size {
     static let row: CGFloat = @@row@@
     static let rowSingle: CGFloat = @@row_single@@
     static let pill: CGFloat = 36
+    /// media and AI components: the editor's tool tray and slider, crop handles, the video timeline, the thumbnail grid
+    /// and its selection, checkerboard squares and the viewer scrim's height; the prompt field grows from promptMin
+    /// to promptMaxLines lines, then scrolls
+@@media_sizes@@
+    static let promptMin: CGFloat = @@prompt_min@@
+    static let promptMaxLines = @@prompt_lines@@
 }
 
 /// Text styles: the system styles, so Dynamic Type works (check up to AX5); SF Pro tracks itself.
@@ -748,11 +879,48 @@ extension Font {
 }
 
 /// Motion: a near-critically damped spring for things that move, short ease-outs for colour and opacity;
-/// exits take two thirds of the entry. With Reduce Motion on (@Environment(\\.accessibilityReduceMotion)),
+/// exits take two thirds of the entry; zoom is the grid-to-viewer transition and a double-tap zoom. With Reduce Motion on (@Environment(\\.accessibilityReduceMotion)),
 /// drop movement and scaling and keep at most a fade. Liquid Glass keeps its own morphing.
 enum Motion {
     static let spring = Animation.spring(response: @@spring_response@@, dampingFraction: @@spring_damping@@)
 @@motion@@
+}
+
+/// Gestures on photos and video. Pinch from fit (1) to zoomMax; a double tap toggles fit and zoomDoubleTap at the
+/// tap point. Pans keep their momentum (deceleration per ms, UIScrollView's .normal) and rubber-band at the edges
+/// (rubberBand), springing back with Motion.spring. A swipe down closes the viewer past dismissDistance of the height
+/// or dismissVelocity pt/s, the background fading with the drag. The grid opens the viewer with a zoom: on iOS 18
+/// .navigationTransition(.zoom(sourceID:in:)), earlier matchedGeometryEffect with Motion.spring. Sliders and dials
+/// snap to their detent within detentZone of the range: snapped(_:in:) plus Haptic.snap when the value lands on it.
+/// (Not named Gesture: that is SwiftUI's protocol.)
+enum MediaGesture {
+@@gesture@@
+
+    /// The value, pulled to `target` when it is within detentZone of the range from it.
+    static func snapped(_ value: Double, in range: ClosedRange<Double>, to target: Double = 0) -> Double {
+        abs(value - target) <= (range.upperBound - range.lowerBound) * detentZone ? target : value
+    }
+}
+
+/// Haptics, one per role: selection (a tool, a segment, a picture picked), snap (a slider or dial reaching its detent,
+/// a crop edge meeting a guide), success (an export or save finished), failure (it failed). Play them on the event,
+/// never on every frame. iOS 17 and later: .sensoryFeedback(Haptic.snap.feedback, trigger: value); earlier, call
+/// Haptic.snap.play() from the action.
+enum Haptic {
+    case selection, snap, success, failure
+
+    @available(iOS 17.0, *)
+    var feedback: SensoryFeedback {
+        switch self {
+@@haptic_feedback@@
+        }
+    }
+
+    @MainActor func play() {
+        switch self {
+@@haptic_play@@
+        }
+    }
 }
 
 /// Icons: SF Symbols at .regular weight; default colour Palette.text3, clickable accents Palette.primaryText.
@@ -866,19 +1034,108 @@ struct Frost: ViewModifier {
     }
 }
 
-/// Keyboard hint for hardware keyboards (iPad, Mac Catalyst): @@kbd@@ pt high, caption2 medium with tabular
-/// digits, text2 on surface2 with a hairline. Show ⌘ ⌥ ⇧ ⌃ ↵, keys 4 pt apart, e.g. Text("⌘K").kbd()
-struct Kbd: ViewModifier {
-    private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: Radius.xs, style: .continuous) }
+/// The viewer scrim: a fixed dark gradient from the top or bottom edge inward, under the viewer's white controls
+/// (Palette.onMedia), in place of glass over the photo. Tapping the picture hides the controls and the scrim together.
+/// It holds @@scrim_pct@@ % black under the controls, so white text and icons pass 4.5:1 even over a white photo.
+struct ViewerScrim: View {
+    var edge: VerticalEdge = .top
+
+    var body: some View {
+        LinearGradient(stops: [
+@@scrim_stops@@
+        ], startPoint: edge == .top ? .top : .bottom, endPoint: edge == .top ? .bottom : .top)
+            .frame(height: Size.viewerScrim)
+            .allowsHitTesting(false)
+    }
+}
+
+/// The transparency checkerboard behind a cut-out: checkerA and checkerB squares of Size.checker.
+struct Checkerboard: View {
+    var square: CGFloat = Size.checker
+
+    var body: some View {
+        Canvas { context, size in
+            context.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Palette.checkerA))
+            var squares = Path()
+            for row in 0 ..< Int((size.height / square).rounded(.up)) {
+                for column in stride(from: row % 2 == 0 ? 1 : 0, to: Int((size.width / square).rounded(.up)), by: 2) {
+                    squares.addRect(CGRect(x: CGFloat(column) * square, y: CGFloat(row) * square, width: square, height: square))
+                }
+            }
+            context.fill(squares, with: .color(Palette.checkerB))
+        }
+    }
+}
+
+/// A selected picture (thumbnail grid, generated results): a Size.selectOutline outline of mediaSelected inside its
+/// edge and a check badge in the bottom trailing corner. Never a tint over the picture: it changes how its colours read.
+struct MediaSelected: ViewModifier {
+    var selected: Bool
 
     func body(content: Content) -> some View {
         content
-            .font(Font.caption2.weight(.medium).monospacedDigit())
-            .foregroundStyle(Palette.text2)
-            .padding(.horizontal, 4)
-            .frame(minWidth: @@kbd@@, minHeight: @@kbd@@)
-            .background { shape.fill(Palette.surface2) }
-            .overlay { shape.strokeBorder(Palette.border, lineWidth: 1) }
+            .overlay {
+                if selected { Rectangle().strokeBorder(Palette.mediaSelected, lineWidth: Size.selectOutline) }
+            }
+            .overlay(alignment: .bottomTrailing) {
+                if selected {
+                    Image(systemName: "checkmark.circle.fill")
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(Palette.onPrimary, Palette.primary)
+                        .font(.system(size: Size.selectCheck))
+                        .background { Circle().strokeBorder(Palette.onMedia, lineWidth: 1.5) }
+                        .padding(6)
+                }
+            }
+    }
+}
+
+/// The keyboard layer (kbd hints, shortcuts in menus and tooltips, hover) is optional: it shows on iPad and Mac while a
+/// hardware keyboard is connected, and never on iPhone. Put .keyboardLayer() on the root view; it follows the keyboard
+/// as it connects and disconnects, and .kbd() reads it.
+private struct HardwareKeyboardKey: EnvironmentKey {
+    static let defaultValue = false
+}
+
+extension EnvironmentValues {
+    var hardwareKeyboard: Bool {
+        get { self[HardwareKeyboardKey.self] }
+        set { self[HardwareKeyboardKey.self] = newValue }
+    }
+}
+
+struct KeyboardLayer: ViewModifier {
+    @State private var connected = false
+
+    func body(content: Content) -> some View {
+        content
+            .environment(\\.hardwareKeyboard, connected)
+            .onAppear { connected = KeyboardLayer.isConnected }
+            .onReceive(NotificationCenter.default.publisher(for: .GCKeyboardDidConnect)) { _ in connected = KeyboardLayer.isConnected }
+            .onReceive(NotificationCenter.default.publisher(for: .GCKeyboardDidDisconnect)) { _ in connected = KeyboardLayer.isConnected }
+    }
+
+    @MainActor static var isConnected: Bool {
+        UIDevice.current.userInterfaceIdiom != .phone && GCKeyboard.coalesced != nil
+    }
+}
+
+/// Keyboard hint, part of the keyboard layer: @@kbd@@ pt high, caption2 medium with tabular digits, text2 on surface2
+/// with a hairline. Show ⌘ ⌥ ⇧ ⌃ ↵, keys 4 pt apart, e.g. Text("⌘K").kbd(); without a hardware keyboard it draws nothing.
+struct Kbd: ViewModifier {
+    @Environment(\\.hardwareKeyboard) private var keyboard
+    private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: Radius.xs, style: .continuous) }
+
+    @ViewBuilder func body(content: Content) -> some View {
+        if keyboard {
+            content
+                .font(Font.caption2.weight(.medium).monospacedDigit())
+                .foregroundStyle(Palette.text2)
+                .padding(.horizontal, 4)
+                .frame(minWidth: @@kbd@@, minHeight: @@kbd@@)
+                .background { shape.fill(Palette.surface2) }
+                .overlay { shape.strokeBorder(Palette.border, lineWidth: 1) }
+        }
     }
 }
 
@@ -888,6 +1145,8 @@ extension View {
         modifier(Frost(radius: radius, edges: edges, floating: floating, interactive: interactive))
     }
     func kbd() -> some View { modifier(Kbd()) }
+    func keyboardLayer() -> some View { modifier(KeyboardLayer()) }
+    func mediaSelected(_ selected: Bool) -> some View { modifier(MediaSelected(selected: selected)) }
     /// Long text (notes, descriptions, Chinese paragraphs): the body style with @@long_spacing@@ pt between lines.
     func longText() -> some View { font(.longText).lineSpacing(@@long_spacing@@) }
     /// Put it on a background shape, never on a view with text in it.
@@ -926,13 +1185,16 @@ def swift(t):
     x1, y1, x2, y2 = M["ease"]["enter"]
     e1, f1, e2, f2 = M["ease"]["exit"]
     mot = []
-    for k in ("fast", "standard", "slow"):
+    for k in M["exit"]:
         mot.append(f"    static let {k} = Animation.timingCurve({num(x1)}, {num(y1)}, {num(x2)}, {num(y2)}, "
                    f"duration: {num(M['duration'][k] / 1000)})")
         mot.append(f"    static let {k}Exit = Animation.timingCurve({num(e1)}, {num(f1)}, {num(e2)}, {num(f2)}, "
                    f"duration: {num(M['exit'][k] / 1000)})")
 
     S = t["size"]
+    G = t["gradient"]["viewer-scrim"]
+    gesture = [f"    static let {camel(k)}: CGFloat = {num(v)}" for k, v in M["gesture"].items() if k != "detent"]
+    gesture.append(f"    static let detentZone: Double = {num(M['gesture']['detent'])}")
     return fill(
         SWIFT,
         title=f"{t['name']} theme: generated by rian-app-theme (graphite), {credit(t)}",
@@ -949,6 +1211,13 @@ def swift(t):
         shadows="\n".join(shadows),
         frost_pct=round(t["blur"]["opacity"]["standard"] * 100), frost_hc_pct=round(t["blur"]["opacity"]["high"] * 100),
         kbd=S["kbd"],
+        media_sizes="\n".join(f"    static let {camel(k)}: CGFloat = {v}" for k, v in S["media"].items()),
+        prompt_min=S["prompt"]["min"], prompt_lines=S["prompt"]["max-lines"],
+        gesture="\n".join(gesture),
+        haptic_feedback="\n".join(f"        case .{k}: return .{v['ios']}" for k, v in t["haptic"].items()),
+        haptic_play="\n".join(f"        case .{k}: {UIKIT_HAPTIC[v['ios']]}" for k, v in t["haptic"].items()),
+        scrim_pct=round(PALETTE["media"]["alpha"]["viewer-scrim"][1] * 100),
+        scrim_stops=",\n".join(f"            .init(color: .black.opacity({num(o)}), location: {num(pos)})" for pos, o in G["stops"]),
         long_spacing=t["font"]["ios"]["styles"]["long-text"]["line-spacing"], long_line=t["font"]["web"]["phone"]["long-text"]["line"],
     )
 
@@ -978,16 +1247,20 @@ EXTENDED = ["canvas", "surface", "surface-2", "surface-3", "elevated", "menu-act
             "text", "text-2", "text-3", "text-placeholder",
             "primary", "on-primary", "primary-hover", "primary-pressed", "primary-text", "selected", "focus",
             "success", "on-success", "success-container", "warning", "on-warning", "warning-container",
-            "info", "on-info", "info-container", "hover", "pressed", "disabled-fg", "disabled-bg",
-            "scrim", "scrim-menu", "frost", "frost-border", "frost-highlight"]
+            "info", "on-info", "info-container", "in-progress", "hover", "pressed", "disabled-fg", "disabled-bg",
+            "scrim", "scrim-menu", "frost", "frost-border", "frost-highlight",
+            "media-black", "media-dark", "media-mid", "media-white", "checker-a", "checker-b",
+            "on-media", "viewer-scrim", "media-edge", "media-guide", "media-selected"]
 KT_NAME = {"primary": "primaryFill", "on-primary": "onPrimaryFill", "primary-hover": "primaryFillHover",
            "primary-pressed": "primaryFillPressed"}
 
 KOTLIN = """// @@title@@
-// Android, Compose Material 3 1.2 or later (1.4 stable is the baseline). A fixed brand scheme: no dynamic colour.
+// Android, Compose Material 3 1.2 or later (1.4 stable is the baseline; Haptic needs Compose UI 1.8, which 1.4 brings).
+// A fixed brand scheme: no dynamic colour.
 package theme
 
 import android.app.UiModeManager
+import android.content.res.Configuration
 import android.os.Build
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.CubicBezierEasing
@@ -1023,7 +1296,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.TextStyle
@@ -1031,8 +1312,10 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.abs
 
 /** Material 3 roles, four schemes: light, dark, and the high-contrast pair (system contrast >= 0.5 on API 34+).
  *  primary is primary-text (links, the selected tab, focus, checkbox and switch fills), so TextButton and every
@@ -1063,7 +1346,11 @@ val DarkHighContrastColors = darkColorScheme(
  *  primaryFill is the filled primary (white text on it, the same in both modes); primaryText is colorScheme.primary.
  *  surface is the card colour (colorScheme.surface is the page). textPlaceholder is only for placeholders, disabled
  *  text and decoration. Material components replace the scrim's alpha with their own: pass scrimColor = scrim to
- *  ModalBottomSheet and ModalNavigationDrawer for this theme's. */
+ *  ModalBottomSheet and ModalNavigationDrawer for this theme's. inProgress (= info) is a running task.
+ *  Media pages (editor, viewer) are dark: AppTheme(dark = true) around them. mediaBlack, mediaDark, mediaMid and
+ *  mediaWhite are the chroma-0 canvas steps (viewer black, editor dark grey by default), checkerA / checkerB the
+ *  transparency checkerboard, onMedia the white controls on the viewer scrim, mediaEdge the dark edge under white
+ *  handles, mediaGuide the white guides (thirds grid, scrubber track), mediaSelected the outline of a selected picture. */
 @Immutable
 data class ExtendedColors(
 @@ext_fields@@
@@ -1150,6 +1437,13 @@ object AppSize {
     val rowSingle = @@hit@@.dp
     val navigationBar = 80.dp
     val fab = 56.dp
+
+    /** Media and AI components: the editor's tool tray and slider, crop handles, the video timeline, the thumbnail grid
+     *  and its selection, checkerboard squares and the viewer scrim's height; the prompt field grows from promptMin
+     *  to PROMPT_MAX_LINES lines, then scrolls. */
+@@media_sizes@@
+    val promptMin = @@prompt_min@@.dp
+    const val PROMPT_MAX_LINES = @@prompt_lines@@
 }
 
 /** Motion: tween(Motion.STANDARD_MS, easing = Motion.Enter) to appear, tween(Motion.STANDARD_EXIT_MS, easing = Motion.Exit)
@@ -1162,6 +1456,76 @@ object Motion {
     val Exit = CubicBezierEasing(@@exit@@)
     fun <T> spatial(): SpringSpec<T> = spring(dampingRatio = @@sp_damp@@f, stiffness = @@sp_stiff@@f)
     fun <T> effects(): SpringSpec<T> = spring(dampingRatio = @@ef_damp@@f, stiffness = @@ef_stiff@@f)
+}
+
+/** Gestures on photos and video. Pinch from fit (1) to ZOOM_MAX; a double tap toggles fit and ZOOM_DOUBLE_TAP at the
+ *  tap point. Pans fling with the platform decay (rememberSplineBasedDecay(), as lists do) and spring back from the
+ *  edges with Motion.spatial(). A swipe down closes the viewer past DISMISS_DISTANCE of the height or dismissVelocity
+ *  per second, the background fading with the drag. The grid opens the viewer with a shared element
+ *  (SharedTransitionLayout, Motion.ZOOM_MS). Sliders and dials snap to their detent within DETENT_ZONE of the range:
+ *  snapped(value, range) plus Haptic.snap when the value lands on it. */
+object MediaGesture {
+@@gesture@@
+
+    /** The value, pulled to [target] when it is within DETENT_ZONE of the range from it. */
+    fun snapped(value: Float, range: ClosedFloatingPointRange<Float>, target: Float = 0f): Float =
+        if (abs(value - target) <= (range.endInclusive - range.start) * DETENT_ZONE) target else value
+}
+
+/** Haptics, one per role: selection (a tool, a segment, a picture picked), snap (a slider or dial reaching its detent,
+ *  a crop edge meeting a guide), success (an export or save finished), failure (it failed). Play them on the event,
+ *  never on every frame: LocalHapticFeedback.current.performHapticFeedback(Haptic.snap). Needs Compose UI 1.8; the
+ *  system maps each to HapticFeedbackConstants (@@haptic_android@@). */
+object Haptic {
+@@haptic@@
+}
+
+/** The viewer scrim: a fixed dark gradient from the top or bottom edge inward, under the viewer's white controls
+ *  (AppTheme.colors.onMedia), in place of glass over the photo, which would shift its colours. Tapping the picture hides
+ *  the controls and the scrim together. It holds @@scrim_pct@@ % black under the controls, so white text and icons pass
+ *  4.5:1 even over a white photo, e.g. Box(Modifier.fillMaxWidth().height(ViewerScrim.height).background(ViewerScrim.top)) */
+object ViewerScrim {
+    val height = AppSize.viewerScrim
+    val top = Brush.verticalGradient(
+@@scrim_top@@
+    )
+    val bottom = Brush.verticalGradient(
+@@scrim_bottom@@
+    )
+}
+
+/** The transparency checkerboard behind a cut-out: Modifier.checkerboard(AppTheme.colors). */
+fun Modifier.checkerboard(colors: ExtendedColors, square: Dp = AppSize.checker): Modifier = drawBehind {
+    val s = square.toPx()
+    drawRect(colors.checkerA)
+    var row = 0
+    while (row * s < size.height) {
+        var column = if (row % 2 == 0) 1 else 0
+        while (column * s < size.width) {
+            drawRect(colors.checkerB, topLeft = Offset(column * s, row * s), size = Size(s, s))
+            column += 2
+        }
+        row++
+    }
+}
+
+/** A selected picture (thumbnail grid, generated results): an AppSize.selectOutline outline of mediaSelected inside its
+ *  edge, drawn over the picture; add the AppSize.selectCheck check badge (primaryFill circle, white check, 1.5 dp
+ *  white ring) at the bottom end. Never a tint over the picture: it changes how its colours read. */
+fun Modifier.mediaSelected(selected: Boolean, colors: ExtendedColors): Modifier = drawWithContent {
+    drawContent()
+    if (selected) {
+        val w = AppSize.selectOutline.toPx()
+        drawRect(colors.mediaSelected, topLeft = Offset(w / 2, w / 2), size = Size(size.width - w, size.height - w), style = Stroke(w))
+    }
+}
+
+/** The keyboard layer (shortcut hints in menus and tooltips, hover) is optional: show it only while a hardware keyboard
+ *  is attached (tablets, Chromebooks), never as a default on phones. Follows the keyboard as it comes and goes. */
+@Composable
+fun hasHardwareKeyboard(): Boolean {
+    val config = LocalConfiguration.current
+    return config.keyboard == Configuration.KEYBOARD_QWERTY && config.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO
 }
 
 /** Material 3 picks corners by size key: text fields extraSmall, chips small, cards medium, sheets extraLarge. */
@@ -1194,6 +1558,10 @@ val AppTypography = appTypography()
 
 /** Tabular digits, for amounts and counts: Text("−¥32.00", style = MaterialTheme.typography.bodyLarge.tabular) */
 val TextStyle.tabular: TextStyle get() = copy(fontFeatureSettings = "tnum")
+
+/** Timecodes and running times (timeline labels, player time, export time left), tabular so they never jitter:
+ *  Text("0:12 / 1:04", style = MaterialTheme.typography.timecode) */
+val Typography.timecode: TextStyle get() = @@timecode@@.tabular
 
 /** The theme. dark and highContrast follow the system; the colour scheme is always this one (no dynamic colour).
  *  On Material 3 1.5.0-beta01 and later you may use, with the same arguments,
@@ -1341,6 +1709,18 @@ fun AppCard(
     content = content,
 )
 
+/** Slider: the filled part and the thumb are primaryFill (the slider is one of the primary's uses), the track is
+ *  surface-3 (neutral). A slider with a zero (exposure, warmth) snaps to it: onValueChange = { v ->
+ *  val s = MediaGesture.snapped(v, range); if (s == 0f && value != 0f) haptics.performHapticFeedback(Haptic.snap); value = s } */
+@Composable
+fun appSliderColors(): SliderColors = SliderDefaults.colors(
+    thumbColor = AppTheme.colors.primaryFill,
+    activeTrackColor = AppTheme.colors.primaryFill,
+    inactiveTrackColor = AppTheme.colors.surface3,
+    activeTickColor = AppTheme.colors.onPrimaryFill,
+    inactiveTickColor = AppTheme.colors.text3,
+)
+
 /** Filter chip: Material's FilterChip, 32 dp tall (48 dp touch target), Shapes.small corners, labelLarge.
  *  Unselected: no fill, 1 dp border, text-2 label. Selected: surface-3 fill (neutral, never the primary), text
  *  label, no border, and the 18 dp check from selectedIcon (shown only while selected). Use it instead of FilterChip, e.g.
@@ -1455,6 +1835,11 @@ def kotlin(t):
     sp, ef = M["android"]["spatial"], M["android"]["effects"]
 
     r, S = t["radius"], t["size"]
+    g, G = M["gesture"], t["gradient"]["viewer-scrim"]
+    gesture = [f"    const val ZOOM_DOUBLE_TAP = {num(g['zoom-double-tap'])}f", f"    const val ZOOM_MAX = {num(g['zoom-max'])}f",
+               f"    const val DISMISS_DISTANCE = {num(g['dismiss-distance'])}f", f"    val dismissVelocity = {num(g['dismiss-velocity'])}.dp",
+               f"    const val DETENT_ZONE = {num(g['detent'])}f"]
+    scrim = lambda stops: "\n".join(f"        {num(pos)}f to {kt_colour(rgba(G['color'], o))}," for pos, o in stops)
     shapes = {"extraSmall": r["xs"], "small": r["sm"], "medium": r["md"], "large": r["lg"], "extraLarge": r["xl"]}
     dk = T["dark"]
     return fill(
@@ -1483,6 +1868,15 @@ def kotlin(t):
         shapes=",\n".join(f"    {k} = RoundedCornerShape({v}.dp)" for k, v in shapes.items()),
         button_r=r["lg"], button_h=S["control-h"]["mobile"]["lg"], fab_r=r["xl"],
         type="\n".join(type_rows),
+        media_sizes="\n".join(f"    val {camel(k)} = {v}.dp" for k, v in S["media"].items()),
+        prompt_min=S["prompt"]["min"], prompt_lines=S["prompt"]["max-lines"],
+        gesture="\n".join(gesture),
+        haptic="\n".join(f"    val {k} = HapticFeedbackType.{v['compose']}" for k, v in t["haptic"].items()),
+        haptic_android=", ".join(f"{k} {v['android']}" for k, v in t["haptic"].items()),
+        scrim_pct=round(PALETTE["media"]["alpha"]["viewer-scrim"][1] * 100),
+        scrim_top=scrim(G["stops"]),
+        scrim_bottom=scrim([(round(1 - pos, 4), o) for pos, o in reversed(G["stops"])]),
+        timecode=ANDROID_TIMECODE,
     )
 
 
@@ -1502,13 +1896,19 @@ def tailwind(t):
     heights += [f"'control-mobile-{k}': 'var(--control-h-mobile-{k})'" for k in S["control-h"]["mobile"]]
     heights += ["row: 'var(--row-h)'", "'row-compact': 'var(--row-h-compact)'", "'row-mobile': 'var(--row-h-mobile)'",
                 "'view-header': 'var(--view-header-h)'", "kbd: 'var(--kbd-h)'"]
-    M = t["motion"]
+    key = lambda k: k if k.isidentifier() else f"'{k}'"
+    heights += [f"{key(k)}: 'var(--{MEDIA_CSS.get(k, k)})'" for k in ("tool-tray", "slider-track", "timeline", "viewer-scrim")]
+    widths = ["sidebar: 'var(--sidebar-w)'"] + [f"{key(k)}: 'var(--{MEDIA_CSS.get(k, k)})'" for k in ("tool-item", "playhead", "trim-handle")]
+    M, tc = t["motion"], t["font"]["web"]["phone"]["timecode"]
     durations = [f"'{k}': 'var(--m-{k})'" for k in M["duration"]] + [f"'{k}-exit': 'var(--m-{k}-exit)'" for k in M["exit"]]
     return f"""// {t['name']} theme: Tailwind (v3.3+) preset, graphite style. Load theme.css first: colours, radii, shadows,
 // heights and durations read its CSS variables (and it defines .frost, .kbd and .hoverable). Opaque colours take
 // opacity modifiers, e.g. bg-primary/10. fontSize holds the desktop scale (text-body, text-small, text-caption …);
 // the .td-* classes in theme.css add Inter's opsz and the cv01 / ss03 features, so prefer them for display text.
 // focus-visible:ring is the focus ring: 2 px of focus, 2 px away, the gap in bg (ring-offset-surface etc. elsewhere).
+// Media: bg-checker (the checkerboard, image and square size), bg-viewer-scrim-top / -bottom with h-viewer-scrim, and a
+// selected picture is ring-select ring-inset ring-media-selected (an outline, never a tint). text-timecode is the phone
+// timecode size: add tabular-nums. The kbd hints and hover are an optional layer (theme.css hides .kbd on touch screens).
 module.exports = {{
   theme: {{
     extend: {{
@@ -1517,23 +1917,27 @@ module.exports = {{
       }},
       borderColor: {{ DEFAULT: 'var(--c-border)' }},
       ringColor: {{ DEFAULT: 'var(--c-focus)' }},
-      ringWidth: {{ DEFAULT: '2px' }},
+      ringWidth: {{ DEFAULT: '2px', select: 'var(--select-outline)' }},
       ringOffsetWidth: {{ DEFAULT: '2px' }},
       ringOffsetColor: {{ DEFAULT: 'var(--c-bg)' }},
       borderRadius: {{
 {radius}
       }},
       fontSize: {{
-{sizes}
+{sizes},
+        'timecode': ['{tc['size']}px', {{ lineHeight: '{tc['line']}px', letterSpacing: '{tc['tracking']:g}em', fontWeight: '{tc['weight']}' }}]
       }},
       boxShadow: {{ e2: 'var(--elev-2)', e3: 'var(--elev-3)', e1: 'var(--elev-1)' /* old name: none, cards have no shadow */ }},
       fontFamily: {{ sans: ['var(--font)'], mono: ['var(--font-mono)'] }},
       transitionDuration: {{ {', '.join(durations)} }},
       transitionTimingFunction: {{ enter: 'var(--ease-enter)', exit: 'var(--ease-exit)' }},
       height: {{ {', '.join(heights)} }},
-      minHeight: {{ hit: 'var(--hit-min)' }},
+      minHeight: {{ hit: 'var(--hit-min)', prompt: 'var(--prompt-min-h)' }},
       minWidth: {{ hit: 'var(--hit-min)', kbd: 'var(--kbd-h)' }},
-      width: {{ sidebar: 'var(--sidebar-w)' }},
+      width: {{ {', '.join(widths)} }},
+      gap: {{ thumb: 'var(--thumb-gap)' }},
+      backgroundImage: {{ checker: 'var(--checker-image)', 'viewer-scrim-top': 'var(--viewer-scrim-top)', 'viewer-scrim-bottom': 'var(--viewer-scrim-bottom)' }},
+      backgroundSize: {{ checker: 'calc(2 * var(--checker-size)) calc(2 * var(--checker-size))' }},
     }},
   }},
 }};
@@ -1543,13 +1947,16 @@ module.exports = {{
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--name", required=True)
-    ap.add_argument("--accent", default=DEFAULT_ACCENT,
+    ap.add_argument("--accent",
                     help="the app icon's accent, by name: 蓝 blue (default), 绿 green, 紫 violet; "
                          "灰 gray, 珊瑚 coral and 黄 yellow give a 蓝 UI primary. One of the two tones in "
                          "assets/palette.json (e.g. #3B7BEA) also works; any other colour value is refused")
+    ap.add_argument("--category",
+                    help="the app's category when there is no icon yet: 工具 tool, 图片 image, 视频 video (蓝), "
+                         "AI (紫), 健康 health, 财务 finance (绿). With --accent too, the icon accent wins")
     ap.add_argument("-o", "--out", default="theme-out")
     a = ap.parse_args()
-    t = derive(a.name, a.accent)
+    t = derive(a.name, a.accent, a.category)
     fails, near = audit(t)
     if fails:
         print("\nFAIL: contrast check failed, nothing written:\n  " + "\n  ".join(fails))
