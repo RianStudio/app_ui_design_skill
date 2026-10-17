@@ -45,7 +45,8 @@ python3 scripts/preview.py themes/ask --screen chat                       # 不�
 
 - `frost light`、`frost dark`、`frost photo light`、`frost photo dark`：栏上文字对滚到下面的列表和照片 ≥ 3:1；
 - `viewer scrim`：查看器的白色控件透过遮罩叠在亮照片上 ≥ 4.5:1；
-- `accent area phone`、`accent area conversion`：主色面积手机 ≤ 8 %，引导、付费墙这类转化界面 ≤ 15 %，照片和生成的图不算；
+- `accent area phone`、`accent area conversion`：主色面积手机 ≤ 8 %，引导、付费墙、权限预请求、同意页和示例空状态这类转化界面 ≤ 15 %，照片和生成的图不算；
+- `safe area`：付费墙、引导和底部弹窗的内容都在 Home 指示条上方结束；
 - 加 `--desktop` 时还有 `accent area desktop`：桌面窗口 ≤ 5 %。
 
 `--screen` 选样例界面：`timer`（默认）、`notes`、`list` 是列表型 app，第二行是设置、付费墙、引导；`editor` 是照片编辑（编辑、抠图导出、裁剪、图库、查看器、权限预请求）；`chat` 是 AI 对话和生成（对话、生成状态、示例空状态、第三方 AI 同意、点数付费墙、举报）。`--desktop` 给前三种加一个打开 ⌘K 的桌面窗口，`--desktop-mode light` 把它换成浅色。
@@ -68,7 +69,12 @@ python3 scripts/preview.py examples/ledgerly --screen list \
   --icon /tmp/icons/ledgerly-1024.png --icon-dark /tmp/icons/ledgerly-dark.png
 ```
 
-Tide 把 `ledgerly`、`Ledgerly`、`绿`、`list` 换成 `tide`、`Tide`、`珊瑚`、`timer`。Margin 的旧图标已经从 rian-app-icon 删掉（旧风格），重新生成时用 `--name Margin --accent 黄 -o examples/margin`，预览用 `--screen notes` 并省略 `--icon` 和 `--icon-dark`，图标位置是石墨占位图。Tide 和 Margin 的图标是暖色，预览里手机字号表下面是「图标 × 界面」；Ledgerly 那格是这个界面的底部弹窗。示例都没有加 `--desktop`；照片编辑和 AI 对话的样子用 `--screen editor`、`--screen chat` 渲染任一个示例就能看到。
+Tide 把 `ledgerly`、`Ledgerly`、`绿`、`list` 换成 `tide`、`Tide`、`珊瑚`、`timer`。Margin 的旧图标已经从 rian-app-icon 删掉（旧风格），重新生成时用 `--name Margin --accent 黄 -o examples/margin`，预览用 `--screen notes` 并省略 `--icon` 和 `--icon-dark`，图标位置是石墨占位图。Tide 和 Margin 的图标是暖色，预览里手机字号表下面是「图标 × 界面」；Ledgerly 那格是这个界面的底部弹窗。示例都没有加 `--desktop`。想看照片编辑和 AI 对话的样子，先把一个示例复制出来再渲染，`preview.py` 会把 `preview.png` 写回主题目录，直接在 `examples/` 里跑会盖掉提交的图：
+
+```bash
+cp -r examples/tide /tmp/tide && python3 scripts/preview.py /tmp/tide --screen editor
+python3 scripts/build.py --name Ask --category AI -o /tmp/ask && python3 scripts/preview.py /tmp/ask --screen chat
+```
 
 ## 结构
 

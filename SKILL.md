@@ -53,7 +53,7 @@ python3 scripts/build.py --name Ledgerly --accent 绿 -o themes/ledgerly
 python3 scripts/build.py --name Ask --category AI -o themes/ask         # 还没有图标 → 紫
 ```
 
-色名中英文都可以（`--accent green`、`--category image`）。脚本在 CIE LCh（D65）里推导所有颜色：
+色名中英文都可以（`--accent green`、`--category image`）；类别的英文名和图标 skill 的 `data-category` 一样（tools、image、video、ai、health、finance）。脚本在 CIE LCh（D65）里推导所有颜色：
 
 - **中性色**：按 `assets/palette.json` 的 `base`（色相 265，彩度深 1.6、浅 1.2）和 `ladder` 生成 `canvas` → `surface-3` 的阶梯和四级文字。
 - **主色**：色相和彩度固定，只走 L（步长 0.5）。`primary` 是填充，取白字刚好 ≥ 4.5:1 的最高 L，深浅两种模式同值；`primary-text` 是链接和选中文字，深色往亮走、浅色往暗走，直到在每个底上 ≥ 4.5:1。状态色同法；`in-progress` 等于 `info`。
@@ -93,25 +93,27 @@ python3 scripts/preview.py themes/tide --screen timer \
 4. 加 `--desktop` 时：桌面窗口这一行。
 5. 色板：`light`、`dark`、`light-hc`、`dark-hc` 四列，每列有中性色阶梯、各档文字在最差背景上的对比度、主色一族、状态色和 frost 条；下面是媒体色组和触感、手势参数。
 
-脚本先打印一行 `sizes:`，是实测的控件尺寸（iOS 玻璃按钮 44 × 44、筛选 pill 高 36、行高 60，M3 TopAppBar 64、FilterChip 32、列表项 72、FAB 56，手机按钮高 50、分段控件 32、滑块圆钮 24、工具托盘 64、提示词框 48 起，加 `--desktop` 时还有桌面行 36、侧栏项 28、命令项 36、kbd 18），和 `references/rules.md` 对不上就是哪里改坏了。最后打印断言，每行 PASS 或 FAIL；有 FAIL 时退出码是 1，`preview.png` 照样写出：
+脚本先打印一行 `sizes:`，是实测的控件尺寸，只列这张图上有的控件：每种界面都有 iOS 玻璃按钮 44 × 44、M3 TopAppBar 64、手机按钮高 50、分段控件 32、步进器 32、滑块圆钮 24；`timer`、`notes`、`list` 另有筛选 pill 高 36、iOS 行高 60、设置行 44、M3 列表项 72、FAB 56、付费墙方案 60；`editor` 另有工具托盘 64、工具项 64、裁剪手柄 20、选中勾 22；`chat` 另有提示词框最小高 48、发送键 40、回复操作 44；加 `--desktop` 时还有桌面行 36、侧栏项 28、命令项 36、kbd 18。和 `references/rules.md` 对不上就是哪里改坏了。最后打印断言，每行 PASS 或 FAIL；有 FAIL 时退出码是 1，`preview.png` 照样写出：
 
 - `frost light`、`frost dark`：栏上文字和图标对滚到下面的列表的最低对比度 ≥ 3:1；`frost photo light`、`frost photo dark`：同样的玻璃对滚到下面的照片网格（有亮天空和高饱和的照片）≥ 3:1。只量玻璃本身：量的时候隐藏 iOS 的滚动边缘渐隐。这四部手机在画板外另外渲染（不在图里）。
 - `viewer scrim`：查看器的白色控件透过遮罩、叠在亮照片上 ≥ 4.5:1。
-- `accent area phone`：每部手机屏幕上主色像素（LCh 色相 ±25°、彩度 ≥ 20）≤ 8 %，报最高的一部；照片、画布和生成的图挖掉不算，把它们算进去的数字只报 INFO。`accent area conversion`：引导、付费墙、权限预请求、同意页 ≤ 15 %。把 `selected` 浅底也算进去（彩度 ≥ 4）的数字只报 INFO。
+- `accent area phone`：每部手机屏幕上主色像素（LCh 色相 ±25°、彩度 ≥ 20）≤ 8 %，报最高的一部；量的时候把照片、画布和生成的图隐藏（盖在上面的勾和选中描边照算），把它们算进去的数字只报 INFO。`accent area conversion`：引导、付费墙、权限预请求、同意页和示例空状态 ≤ 15 %。把 `selected` 浅底也算进去（彩度 ≥ 4）的数字只报 INFO。
+- `safe area`：付费墙、引导、权限预请求、同意页、导出和举报弹窗的内容都在 Home 指示条（Android 是手势条）上方结束，没有被挤进去。
 - 加 `--desktop` 时多一行 `accent area desktop`：桌面窗口 ≤ 5 %，命令菜单和遮罩隐藏后量。
 
 打开 `preview.png` 亲眼看，**只查三件事**：
 
 1. **主色符合第 1 步的表**。标题行写着主色和图标色；有「图标 × 界面」那一格时，暖色图标和蓝色界面放在一起站得住。
 2. **`build.py` 打印了 `contrast: all pass (standard, high)`**。
-3. **`preview.py` 的断言全是 PASS**（frost 四行、`viewer scrim`、`accent area` 各行）。
+3. **`preview.py` 的断言全是 PASS**（frost 四行、`viewer scrim`、`accent area` 各行、`safe area`）。
 
 三项都过就交付。用户之后提意见时，常见的情况：
 
 | 看到 | 改 |
 |---|---|
 | 整个界面太花，或 `accent area` FAIL | 主色只给「主色的用途」（`rules.md`「主色」）；侧栏当前项、键盘光标行、菜单当前项、筛选 pill、比例 chip、当前工具一律中性；列表图标用 `text-3`；「完成」是默认态的列表不画每行的绿勾 |
-| 照片里的蓝天、绿树被算成主色 | 不会：量面积时照片、画布、生成的图都挖掉了（`data-photo`），INFO 行另报算进去的数字 |
+| 照片里的蓝天、绿树被算成主色 | 不会：量面积时照片、画布、生成的图都隐藏了（`data-photo`），INFO 行另报算进去的数字 |
+| `safe area` FAIL | 那一页的内容太长：减插图高度、权益条数或行数，不要把按钮和链接挤到 Home 指示条上 |
 | 浅色模式下编辑页、查看页还是黑的 | 正常：媒体页在四套里都是深色，画布彩度 0，看颜色才准（`rules.md`「媒体色组」） |
 | 「进行中」是蓝色不是黄色 | 正常：`in-progress` 等于 `info`；`warning` 只给真要注意的事 |
 | 手机上没有 kbd 和快捷键提示 | 正常：键盘层只在桌面、Web 和接了键盘的 iPad / Mac 上出现；手机上 ⌘K 对应搜索 |
