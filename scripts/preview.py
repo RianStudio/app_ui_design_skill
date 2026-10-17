@@ -1,34 +1,45 @@
 #!/usr/bin/env python3
 """Render the review sheet for a theme written by build.py, and measure it.
 
-    python3 scripts/preview.py out/                                    # timer screen, desktop window dark
+    python3 scripts/preview.py out/                                    # timer screen
     python3 scripts/preview.py out/ --screen list --icon ledgerly-1024.png --icon-dark ledgerly-dark.png
-    python3 scripts/preview.py out/ --screen notes --desktop-mode light
+    python3 scripts/preview.py out/ --screen editor                    # photo editor: canvas, slider, crop, viewer
+    python3 scripts/preview.py out/ --screen chat                      # AI chat and image generation
+    python3 scripts/preview.py out/ --screen notes --desktop           # add the desktop window
 
-Writes out/preview.png: a 1960 px wide sheet, saved at --scale 2 (3920 px). From the top:
+Writes out/preview.png: a 1960 px wide sheet of phones, saved at --scale 2 (3920 px). From the top:
   1. title row: app name, icon accent -> UI primary, primary and primary-text values, time of the render;
-  2. iPhone (390 x 844 pt) light at rest; iPhone dark scrolled, content under the glass bars, with a toast;
-     Android (Material 3, Pixel 412 x 915 dp); a component strip in light and dark (desktop sizes);
-  3. a 1280 x 800 desktop window (inverted-L layout, keyboard-cursor row, two multi-selected rows, the command
-     menu open over scrim-menu); beside it the desktop type scale, and either a dialog or, when the icon accent
-     is 珊瑚 / 黄 / 灰, an "icon x UI" cell: the warm icon next to the blue UI it falls back to, dark and light;
-  4. swatches of the four schemes: light, dark, light-hc, dark-hc, each with its lowest contrast per text tier.
+  2. the sample screen: two iPhones (390 x 844 pt) and an Android phone (Material 3, Pixel 412 x 915 dp), plus the
+     component strip at phone sizes, light and dark;
+  3. three more phones: for timer, notes and list the shared shell (settings, paywall, onboarding); for editor the
+     photo grid with multi-select, the viewer and a permission pre-prompt; for chat the third-party AI consent, the
+     paywall with credits and the report sheet. Beside them the phone type scale, and either the screen's bottom sheet or,
+     when the icon accent is 珊瑚 / 黄 / 灰, an "icon x UI" cell: the warm icon next to the blue UI it falls back to;
+  4. with --desktop (timer, notes and list): a 1280 x 800 desktop window (inverted-L layout, keyboard-cursor row,
+     two multi-selected rows, the command menu open over scrim-menu), the desktop type scale and a dialog;
+  5. swatches of the four schemes (light, dark, light-hc, dark-hc) and of the media tokens.
 
-Screens: timer (focus timer), notes (notes app: long Chinese text, highlight, search field) and list (ledger:
-amounts, filter pills, list grouped by day). Each has phone, Android and desktop content.
+Screens: timer (focus timer), notes (long Chinese text, highlight, search field), list (ledger: amounts, filter
+pills, list grouped by day), editor (photo editor, a dark page in every scheme: neutral canvas, before/after divider,
+slider with a zero detent, tool tray, checkerboard cut-out, export progress, crop handles, viewer scrim) and chat
+(AI: bubbles, action row, generation states, prompt field with attachment, aspect, send and stop, credits).
 
-Then prints four checks, each PASS or FAIL (exit status 1 when one fails; preview.png is written either way):
-  frost light / frost dark    bar text and icons over the content scrolled under them, >= 3:1 (dark on the
-                              second iPhone, light on a scrolled light iPhone rendered off the sheet); glass
-                              only: the scroll-edge fade is hidden while measuring, the inline title is skipped
-  accent area desktop         pixels in the primary's hue (+-25 deg, LCh chroma >= 20) <= 5 % of the window,
-                              measured with the command menu and its scrim hidden
-  accent area phone           the same, <= 8 % of each phone screen (worst of the three)
+Then prints the checks, each PASS or FAIL (exit status 1 when one fails; preview.png is written either way):
+  frost light / frost dark    bar text and icons over list content scrolled under them, >= 3:1
+  frost photo light / dark    the same over a photo grid (a bright sky and a saturated photo among them)
+  viewer scrim                white viewer controls over a bright photo, through the scrim, >= 4.5:1
+                              (all on phones rendered off the sheet; glass and scrim only: the scroll-edge fade is
+                              hidden while measuring)
+  accent area phone           pixels in the primary's hue (+-25 deg, LCh chroma >= 20) <= 8 % of each phone screen
+                              (worst of them); photos, canvases and generated images are left out
+  accent area conversion      the same for the paywall, onboarding and consent screens, <= 15 %
+  accent area desktop         with --desktop: <= 5 % of the window, measured with the command menu hidden
 Counting the faint selected tint too (chroma >= 4) is printed as INFO only.
 
-Fonts: Inter (variable, opsz 14..32), Roboto Flex, Material Symbols Rounded and a Noto Sans SC subset come from
-Google Fonts and are cached in ~/.cache/rian-app-theme/fonts; offline (or --offline) the sheet falls back to the
-locally installed fonts and says so. The iPhone screens use Inter in place of SF Pro.
+The photos are procedural (numpy), so the sheet needs no image files. Fonts: Inter (variable, opsz 14..32), Roboto
+Flex, Material Symbols Rounded and a Noto Sans SC subset come from Google Fonts and are cached in
+~/.cache/rian-app-theme/fonts; offline (or --offline) the sheet falls back to the locally installed fonts and says so.
+The iPhone screens use Inter in place of SF Pro.
 
 Needs Playwright + Chromium, numpy and Pillow (set CHROMIUM_PATH to use an existing Chromium).
 """
@@ -43,7 +54,7 @@ SCHEMES = ("light", "dark", "light-hc", "dark-hc")
 SCHEME_NAME = {"light": "浅色 · 标准", "dark": "深色 · 标准", "light-hc": "浅色 · 高对比", "dark-hc": "深色 · 高对比"}
 MODE_NAME = {"light": "浅色", "dark": "深色"}
 BOARD_W = 1960  # 410 + 410 + 432 (phones) + 556 (component strip) + 3 gaps of 24 + 2 x 40 padding
-FROST_MIN, DESK_MAX, PHONE_MAX = 3.0, 5.0, 8.0
+FROST_MIN, SCRIM_MIN, DESK_MAX, PHONE_MAX, CONVERSION_MAX = 3.0, 4.5, 5.0, 8.0, 15.0
 HUE_BAND, STRONG_CHROMA, FAINT_CHROMA = 25, 20, 4
 
 
@@ -102,6 +113,37 @@ LUCIDE = {
     "square": '<rect width="18" height="18" x="3" y="3" rx="2"/>',
     "check": '<path d="M20 6 9 17l-5-5"/>',
     "more": '<circle cx="12" cy="12" r="1"/><circle cx="12" cy="5" r="1"/><circle cx="12" cy="19" r="1"/>',
+    "more-h": '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
+    "wand": '<path d="M15 4V2"/><path d="M15 16v-2"/><path d="M8 9h2"/><path d="M20 9h2"/><path d="M17.8 11.8 19 13"/><path d="M15 9h.01"/><path d="M17.8 6.2 19 5"/><path d="m3 21 9-9"/><path d="M12.2 6.2 11 5"/>',
+    "contrast": '<circle cx="12" cy="12" r="10"/><path d="M12 18a6 6 0 0 0 0-12v12z"/>',
+    "droplet": '<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',
+    "thermometer": '<path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/>',
+    "crop": '<path d="M6 2v14a2 2 0 0 0 2 2h14"/><path d="M18 22V8a2 2 0 0 0-2-2H2"/>',
+    "scissors": '<circle cx="6" cy="6" r="3"/><path d="M8.12 8.12 12 12"/><path d="M20 4 8.12 15.88"/><circle cx="6" cy="18" r="3"/><path d="M14.8 14.8 20 20"/>',
+    "share": '<path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/>',
+    "heart": '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>',
+    "arrow-up": '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
+    "paperclip": '<path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/>',
+    "image": '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
+    "refresh": '<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>',
+    "thumbs-up": '<path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/>',
+    "thumbs-down": '<path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/>',
+    "flag": '<path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" x2="4" y1="22" y2="15"/>',
+    "bell": '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+    "globe": '<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>',
+    "info": '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+    "shield": '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+    "updown": '<path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/>',
+    "rotate-ccw": '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+    "flip": '<path d="m3 7 5 5-5 5V7"/><path d="m21 7-5 5 5 5V7"/><path d="M12 20v2"/><path d="M12 14v2"/><path d="M12 8v2"/><path d="M12 2v2"/>',
+    "coins": '<circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18"/><path d="M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/>',
+    "panel": '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/>',
+    "move-h": '<path d="m18 8 4 4-4 4"/><path d="M2 12h20"/><path d="m6 8-4 4 4 4"/>',
+    "palette": '<circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>',
+    "gem": '<path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/>',
+    "buoy": '<circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/>',
+    "grid": '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
+    "layers": '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
 }
 # Material Symbols Rounded names for the Android screen; LUCIDE stands in when the font is unavailable
 MS_FALLBACK = {"add": "plus", "check": "check", "search": "search", "more_vert": "more", "settings": "settings",
@@ -110,7 +152,12 @@ MS_FALLBACK = {"add": "plus", "check": "check", "search": "search", "more_vert":
                "shopping_cart": "cart", "local_taxi": "car", "timer": "timer", "history": "history",
                "menu_book": "book", "edit_note": "pen", "mail": "mail", "description": "file-text",
                "folder": "folder", "star": "star", "play_arrow": "play", "flight": "briefcase",
-               "lightbulb": "bulb", "restaurant_menu": "utensils", "push_pin": "pin"}
+               "lightbulb": "bulb", "restaurant_menu": "utensils", "push_pin": "pin", "close": "x",
+               "content_copy": "copy", "refresh": "refresh", "thumb_up": "thumbs-up", "thumb_down": "thumbs-down",
+               "flag": "flag", "arrow_upward": "arrow-up", "crop": "crop", "rotate_left": "rotate-ccw", "flip": "flip",
+               "tune": "sliders", "content_cut": "scissors", "filter": "layers", "notifications": "bell",
+               "expand_more": "chev-down", "radio_button_checked": "target", "radio_button_unchecked": "square",
+               "bolt": "zap", "menu": "panel", "image": "image", "aspect_ratio": "crop"}
 
 
 def ic(name, size=16, cls="", bar=""):
@@ -146,9 +193,9 @@ def status_icon(kind):
     if kind == "backlog":
         return ('<svg class="st" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.25" fill="none" '
                 'stroke="var(--c-text-3)" stroke-width="1.5" stroke-dasharray="2.2 2"/></svg>')
-    if kind == "progress":
-        return ('<svg class="st" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.25" fill="none" stroke="var(--c-warning)" stroke-width="1.5"/>'
-                '<path d="M8 8V4a4 4 0 0 1 0 8z" fill="var(--c-warning)"/></svg>')
+    if kind == "progress":  # in progress is information (in-progress = info), never a warning
+        return ('<svg class="st" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.25" fill="none" stroke="var(--c-in-progress)" stroke-width="1.5"/>'
+                '<path d="M8 8V4a4 4 0 0 1 0 8z" fill="var(--c-in-progress)"/></svg>')
     if kind == "cancel":
         return ('<svg class="st" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="var(--c-text-3)"/>'
                 '<path d="M5.6 5.6l4.8 4.8M10.4 5.6l-4.8 4.8" stroke="var(--c-bg)" stroke-width="1.6" stroke-linecap="round"/></svg>')
@@ -235,8 +282,9 @@ EXPORT = "导出本月记录 CSV"  # one action, one name: command menu, context
 SHORTCUTS = "快捷键速查"  # the ? sheet: the same name in the command menu's footer and wherever it is listed
 
 # Each screen: phone and Android content (groups, newest first within a day), desktop content (the same records on the
-# same days), the component strip's labels (strip) and the sample words of the type scale and swatches (sample:
-# Chinese, then Latin and figures, then the swatch text).
+# same days; --desktop), the component strip's labels (strip), the shared shell (shell: paywall features, onboarding,
+# settings), the bottom sheet of the right column (sheet) and the sample words of the type scale and swatches (sample:
+# Chinese, then Latin and figures, then the swatch text). editor and chat draw their own phones.
 SCREENS = {
     "list": {
         "label": "账本",
@@ -270,9 +318,18 @@ SCREENS = {
         ],
         "toast": f'已记一笔 · 午餐 <span class="num">{money(-32)}</span>',
         "strip": {"ok": "保存", "field": ("金额", '<span class="num">32.00</span>'),
-                  "tags": ["餐饮", ("warning", "报销中"), ("info", "已对账")], "badges": ("已入账", "报销中", "同步失败"),
-                  "danger": "删除这一条",
+                  "tags": ["餐饮", ("in-progress", "报销中"), ("success", "已对账")],
+                  "badges": [("success", "已入账"), ("info", "报销中"), ("danger", "同步失败")],
+                  "danger": "删除这一条", "seg": ("支出", "收入", "转账"), "step": ("提前提醒", "3 天"),
+                  "slider": ("预算提醒线", "80 %", 80, False), "task": ("导入支付宝账单", 62, "第 2 / 3 个文件 · 还剩约 8 秒"),
                   "menu": [("copy", "复制一条", ("⌘", "D")), ("tag", "改分类", ("L",)), ("wallet", "改账户", ("A",))]},
+        "shell": {"features": ["不限账户和账本", "按分类的月度统计和预算", "导出 CSV 和 Excel", "同步到 iPad 和 Mac"],
+                  "onboard": ("记一笔只要 3 秒", "打开就是数字键盘：输入金额，选个分类，就记好了。"),
+                  "demo": ("utensils", "午餐", money(-32), "餐饮 · 招行信用卡"),
+                  "general": [("默认账户", "招商银行"), ("记账提醒", "每天 21:00")]},
+        "sheet": {"title": EXPORT, "rows": [("value", "范围", "2026年10月 · 128 笔"), ("seg", "格式", ("CSV", "Excel", "PDF")),
+                                             ("switch", "包含备注", True)],
+                  "ok": "导出", "note": "导出后可以存到「文件」，或者分享给别人"},
         "sample": ("记一笔", "Ledger 4,286.50", "午餐 −¥32.00"),
         "desktop": {
             "nav": [("inbox", "待确认", "3"), ("list", "明细", ""), ("chart", "统计", ""), ("target", "预算", "")],
@@ -344,9 +401,18 @@ SCREENS = {
         ],
         "toast": "已完成一次专注 · 整理笔记 25 分钟",
         "strip": {"ok": "创建", "field": ("任务名", "读论文"),
-                  "tags": ["论文", ("warning", "进行中"), ("info", "已同步")], "badges": ("已完成", "进行中", "同步失败"),
-                  "danger": "删除这次专注",
+                  "tags": ["论文", ("in-progress", "进行中"), ("success", "已同步")],
+                  "badges": [("success", "已完成"), ("info", "进行中"), ("danger", "同步失败")],
+                  "danger": "删除这次专注", "seg": ("专注", "短休", "长休"), "step": ("番茄个数", "2"),
+                  "slider": ("白噪音音量", "60 %", 60, False), "task": ("导出专注记录 PDF", 62, "第 52 / 84 页 · 还剩约 6 秒"),
                   "menu": [("copy", "复制任务", ("⌘", "D")), ("folder", "改项目", ("P",)), ("clock", "改时长", ("T",))]},
+        "shell": {"features": ["不限项目和任务", "专注统计和每周回顾", "白噪音和自定义时长", "同步到 iPad 和 Mac"],
+                  "onboard": ("一次只做一件事", "选一个任务，开始 25 分钟专注。中途想到别的事，先记下来，结束再看。"),
+                  "demo": ("book", "读论文", "25:00", "论文 · 第 3 节"),
+                  "general": [("默认时长", "25 分钟"), ("提醒声音", "木鱼")]},
+        "sheet": {"title": "导出专注记录", "rows": [("value", "范围", "2026年10月 · 46 次"), ("seg", "格式", ("PDF", "CSV", "图片")),
+                                                  ("switch", "包含每周回顾", True)],
+                  "ok": "导出", "note": "导出后可以存到「文件」，或者分享给别人"},
         "sample": ("开始专注", "Focus 25:00", "专注 25 分钟"),
         "desktop": {
             "nav": [("sun", "今天", "7"), ("history", "专注记录", ""), ("chart", "统计", ""), ("target", "目标", "")],
@@ -407,9 +473,18 @@ SCREENS = {
         ],
         "toast": "已归档「旅行清单」",
         "strip": {"ok": "保存", "field": ("标题", "关于专注"),
-                  "tags": ["读书", ("warning", "草稿"), ("info", "已共享")], "badges": ("已保存", "有冲突", "同步失败"),
-                  "danger": "删除这篇笔记",
+                  "tags": ["读书", ("text-3", "草稿"), ("info", "已共享")],
+                  "badges": [("success", "已保存"), ("warning", "有冲突"), ("danger", "同步失败")],
+                  "danger": "删除这篇笔记", "seg": ("列表", "卡片", "时间线"), "step": ("正文字号", "17"),
+                  "slider": ("行距", "1.6 倍", 55, False), "task": ("导出 86 篇笔记 PDF", 62, "第 53 / 86 篇 · 还剩约 20 秒"),
                   "menu": [("copy", "复制一篇", ("⌘", "D")), ("folder", "移到文件夹", ("M",)), ("tag", "加标签", ("L",))]},
+        "shell": {"features": ["不限笔记和文件夹", "全文搜索和标签", "导出 PDF 和 Markdown", "同步到 iPad 和 Mac"],
+                  "onboard": ("想到就记", "打开就是一页新笔记，写完不用点保存，标题自动取第一行。"),
+                  "demo": ("file-text", "关于专注", "386 字", "读书 · 刚刚保存"),
+                  "general": [("新笔记位置", "全部笔记"), ("正文字号", "17")]},
+        "sheet": {"title": "导出笔记", "rows": [("value", "范围", "选中的 2 篇"), ("seg", "格式", ("PDF", "Markdown", "纯文本")),
+                                              ("switch", "包含图片", True)],
+                  "ok": "导出", "note": "导出后可以存到「文件」，或者分享给别人"},
         "sample": ("关于专注", "Notes 41,280", "笔记 386 字"),
         "desktop": {
             "nav": [("file-text", "全部笔记", "86"), ("pin", "置顶", "3"), ("clock", "最近", ""), ("archive", "归档", "12")],
@@ -444,15 +519,239 @@ SCREENS = {
                        "field": "文件夹", "value": "生活", "ok": "移动"},
         },
     },
+    # editor and chat have no desktop window: their pages are phone pages
+    "editor": {
+        "label": "照片编辑",
+        "tabs": [("grid", "image", "图库"), ("wand", "tune", "编辑"), ("settings", "settings", "设置")],
+        "strip": {"ok": "完成", "field": ("文件名", '<span lang="en">IMG_2041</span>'),
+                  "tags": ["人像", ("in-progress", "处理中"), ("success", "已保存")],
+                  "badges": [("success", "已导出"), ("info", "处理中"), ("danger", "导出失败")],
+                  "danger": "删除这张照片", "seg": ("JPEG", "PNG", "HEIC"), "step": ("导出倍率", "2×"),
+                  "slider": ("曝光", "+12", 12, True), "task": ("导出 4 张照片", 62, "第 3 / 4 张 · 还剩约 12 秒"),
+                  "menu": [("copy", "拷贝调整", ("⌘", "⇧", "C")), ("share", "分享", ("⌘", "⇧", "S")), ("heart", "收藏", ("F",))]},
+        # tool tray: icon, name, value (empty: not adjusted); the first is the current tool
+        "tools": [("sun", "曝光", "+12"), ("contrast", "对比度", "+8"), ("droplet", "饱和度", ""), ("thermometer", "色温", "−4"),
+                  ("layers", "阴影", ""), ("sliders", "锐化", "")],
+        "modes": ["调整", "滤镜", "裁剪", "抠图"],
+        "queue": [("done", "IMG_2041", "已完成 · 3.1 MB"), ("done", "IMG_2042", "已完成 · 2.8 MB"),
+                  ("progress", "IMG_2043", "62 %"), ("todo", "IMG_2044", "排队中")],
+        "sheet": {"title": "导出 4 张照片", "rows": [("seg", "格式", ("JPEG", "PNG", "HEIC")), ("slider", "质量", "85 %", 85),
+                                                  ("value", "尺寸", "原始 · 4032 × 3024"), ("value", "预估体积", "约 9.6 MB")],
+                  "ok": "保存到相册", "alt": "分享", "note": "导出要几秒到几分钟；离开 app 也会继续，系统会显示进度"},
+        "sample": ("调整曝光", "Photo 4032 × 3024", "曝光 +12"),
+        "type": {"amount": "9.6 MB → 3.2 MB", "timecode": "01:24 / 03:10"},
+    },
+    "chat": {
+        "label": "AI 绘图",
+        "tabs": [("panel", "menu", "对话"), ("image", "image", "作品"), ("settings", "settings", "设置")],
+        "strip": {"ok": "发送", "field": ("提示词", "海边小镇"),
+                  "tags": ["胶片", ("in-progress", "生成中"), ("success", "已保存")],
+                  "badges": [("success", "已完成"), ("info", "生成中"), ("danger", "生成失败")],
+                  "danger": "删除这段对话", "seg": ("1:1", "3:4", "16:9"), "step": ("张数", "4"),
+                  "slider": ("风格强度", "70 %", 70, False), "task": ("生成 4 张图", 62, "第 3 / 4 张 · 还剩约 15 秒"),
+                  "menu": [("copy", "复制", ("⌘", "C")), ("refresh", "重新生成", ("⌘", "R")), ("flag", "举报", ())]},
+        "model": "标准模型", "credits": 128,
+        "prompt": "黄昏时的海边小镇，白色房子沿着山坡排开，窗户透出暖黄的灯光，胶片质感",
+        "samples": [("dusk", "黄昏的海边小镇"), ("flowers", "雨后的花园，微距"), ("night", "霓虹灯下的街角"), ("sea", "夏天的海，俯拍")],
+        "shell": {"features": ["每月 500 点，约 500 张图", "4K 放大和去背景", "高峰时优先排队", "生成的图可以商用"]},
+        "sheet": {"title": "选择模型", "rows": [("radio", "标准", "1 点 / 张 · 约 15 秒", True), ("radio", "精细", "2 点 / 张 · 约 40 秒", False),
+                                              ("radio", "快速", "0.5 点 / 张 · 约 5 秒", False)],
+                  "ok": "", "note": "点数余额 128 · 每月 1 日加 500 点"},
+        "sample": ("生成 4 张图", "Credits 128", "消耗 4 点"),
+        "type": {"amount": "128 点", "timecode": "00:15"},
+    },
 }
 
 
-# ---------- phone (iOS 26) ----------
+# ---------- photos: procedural, so the sheet needs no image files ----------
+def photo_array(kind, w, h, seed=0):
+    """an RGB float array (0..1): sky (bright blue sky over green hills: the blue sits in the UI blue's hue), bright
+    (snow under a pale sky: the hardest case for white controls), dusk, flowers (saturated), sea, food, night"""
+    import numpy as np
+    from PIL import Image, ImageFilter
+    rng = np.random.default_rng(seed)
+    y = np.linspace(0, 1, h)[:, None] * np.ones((1, w))
+    x = np.ones((h, 1)) * np.linspace(0, 1, w)[None, :]
+    C = lambda *v: np.array(v, float) / 255
+    full = lambda *v: np.broadcast_to(C(*v), (h, w, 3))
+
+    def noise(scale):  # smooth value noise, 0..1
+        n = rng.random((max(2, h // scale), max(2, w // scale)))
+        return np.asarray(Image.fromarray((n * 255).astype(np.uint8)).resize((w, h), Image.BICUBIC)).astype(float) / 255
+
+    def blur(a, r):
+        im = Image.fromarray(np.clip(a * 255, 0, 255).astype(np.uint8))
+        return np.asarray(im.filter(ImageFilter.GaussianBlur(r))).astype(float) / 255
+
+    def mix(a, b, t):
+        t = np.clip(t, 0, 1)[..., None]
+        return a * (1 - t) + b * t
+
+    if kind == "sky":
+        horizon = 0.66 + 0.05 * np.sin(x * 5 + seed) + 0.03 * np.sin(x * 13 + seed * 2)
+        img = mix(full(52, 120, 222), C(170, 210, 246), y / 0.66)
+        cl = noise(max(8, w // 8)) * 0.7 + noise(max(4, w // 25)) * 0.3
+        img = mix(img, C(250, 252, 255), blur(np.clip((cl - 0.52) * 3.2, 0, 1) * (y < 0.6), w / 100))
+        img = np.where((y > horizon)[..., None], mix(full(92, 150, 70), C(28, 58, 30), (y - horizon) * 3), img)
+    elif kind == "bright":
+        img = mix(full(226, 236, 248), C(252, 253, 255), y * 1.4)
+        ridge = 0.5 + 0.08 * np.sin(x * 7 + seed) + 0.04 * np.sin(x * 19)
+        snow = mix(full(255, 255, 255), C(214, 226, 240), noise(max(6, w // 10)) * 0.6)
+        img = np.where((y > ridge)[..., None], snow, img)
+    elif kind == "dusk":
+        img = mix(full(54, 44, 112), C(236, 120, 84), y / 0.62)
+        img = mix(img, C(255, 196, 120), (y - 0.5) * 6)
+        sun = np.hypot((x - 0.3 - 0.4 * (seed % 3) / 2) * w / h, y - 0.58)
+        img = mix(img, C(255, 232, 170), (0.07 - sun) * 40)
+        hills = 0.64 + 0.06 * np.sin(x * 4 + seed) + 0.025 * np.sin(x * 17)
+        town = (y > hills - 0.05) & (np.sin(x * 60 + seed) > 0.2) & (y > hills - 0.02 - 0.03 * (np.sin(x * 23) > 0))
+        img = np.where((y > hills)[..., None] | town[..., None], full(36, 26, 44), img)
+        lights = (rng.random((h, w)) > 0.997) & (y > hills - 0.04)
+        img = mix(img, C(255, 214, 140), blur(lights.astype(float), 1.2) * 4)
+    elif kind == "flowers":
+        img = mix(full(40, 96, 46), C(16, 48, 22), y)
+        img = mix(img, C(120, 170, 70), noise(max(4, w // 16)) * 0.5)
+        for c in ((230, 40, 60), (250, 200, 30), (210, 50, 160), (250, 120, 30), (240, 240, 235)):
+            for _ in range(5):
+                cx, cy, r = rng.random(), rng.random(), 0.05 + rng.random() * 0.07
+                d = np.hypot((x - cx) * w / h, y - cy)
+                img = mix(img, C(*c) * (0.75 + 0.25 * (1 - d / r))[..., None], (r - d) * 60)
+    elif kind == "sea":
+        img = mix(full(120, 190, 230), C(200, 230, 245), y / 0.4)
+        sea = mix(mix(full(20, 120, 150), C(10, 60, 90), (y - 0.4) * 2), C(200, 235, 240),
+                  np.clip((noise(max(3, w // 50)) - 0.7) * 4, 0, 1) * 0.6)
+        img = np.where((y > 0.42)[..., None], sea, img)
+        sand = mix(full(232, 210, 170), C(210, 180, 140), y)
+        img = np.where((y > 0.78 + 0.04 * np.sin(x * 6 + seed))[..., None], sand, img)
+    elif kind == "food":
+        img = mix(full(120, 72, 44), C(70, 40, 26), y)
+        d = np.hypot((x - 0.5) * w / h, y - 0.52)
+        img = mix(img, C(244, 240, 232), (0.36 - d) * 50)
+        img = mix(img, C(214, 110, 40), np.clip((0.24 - d) * 50, 0, 1) * (0.6 + 0.4 * noise(max(4, w // 30))))
+        img = mix(img, C(90, 150, 60), np.clip((noise(max(4, w // 25)) - 0.72) * 6, 0, 1) * (d < 0.22))
+    else:  # night
+        img = mix(full(10, 14, 34), C(40, 30, 60), y)
+        for _ in range(9):
+            bx, bw, bh = rng.random(), 0.06 + rng.random() * 0.1, 0.2 + rng.random() * 0.3
+            m = (np.abs(x - bx) < bw / 2) & (y > 1 - bh)
+            img = np.where(m[..., None], full(22, 24, 40), img)
+            win = m & (rng.random((h, w)) > 0.985)
+            img = mix(img, C(255, 214, 150), blur(win.astype(float), 0.8) * 3)
+    img = img + (rng.random((h, w, 1)) - 0.5) * 0.025  # a little grain
+    return np.clip(img, 0, 1)
+
+
+class Photos:
+    """each photo once, as a CSS class with the JPEG inlined; elements carry data-photo (left out of the accent area)"""
+    used = {}
+
+    @classmethod
+    def cls(cls, kind, w, h, seed=0, blur=0):
+        name = f"ph-{kind}-{w}x{h}-{seed}" + (f"-b{blur}" if blur else "")
+        cls.used[name] = (kind, w, h, seed, blur)
+        return name
+
+    @staticmethod
+    def jpeg(kind, w, h, seed, blur):
+        import io
+        import numpy as np
+        from PIL import Image, ImageFilter
+        im = Image.fromarray((photo_array(kind, w, h, seed) * 255).astype(np.uint8))
+        if blur:
+            im = im.filter(ImageFilter.GaussianBlur(blur))
+        buf = io.BytesIO()
+        im.save(buf, "JPEG", quality=84)
+        return "data:image/jpeg;base64," + base64.b64encode(buf.getvalue()).decode()
+
+    @classmethod
+    def css(cls):
+        return "".join(f'.{n} {{ background-image: url("{cls.jpeg(*k)}"); }}\n' for n, k in cls.used.items())
+
+
+def ph(kind, w, h, seed=0, cls="", style="", blur=0):
+    """a photo filling its box (w x h: the pixels generated, twice the box at --scale 2)"""
+    return f'<div data-photo class="photo {Photos.cls(kind, w, h, seed, blur)} {cls}" style="{style}"></div>'
+
+
+# ---------- phone frames ----------
 STATUS_BAR = """<div class="sbar"><b class="num">9:41</b><span class="glyphs">
   <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1" fill="currentColor"/><rect x="5" y="5.5" width="3" height="6.5" rx="1" fill="currentColor"/><rect x="10" y="3" width="3" height="9" rx="1" fill="currentColor"/><rect x="15" y="0" width="3" height="12" rx="1" fill="currentColor"/></svg>
   <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 2.2c2.3 0 4.4.9 6 2.4l1.1-1.2A10.3 10.3 0 0 0 8 .6C5.3.6 2.8 1.6.9 3.4L2 4.6c1.6-1.5 3.7-2.4 6-2.4zm0 3.4c1.4 0 2.6.5 3.6 1.4l1.1-1.2A7 7 0 0 0 8 4c-1.8 0-3.4.7-4.7 1.8l1.1 1.2c1-.9 2.2-1.4 3.6-1.4zM8 9a1.6 1.6 0 1 0 0 3.2A1.6 1.6 0 0 0 8 9z" fill="currentColor"/></svg>
   <svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="3.8" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="18" height="9" rx="2.5" fill="currentColor"/><path d="M25 4.5v4c.8-.3 1.3-1.1 1.3-2s-.5-1.7-1.3-2z" fill="currentColor" opacity=".45"/></svg>
 </span></div><div class="island"></div>"""
+ANDROID_BAR = """<div class="asb"><b class="num">9:41</b><span class="grow"></span><span class="aglyphs">
+    <svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 13.5 1 6.2a10 10 0 0 1 14 0z" fill="currentColor"/></svg>
+    <svg width="16" height="16" viewBox="0 0 16 16"><path d="M15 2v12H3z" fill="currentColor"/></svg>
+    <svg width="10" height="16" viewBox="0 0 10 16"><rect x="3" y="0" width="4" height="2" rx=".5" fill="currentColor"/><rect x="0.5" y="1.5" width="9" height="14" rx="2" fill="currentColor"/></svg>
+  </span><i class="punch"></i></div>"""
+
+
+def _frame_attrs(pid, label, conversion):
+    return (f' id="{pid}"' if pid else "", f' data-label="{label}"' + (" data-conversion" if conversion else ""))
+
+
+def ios_frame(inner, mode, label, caption="", pid="", cls="", conversion=False):
+    """an iPhone, 390 x 844 pt: inner, then the status bar and the home indicator; label names it in the checks,
+    conversion marks the screens with the looser accent budget (onboarding, paywall, permission and consent)"""
+    i, a = _frame_attrs(pid, label, conversion)
+    cap = f'<div class="cap">{caption}</div>' if caption else ""
+    return (f'<div class="phone"{i} data-theme="{mode}"><div class="frame"><div class="screen {cls}" data-region="phone"{a}>'
+            f'{inner}{STATUS_BAR}<i class="home"></i></div></div>{cap}</div>')
+
+
+def android_frame(inner, mode, label, caption="", pid="", cls="", conversion=False):
+    """a Pixel, 412 x 915 dp, Material 3"""
+    i, a = _frame_attrs(pid, label, conversion)
+    cap = f'<div class="cap">{caption}</div>' if caption else ""
+    return (f'<div class="android"{i} data-theme="{mode}"><div class="aframe"><div class="ascreen {cls}" data-region="android"{a}>'
+            f'{ANDROID_BAR}{inner}<i class="ahandle"></i></div></div>{cap}</div>')
+
+
+# ---------- phone controls ----------
+def gbtn(icon, bar="", prom=False, size=20):
+    """an iOS 26 glass button, 44 pt"""
+    return (f'<span class="gbtn prom">{ic(icon, size)}</span>' if prom
+            else f'<span class="gbtn frost floating">{ic(icon, size, bar=bar)}</span>')
+
+
+def gpill(label, prom=False, bar=False):
+    """a glass capsule with a word; prom: the screen's one primary action (.glassProminent)"""
+    b = f' data-bar="{label}"' if bar else ""
+    return f'<span class="gpill{" prom" if prom else " frost floating"} t-row-title"><b{b}>{label}</b></span>'
+
+
+def pbtn(label, kind="pri", icon="", cls=""):
+    """a phone button, 50 high, radius 12: pri (primary fill), second (surface-2), plain (text only)"""
+    return f'<span class="pbtn {kind} {cls}">{ic(icon, 20) if icon else ""}{label}</span>'
+
+
+def segmented(opts, sel=0, cls=""):
+    return (f'<span class="segc {cls}">' + "".join(f'<span class="seg{" on" if i == sel else ""}">{o}</span>'
+                                                   for i, o in enumerate(opts)) + "</span>")
+
+
+def stepper():
+    return '<span class="stp"><b>−</b><i></i><b>+</b></span>'
+
+
+def switch(on=True):
+    return f'<span class="sw2{" on" if on else ""}"></span>'
+
+
+def radio(on=False):
+    return f'<span class="rad{" on" if on else ""}"></span>'
+
+
+def slider(value, detent=False):
+    """detent: value -100..100, filled from the zero tick; otherwise 0..100 from the left. Track surface-3, fill
+    primary (an allowed use), white thumb"""
+    if detent:
+        left, width, pos = (50, value / 2, 50 + value / 2) if value >= 0 else (50 + value / 2, -value / 2, 50 + value / 2)
+        tick = '<i class="sl-tick"></i>'
+    else:
+        left, width, pos, tick = 0, value, value, ""
+    return (f'<div class="sl"><i class="sl-track"></i><i class="sl-fill" style="left:{left:g}%;width:{width:g}%"></i>{tick}'
+            f'<i class="sl-thumb" style="left:{pos:g}%"></i></div>')
 
 
 def seg_bar(pct, cls="mbar"):
@@ -460,6 +759,38 @@ def seg_bar(pct, cls="mbar"):
     return f'<div class="{cls}"><i class="used" style="width:calc({pct}% - 1px)"></i><i class="rest"></i></div>'
 
 
+def progress(pct):
+    """a determinate bar: used | 2 px gap | remaining"""
+    return seg_bar(pct, "xbar")
+
+
+def check_badge():
+    """the check on a selected picture: a primary disc (white on it passes 4.5:1), white tick and ring"""
+    return ('<svg class="chk" width="22" height="22" viewBox="0 0 22 22"><circle cx="11" cy="11" r="10" fill="var(--c-primary)" '
+            'stroke="#fff" stroke-width="1.5"/><path d="M6.8 11.2l2.8 2.8 5.6-5.8" stroke="#fff" stroke-width="1.8" fill="none" '
+            'stroke-linecap="round" stroke-linejoin="round"/></svg>')
+
+
+def slices(w, h, demo=""):
+    """onboarding and paywall art: geometric slices like the app icon's (graphite pieces, 4-unit gaps, one piece in
+    the primary), with an optional card on top that shows the app at work"""
+    svg = (f'<svg class="slices" width="{w}" height="{h}" viewBox="0 0 320 200" preserveAspectRatio="xMidYMid meet">'
+           '<path d="M158 16a84 84 0 0 0 0 168z" fill="var(--c-surface-3)"/>'
+           '<path d="M162 16a84 84 0 0 1 84 84h-84z" fill="var(--c-border-strong)" opacity=".55"/>'
+           '<path d="M162 104h84a84 84 0 0 1-84 80z" fill="var(--c-surface-3)"/>'
+           '<rect x="34" y="112" width="72" height="72" rx="18" fill="var(--c-surface-3)"/>'
+           '<circle cx="262" cy="46" r="26" fill="var(--c-primary)"/>'
+           '<rect x="54" y="30" width="44" height="44" rx="22" fill="var(--c-border-strong)" opacity=".35"/></svg>')
+    return f'<div class="art" style="width:{w}px;height:{h}px">{svg}{demo}</div>'
+
+
+def demo_card(sh):
+    icon, title, value, meta = sh["demo"]
+    return (f'<div class="demo">{ic(icon, 22, "t3")}<span class="pt"><b class="t-row-title">{title}</b>'
+            f'<span class="t-row-meta">{meta}</span></span><b class="t-amount num">{value}</b></div>')
+
+
+# ---------- the list screens: timer, notes, list ----------
 def hero_ios(name):
     if name == "list":
         return f'''<div class="mcard">
@@ -483,7 +814,7 @@ def hero_ios(name):
     </article>'''
 
 
-def ios_phone(name, scr, mode, icon, scrolled=False, toast=False, pid="", caption=""):
+def ios_phone(name, scr, mode, icon, scrolled=False, toast=False, pid="", caption="", label=""):
     body = ""
     for head, total, rows in scr["groups"]:
         body += f'<div class="psh t-section-header"><span>{head}</span><span class="num">{total}</span></div><div class="plist">'
@@ -497,32 +828,28 @@ def ios_phone(name, scr, mode, icon, scrolled=False, toast=False, pid="", captio
     pills = "".join(f'<span class="ppill t-row-title{" on" if i == 0 else ""}">{p}</span>' for i, p in enumerate(scr["pills"]))
     tabs = "".join(f'<span class="tab{" on" if i == 0 else ""}">{ic(lu, 24, bar=lab + " 图标")}<b data-bar="{lab}">{lab}</b></span>'
                    for i, (lu, _ms, lab) in enumerate(scr["tabs"]))
-    new_btn = (f'<span class="gbtn prom">{ic("plus", 22)}</span>' if scr["new_prominent"]
-               else f'<span class="gbtn frost floating">{ic("plus", 22, bar="新建图标")}</span>')
+    new_btn = gbtn("plus", prom=True, size=22) if scr["new_prominent"] else gbtn("plus", "新建图标", size=22)
     toast_html = (f'<div class="ptoast">{status_icon("done")}<span class="t-row-meta">{scr["toast"]}</span>'
                   f'<span class="undo t-row-title">撤销</span></div>') if toast else ""
     inline = f'<div class="inline t-card-title">{scr["title"]}</div>' if scrolled else ""
     edge_top = '<div class="edge-top"></div>' if scrolled else ""
-    return f'''
-<div class="phone" id="{pid}" data-theme="{mode}"><div class="frame"><div class="screen" data-region="phone">
+    inner = f'''
   <div class="pc"{' data-scroll="psh"' if scrolled else ""}>
     <div class="ltitle t-page-title">{scr["title"]}</div><div class="lsub t-row-meta">{scr["sub"]}</div>
     {hero_ios(name)}
     <div class="pills">{pills}</div>
     {body}
   </div>
-  {edge_top}{STATUS_BAR}
+  {edge_top}
   <div class="plead">{icon(32, mode)}</div>{inline}
-  <div class="ptb"><span class="gbtn frost floating">{ic("filter", 20, bar="筛选图标")}</span>{new_btn}</div>
+  <div class="ptb">{gbtn("filter", "筛选图标")}{new_btn}</div>
   <div class="edge"></div>
   {toast_html}
   <nav class="tabbar frost floating">{tabs}</nav>
-  <span class="stab frost floating">{ic("search", 24, bar="搜索图标")}</span>
-  <i class="home"></i>
-</div></div>{f'<div class="cap">{caption}</div>' if caption else ""}</div>'''
+  <span class="stab frost floating">{ic("search", 24, bar="搜索图标")}</span>'''
+    return ios_frame(inner, mode, label or f"iPhone {MODE_NAME[mode]}", caption, pid)
 
 
-# ---------- Android (Material 3, Pixel 412 x 915 dp) ----------
 def hero_android(name):
     if name == "list":
         return f'''<div class="acard"><div class="arow2 m3-bodyMedium"><span>10月支出</span><span class="t3">预算 ¥6,000</span></div>
@@ -553,20 +880,324 @@ def android(name, scr, mode, caption=""):
                   f'<b class="m3-labelMedium">{lab}</b></span>' for i, (_lu, ms, lab) in enumerate(scr["tabs"]))
     fab = (f'<span class="afab ext m3-labelLarge">{Glyphs.ms("play_arrow")}开始专注</span>' if name == "timer"
            else f'<span class="afab">{Glyphs.ms("add")}</span>')
-    return f'''
-<div class="android" data-theme="{mode}"><div class="aframe"><div class="ascreen" data-region="android">
-  <div class="asb"><b class="num">9:41</b><span class="grow"></span><span class="aglyphs">
-    <svg width="16" height="16" viewBox="0 0 16 16"><path d="M8 13.5 1 6.2a10 10 0 0 1 14 0z" fill="currentColor"/></svg>
-    <svg width="16" height="16" viewBox="0 0 16 16"><path d="M15 2v12H3z" fill="currentColor"/></svg>
-    <svg width="10" height="16" viewBox="0 0 10 16"><rect x="3" y="0" width="4" height="2" rx=".5" fill="currentColor"/><rect x="0.5" y="1.5" width="9" height="14" rx="2" fill="currentColor"/></svg>
-  </span><i class="punch"></i></div>
+    inner = f'''
   <div class="acontent" data-scroll="achips">{hero_android(name)}<div class="achips">{chips}</div>{body}</div>
   <header class="atop"><span class="atitle m3-titleLarge">{scr["title"]}</span><span class="grow"></span>
     <span class="aib">{Glyphs.ms("search")}</span><span class="aib">{Glyphs.ms("more_vert")}</span></header>
   {fab}
-  <nav class="anav">{nav}</nav>
-  <i class="ahandle"></i>
-</div></div>{f'<div class="cap">{caption}</div>' if caption else ""}</div>'''
+  <nav class="anav">{nav}</nav>'''
+    return android_frame(inner, mode, f"Android {MODE_NAME[mode]}", caption)
+
+
+# ---------- the shared shell: settings, paywall, onboarding ----------
+def settings_ios(scr, mode, app, caption=""):
+    """the fixed order: 通用, 外观, 语言, 会员, 支持, 关于 (About carries the signature and the other apps)"""
+    def group(head, rows, foot=""):
+        return (f'<div class="sg-h t-section-header">{head}</div><div class="sg">{"".join(rows)}</div>'
+                + (f'<div class="sg-f t-row-meta">{foot}</div>' if foot else ""))
+
+    def row(label, value="", chev=True, link=False):
+        return (f'<div class="sr"><span class="t-row-title{" lnk" if link else ""}">{label}</span><span class="grow"></span>'
+                f'<span class="t-row-meta t2">{value}</span>{ic("chev-right", 16, "t3") if chev else ""}</div>')
+    body = (group("通用", [row(k, v) for k, v in scr["shell"]["general"]])
+            + group("外观", [f'<div class="sr">{segmented(("跟随系统", "浅色", "深色"), 0, "full")}</div>'])
+            + group("语言", [row("语言", "简体中文")], "在系统设置里可以只给这个 app 换语言")
+            + group("会员", [row("管理订阅", "年付"), row("恢复购买", "", False, True)])
+            + group("支持", [row(f"给 {app} 评分"), row("发送反馈", "带上版本和设备")])
+            + group("关于", [row(f"关于 {app}", '<span class="num">2.3.0</span>'), row("更多 Rian Studio 的 app")],
+                    "A Rian Studio app"))
+    inner = f'''<div class="pc set">{body}</div>
+  <div class="nbar"><span class="nb-l">{gbtn("chev-left")}</span><b class="t-card-title">设置</b></div>'''
+    return ios_frame(inner, mode, f"iPhone {MODE_NAME[mode]} · 设置", caption, cls="grouped")
+
+
+PLANS = [("年付", "¥98 / 年", "约 ¥8.17 / 月 · 7 天免费试用"), ("月付", "¥18 / 月", ""), ("终身", "¥198", "一次买断")]
+CREDIT_PLANS = [("年付", "¥98 / 年", "每月 500 点 · 7 天免费试用"), ("月付", "¥18 / 月", "每月 500 点"), ("点数包", "¥12", "100 点 · 不过期")]
+
+
+def paywall_ios(scr, mode, icon, app, caption="", credits=False):
+    """one paywall: yearly, monthly, lifetime or credits, a trial; restore purchases, terms and privacy, the price and
+    auto-renewal in words (App Store 3.1.2); StoreKit 2 on iOS"""
+    feats = "".join(f'<div class="feat">{ic("check", 18)}<span class="t-row-title">{f}</span></div>' for f in scr["shell"]["features"])
+    plans = "".join(f'<div class="plan{" on" if i == 0 else ""}">{radio(i == 0)}<span class="pt"><b class="t-row-title">{n}</b>'
+                    + (f'<span class="t-row-meta">{m}</span>' if m else "") + f'</span><b class="t-amount num">{p}</b></div>'
+                    for i, (n, p, m) in enumerate(CREDIT_PLANS if credits else PLANS))
+    low = (f'<div class="low t-row-meta">{ic("coins", 16)}<span>剩余 <b class="num">3</b> 点，这次生成要 <b class="num">4</b> 点</span></div>'
+           if credits else "")
+    inner = f'''<div class="pw">
+    {slices(300, 150, f'<span class="art-icon">{icon(64, mode)}</span>')}
+    <div class="pw-title t-title-1">{app} 会员</div><div class="pw-sub t-row-meta">解锁全部功能，随时可以取消</div>
+    {low}<div class="feats">{feats}</div>
+    <div class="plans">{plans}</div>
+    {pbtn("开始 7 天免费试用")}
+    <p class="fine t-row-meta">试用结束后按 <span class="num">¥98</span> / 年自动续费。到期前至少 24 小时在 设置 › Apple 账户 › 订阅 里取消，就不会续费。</p>
+    <div class="links t-row-meta"><span>恢复购买</span><i></i><span>使用条款</span><i></i><span>隐私政策</span></div>
+  </div>
+  <div class="plead">{gbtn("x")}</div>'''
+    return ios_frame(inner, mode, f"iPhone {MODE_NAME[mode]} · 付费墙", caption, conversion=True)
+
+
+def onboarding_android(scr, mode, caption=""):
+    """at most three screens; the first shows the core feature at work"""
+    title, body = scr["shell"]["onboard"]
+    inner = f'''<div class="onb">
+    <div class="onb-skip m3-labelLarge">跳过</div>
+    {slices(340, 240, demo_card(scr["shell"]))}
+    <div class="dots"><i class="on"></i><i></i><i></i></div>
+    <div class="m3-headlineSmall onb-t">{title}</div><p class="m3-bodyLarge onb-b">{body}</p>
+    <div class="grow"></div>{pbtn("继续")}
+  </div>'''
+    return android_frame(inner, mode, f"Android {MODE_NAME[mode]} · 引导", caption, conversion=True)
+
+
+# ---------- editor: media pages are dark in every scheme ----------
+def editor_adjust_ios(scr, caption=""):
+    """neutral canvas (media-dark), before/after divider, the current tool's slider with its zero tick, tool tray, modes"""
+    tools = "".join(f'<span class="tool{" on" if i == 0 else ""}{" set" if v else ""}"><span class="tool-ic">{ic(i_, 22)}</span>'
+                    f'<b class="t-tag-label">{n}</b></span>' for i, (i_, n, v) in enumerate(scr["tools"]))
+    modes = "".join(f'<span class="mode t-row-title{" on" if i == 0 else ""}">{m}</span>' for i, m in enumerate(scr["modes"]))
+    name, value = scr["tools"][0][1], scr["tools"][0][2]
+    inner = f'''<div class="ed">
+    <div class="ed-top">{gbtn("x")}<b class="t-card-title">{scr["modes"][0]}</b>{gpill("完成", prom=True)}</div>
+    <div class="ed-canvas" style="height:476px"><div class="ba">
+      {ph("sky", 716, 536, 2)}<div class="before">{ph("sky", 716, 536, 2)}</div>
+      <i class="ba-line" style="left:45%"></i><span class="ba-knob" style="left:45%">{ic("move-h", 18)}</span>
+      <span class="ba-chip t-tag-label" style="left:12px">原图</span><span class="ba-chip t-tag-label" style="right:12px">调整后</span>
+    </div></div>
+    <div class="ed-sl"><div class="sl-head"><b class="t-row-title">{name}</b><span class="t-timecode num">{value}</span></div>{slider(12, True)}</div>
+    <div class="tray">{tools}</div>
+    <div class="modes">{modes}</div>
+  </div>'''
+    return ios_frame(inner, "dark", "iPhone · 编辑", caption, cls="media")
+
+
+PLANT = """<svg class="plant" width="210" height="270" viewBox="0 0 210 270">
+  <ellipse cx="105" cy="258" rx="62" ry="8" fill="#000" opacity=".18"/>
+  <path d="M58 182h94l-10 72a8 8 0 0 1-8 7H76a8 8 0 0 1-8-7z" fill="#C9734F"/><rect x="52" y="172" width="106" height="16" rx="5" fill="#B5603E"/>
+  <path d="M105 172C102 130 92 96 70 70" stroke="#3E7A3A" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M105 172C110 120 128 86 150 58" stroke="#3E7A3A" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M105 172c-2-40 2-80 6-112" stroke="#3E7A3A" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M70 70C40 64 22 40 24 14c30 2 50 24 46 56z" fill="#4E9A48"/><path d="M150 58c8-30 34-46 58-42-2 30-26 48-58 42z" fill="#5BAA52"/>
+  <path d="M111 60c-14-24-10-48 8-60 14 20 12 44-8 60z" fill="#4E9A48"/><path d="M96 122c-30 4-52-10-62-32 26-8 52 4 62 32z" fill="#5BAA52"/>
+  <path d="M116 112c22-20 48-22 66-10-16 22-42 26-66 10z" fill="#4E9A48"/></svg>"""
+
+
+def editor_cutout_ios(scr, caption=""):
+    """the cut-out on the checkerboard, then the long task: determinate progress, time left, cancel, the queue"""
+    q = "".join(f'<div class="qrow">{status_icon(k)}<b class="t-row-title num">{n}</b><span class="grow"></span>'
+                f'<span class="t-row-meta num{" ip" if k == "progress" else ""}">{m}</span></div>' for k, n, m in scr["queue"])
+    title, pct, left = scr["strip"]["task"]
+    inner = f'''<div class="ed">
+    <div class="ed-top">{gbtn("chev-left")}<b class="t-card-title">{scr["modes"][3]}</b>{gbtn("share")}</div>
+    <div class="ed-canvas checker" data-photo style="height:330px">{PLANT}</div>
+    <div class="xsheet">
+      <i class="grab"></i>
+      <div class="xs-h">{status_icon("progress")}<b class="t-card-title">正在{title}</b><span class="grow"></span><b class="t-amount num">{pct} %</b></div>
+      {progress(pct)}
+      <div class="t-row-meta t2">{left}</div>
+      <div class="qlist">{q}</div>
+      <div class="xs-note t-row-meta">{ic("info", 16)}<span>可以离开 app：系统会显示进度，完成后发通知</span></div>
+      {pbtn("取消导出", "second")}
+    </div>
+  </div>'''
+    return ios_frame(inner, "dark", "iPhone · 导出", caption, cls="media")
+
+
+def editor_crop_android(scr, caption=""):
+    """crop on the full-bleed black canvas: white handles, rule-of-thirds guides, the outside dimmed, rotation dial, ratios"""
+    ticks = "".join(f'<i class="{"big" if k % 5 == 0 else ""}"></i>' for k in range(-24, 25))
+    ratios = "".join(f'<span class="achip m3-labelLarge{" on" if i == 0 else ""}">{Glyphs.ms("check", size=18) if i == 0 else ""}{r}</span>'
+                     for i, r in enumerate(("自由", "原始", "1:1", "4:5", "16:9")))
+    inner = f'''<div class="ed">
+    <header class="atop media"><span class="aib">{Glyphs.ms("close")}</span><span class="atitle m3-titleLarge">裁剪</span>
+      <span class="grow"></span><span class="atext m3-labelLarge">完成</span></header>
+    <div class="cr-canvas">{ph("sea", 824, 1000, 4)}
+      <div class="cr-box"><i class="g v1"></i><i class="g v2"></i><i class="g h1"></i><i class="g h2"></i>
+        <i class="hd c-tl"></i><i class="hd c-tr"></i><i class="hd c-bl"></i><i class="hd c-br"></i>
+        <i class="eh e-t"></i><i class="eh e-b"></i><i class="eh e-l"></i><i class="eh e-r"></i></div></div>
+    <div class="dial"><b class="m3-labelLarge num">−3°</b><div class="ticks">{ticks}</div><i class="dial-0"></i></div>
+    <div class="achips ratio">{ratios}</div>
+    <div class="cr-tools"><span class="aib">{Glyphs.ms("rotate_left")}</span><span class="aib">{Glyphs.ms("flip")}</span>
+      <span class="grow"></span><span class="atext m3-labelLarge">还原</span></div>
+  </div>'''
+    return android_frame(inner, "dark", "Android · 裁剪", caption, cls="media")
+
+
+# scrolled to the top edge (the frost photo check), the brightest, darkest and most saturated photos sit under the
+# Cancel capsule (third cell) and the toolbar (the last two rows)
+GRID = [("sky", 0), ("flowers", 1), ("bright", 2), ("sea", 3), ("food", 4), ("night", 5), ("bright", 6), ("flowers", 7),
+        ("sky", 8), ("dusk", 9), ("food", 10), ("sea", 11), ("flowers", 12), ("night", 13), ("dusk", 14), ("bright", 15),
+        ("night", 16), ("sky", 17), ("flowers", 18), ("bright", 19), ("night", 20)]
+
+
+def grid_ios(mode, caption="", pid="", scrolled=False, label=""):
+    """the photo grid in select mode: an outline inside the edge plus a check, never a tint; the limited-library notice"""
+    sel = {1, 4, 6}
+    cells = "".join(f'<div class="cell{" media-selected" if i in sel else ""}">{ph(k, 258, 258, s)}'
+                    + (check_badge() if i in sel else '<i class="chk-off"></i>') + "</div>" for i, (k, s) in enumerate(GRID))
+    inner = f'''<div class="pc"{' data-scroll="pgrid"' if scrolled else ""}>
+    <div class="ltitle t-page-title">图库</div><div class="lsub t-row-meta">已选 <span class="num">3</span> 张</div>
+    <div class="limited t-row-meta">{ic("info", 16)}<span class="grow">只能看到你选的 <span class="num">24</span> 张照片</span><b class="lnk">管理</b></div>
+    <div class="pgrid">{cells}</div>
+  </div>
+  {'<div class="edge-top"></div>' if scrolled else ""}
+  <div class="ptb">{gpill("取消", bar=True)}</div>
+  <div class="edge"></div>
+  <nav class="gtool frost floating">{ic("share", 22, bar="分享图标")}<b class="t-row-title" data-bar="已选 3 张">已选 3 张</b>
+    {ic("heart", 22, bar="收藏图标")}{ic("trash", 22, bar="删除图标")}</nav>'''
+    return ios_frame(inner, mode, label or f"iPhone {MODE_NAME[mode]} · 图库", caption, pid)
+
+
+def viewer_ios(kind="sky", seed=21, caption="", pid="", toast=True, label="iPhone · 查看"):
+    """full-bleed photo; the controls are white on the fixed dark scrim, not on glass; a tap hides both"""
+    t = (f'<div class="ptoast vw-toast">{status_icon("done")}<span class="t-row-meta">已保存到相册</span>'
+         f'<span class="undo t-row-title">分享</span></div>') if toast else ""
+    inner = f'''<div class="vw">{ph(kind, 780, 1688, seed, "vw-photo")}
+    <div class="viewer-scrim-top vw-s top"></div><div class="viewer-scrim-bottom vw-s bot"></div>
+    <div class="vw-bar top"><span class="vib">{ic("chev-left", 24, bar="返回图标")}</span>
+      <span class="vw-t"><b class="t-row-title" data-bar="日期">10月16日</b><span class="t-row-meta num" data-bar="时间">14:05</span></span>
+      <span class="vib">{ic("more-h", 24, bar="更多图标")}</span></div>
+    <div class="vw-bar bot"><span class="vib">{ic("share", 24, bar="分享图标")}</span><span class="vib">{ic("heart", 24, bar="收藏图标")}</span>
+      <span class="vib">{ic("sliders", 24, bar="编辑图标")}</span><span class="vib">{ic("trash", 24, bar="删除图标")}</span></div>
+    {t}
+  </div>'''
+    return ios_frame(inner, "dark", label, caption, pid, cls="media")
+
+
+def permission_android(mode, icon, app, caption=""):
+    """our own page first, then the system dialog: what we ask for and why (here notifications: Android 13+)"""
+    card = (f'<div class="notif"><div class="nh">{icon(18, mode)}<span class="m3-labelMedium t2">{app} · 现在</span></div>'
+            f'<b class="m3-titleSmall">导出完成</b><span class="m3-bodyMedium t2">4 张照片已保存到相册，点按查看</span></div>')
+    inner = f'''<div class="onb perm">
+    {slices(340, 240, card)}
+    <div class="m3-headlineSmall onb-t">导出完成时通知你</div>
+    <p class="m3-bodyLarge onb-b">导出要几秒到几分钟。允许通知后可以离开 app：进度显示在通知栏，完成后提醒你。</p>
+    <p class="m3-bodyMedium onb-n t3">下一步是系统的权限对话框；以后也可以在系统设置里改。</p>
+    <div class="grow"></div>{pbtn("继续")}{pbtn("以后再说", "plain")}
+  </div>'''
+    return android_frame(inner, mode, f"Android {MODE_NAME[mode]} · 权限预请求", caption, conversion=True)
+
+
+# ---------- chat: AI conversation and image generation ----------
+def credit_chip(n, bar=False):
+    b = ' data-bar="点数"' if bar else ""
+    return f'<span class="gpill frost floating credit t-row-title">{ic("coins", 18)}<b class="num"{b}>{n}</b></span>'
+
+
+def actions_row():
+    """copy, regenerate, good, bad, report: text-3 icons in 44 pt targets"""
+    return ('<div class="acts">' + "".join(f'<span class="act">{ic(i, 18)}</span>' for i in
+                                           ("copy", "refresh", "thumbs-up", "thumbs-down", "flag")) + "</div>")
+
+
+def composer(text, right, extra="", lines=3):
+    """the prompt field: min 48, grows to 6 lines, then scrolls; attach on the left, send or stop on the right"""
+    return (f'<div class="composer frost floating"><span class="cbtn">{ic("paperclip", 22)}</span>'
+            f'<div class="cfield t-long-text" style="-webkit-line-clamp:{lines}">{text}</div>{extra}{right}</div>')
+
+
+def send_btn(on=True):
+    return f'<span class="send{" on" if on else ""}">{ic("arrow-up", 20)}</span>'
+
+
+def stop_btn():
+    return '<span class="send stop"><i></i></span>'
+
+
+def chat_ios(scr, mode, caption=""):
+    """bubbles (the user's on surface-2; the reply with no bubble, in long-text), the action row, streaming"""
+    inner = f'''<div class="pc chat">
+    <div class="bub t-long-text">帮我写一段海边小镇的画面描述，适合做明信片</div>
+    <div class="reply t-long-text"><p>可以这样写：{scr["prompt"]}。想更像明信片，可以加上<mark>「俯拍、上方留白」</mark>。</p></div>
+    {actions_row()}
+    <div class="bub img">{ph("dusk", 192, 256, 3, "att")}</div>
+    <div class="bub t-long-text">按这张图的色调生成 4 张</div>
+    <div class="reply t-long-text"><p>好的，按这张图的暖色调生成 4 张<i class="caret-s"></i></p></div>
+  </div>
+  <div class="edge-top"></div>
+  <div class="nbar"><span class="nb-l">{gbtn("panel")}</span><span class="model t-card-title">{scr["model"]}{ic("chev-down", 16, "t3")}</span>
+    <span class="nb-r">{credit_chip(scr["credits"])}</span></div>
+  <div class="edge"></div>
+  {composer("再加一点雾气，远处的灯塔亮着灯，整体偏蓝绿色调，像 90 年代的胶片", send_btn())}'''
+    return ios_frame(inner, mode, f"iPhone {MODE_NAME[mode]} · 对话", caption)
+
+
+def generate_ios(scr, mode, caption=""):
+    """the four states of a generation: done, streaming (steps), failed with retry (no credit charged), queued; a
+    refused prompt; the composer with stop while it runs"""
+    cells = (f'<div class="gcell">{ph("dusk", 350, 350, 5)}</div>'
+             f'<div class="gcell run">{ph("dusk", 350, 350, 6, blur=14)}<span class="ring"><svg width="56" height="56" viewBox="0 0 56 56">'
+             '<circle cx="28" cy="28" r="24" fill="none" stroke="rgba(255,255,255,.32)" stroke-width="4"/>'
+             '<circle cx="28" cy="28" r="24" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-dasharray="90.5 151" '
+             'transform="rotate(-90 28 28)"/></svg><b class="t-timecode num">18 / 30</b></span></div>'
+             f'<div class="gcell fail">{ic("refresh", 22)}<b class="t-row-title">生成失败</b><span class="t-row-meta">没有扣点数</span>'
+             f'<span class="pbtn second sm">重试</span></div>'
+             f'<div class="gcell queue">{status_icon("todo")}<b class="t-row-title">排队中</b><span class="t-row-meta">前面还有 <span class="num">2</span> 个</span></div>')
+    inner = f'''<div class="pc gen">
+    <div class="pcard"><p class="t-row-title">{scr["prompt"]}</p>
+      <div class="gchips"><span class="tagp">1:1</span><span class="tagp">4 张</span><span class="tagp">胶片</span>
+        <span class="grow"></span><span class="t-row-meta t3 num">消耗 4 点</span></div></div>
+    <div class="ggrid">{cells}</div>
+    <div class="refused">{ic("shield", 20)}<div><b class="t-row-title">这条提示词不能生成</b>
+      <p class="t-row-meta">提示词里有真实人物的名字。换一种描述再试，这次没有扣点数。</p><b class="lnk t-row-meta">查看内容规则</b></div></div>
+  </div>
+  <div class="nbar"><span class="nb-l">{gbtn("chev-left")}</span><b class="t-card-title">生成</b><span class="nb-r">{credit_chip(scr["credits"] - 4)}</span></div>
+  <div class="edge"></div>
+  {composer(scr["prompt"], stop_btn(), '<span class="aspect t-tag-label">1:1</span>', 1)}'''
+    return ios_frame(inner, mode, f"iPhone {MODE_NAME[mode]} · 生成", caption)
+
+
+def chat_android(scr, mode, caption=""):
+    """a new chat: sample prompts with sample pictures in place of an empty page; send stays disabled until there is text"""
+    cards = "".join(f'<div class="scard">{ph(k, 330, 220, 30 + i)}<span class="m3-bodyMedium">{t}</span></div>'
+                    for i, (k, t) in enumerate(scr["samples"]))
+    inner = f'''<header class="atop"><span class="aib">{Glyphs.ms("menu")}</span><span class="achip m3-labelLarge model-chip">{scr["model"]}
+      {Glyphs.ms("expand_more", size=18)}</span><span class="grow"></span>
+    <span class="achip m3-labelLarge credit-chip">{Glyphs.ms("bolt", size=18)}<span class="num">{scr["credits"]}</span></span></header>
+  <div class="acontent ach">
+    {slices(240, 150)}
+    <div class="m3-headlineSmall onb-t">想生成什么？</div><p class="m3-bodyMedium t2 ach-sub">点一个示例试试，或者直接描述你想要的画面</p>
+    <div class="samples">{cards}</div>
+  </div>
+  <div class="acomp"><span class="aib">{Glyphs.ms("add")}</span><span class="m3-bodyLarge ph-t">描述你想要的画面</span><span class="grow"></span>
+    <span class="aib">{Glyphs.ms("aspect_ratio")}</span><span class="asend">{Glyphs.ms("arrow_upward")}</span></div>'''
+    return android_frame(inner, mode, f"Android {MODE_NAME[mode]} · 新对话", caption, conversion=True)
+
+
+def consent_ios(mode, caption=""):
+    """before personal data goes to a third-party AI: what, to whom, for what, how long; ask, and let people say no
+    (App Store 5.1.2(i))"""
+    items = [("image", "会发送什么", "你选的照片和输入的提示词"),
+             ("globe", "发给谁", "Acme AI（第三方模型服务商，示例名），只用来生成这一次的图"),
+             ("shield", "怎么保存", "处理完 30 天内删除，不用来训练模型"),
+             ("sliders", "不同意也能用", "调整、裁剪、抠图都在本机完成")]
+    rows = "".join(f'<div class="cons">{ic(i, 22, "t2")}<div><b class="t-row-title">{t}</b><p class="t-row-meta">{d}</p></div></div>'
+                   for i, t, d in items)
+    inner = f'''<div class="pw consent">
+    {slices(300, 140)}
+    <div class="pw-title t-title-1">要把照片发给第三方 AI 吗？</div>
+    <div class="conss">{rows}</div>
+    <div class="grow"></div>
+    {pbtn("同意并继续")}{pbtn("不同意", "plain")}
+    <p class="fine t-row-meta">随时可以在 设置 › 通用 里撤回 · <b class="lnk">隐私政策</b></p>
+  </div>
+  <div class="plead">{gbtn("x")}</div>'''
+    return ios_frame(inner, mode, f"iPhone {MODE_NAME[mode]} · 第三方 AI 同意", caption, conversion=True)
+
+
+def report_android(scr, mode, caption=""):
+    """report or flag a reply or a picture from inside the app (Google Play AI-generated content policy)"""
+    opts = ["冒犯或仇恨", "色情或低俗", "暴力或危险", "侵犯隐私或版权", "其他"]
+    rows = "".join(f'<div class="rrow">{radio(i == 1)}<span class="m3-bodyLarge">{o}</span></div>' for i, o in enumerate(opts))
+    inner = f'''<header class="atop"><span class="aib">{Glyphs.ms("menu")}</span><span class="atitle m3-titleLarge">对话</span></header>
+  <div class="acontent"><div class="areply m3-bodyLarge"><p>{scr["prompt"]}。</p><p>海面很平静，远处有一艘小渔船。</p></div></div>
+  <div class="ascrim"></div>
+  <div class="bsheet"><i class="bgrab"></i><div class="m3-titleLarge">举报这条回复</div>
+    <p class="m3-bodyMedium t2">我们会在 24 小时内处理，举报内容只用于审核。</p>
+    {rows}
+    <div class="afield m3-bodyLarge"><span class="t3">补充说明（可选）</span></div>
+    <div class="bs-act">{pbtn("提交举报")}</div></div>'''
+    return android_frame(inner, mode, f"Android {MODE_NAME[mode]} · 举报", caption)
 
 
 # ---------- desktop window ----------
@@ -650,36 +1281,7 @@ def desktop(name, scr, mode, icon, app):
 </div>'''
 
 
-# ---------- component strip, dialog, icon x UI, type scale ----------
-def components(mode, scr):
-    """the components at desktop sizes, one column per mode, labelled with the screen's own words"""
-    s = scr["strip"]
-    tags = "".join(f'<span class="pill">{t}</span>' if isinstance(t, str) else
-                   f'<span class="pill"><i class="pdot" style="background:var(--c-{t[0]})"></i>{t[1]}</span>' for t in s["tags"])
-    done = status_icon("done").replace("var(--c-success)", "currentColor").replace("var(--c-on-success)", "var(--c-success-container)")
-    ok, warn, bad = s["badges"]
-    menu = "".join(f'<div class="mi{" cur" if i == 1 else ""}">{ic(icon, 16)}{label}<span class="grow"></span>{kbd(*keys)}</div>'
-                   for i, (icon, label, keys) in enumerate(s["menu"]))
-    rows = [
-        ("主按钮 · 默认 / 悬停 / 按下", f'<span class="b pri">{s["ok"]}<span class="kbds"><kbd class="kbd on-pri">⌘</kbd><kbd class="kbd on-pri">↵</kbd></span></span>'
-                                    '<span class="b pri hov">悬停</span><span class="b pri prs">按下</span>'),
-        ("次按钮 · 幽灵按钮 · 悬停", f'<span class="b second">取消</span><span class="b ghost">{ic("filter", 16)}筛选</span>'
-                                  f'<span class="b ghost hov">{ic("sliders", 16)}显示</span><span class="ib2">{ic("pen", 16)}</span>'),
-        ("危险操作", f'<span class="b second danger">{ic("trash", 16)}{s["danger"]}</span>'),
-        ("输入框 · 聚焦态", f'<span class="fin">{s["field"][0]}</span><span class="fin focus">{s["field"][1]}<span class="icaret"></span></span>'),
-        ("标签", tags),
-        ("状态徽章", f'<span class="badge success">{done}{ok}</span><span class="badge warning">{warn}</span>'
-                    f'<span class="badge danger">{bad}</span>'),
-        ("kbd", kbd("⌘", "K") + seq("G", "I") + kbd("Esc")),
-        ("复选框 · 开关", checkbox(True) + checkbox(False) + '<span class="tg on"></span><span class="tg"></span>'),
-        ("菜单（当前项 menu-active）", f'<div class="mm">{menu}<i class="msep"></i>'
-                                    f'<div class="mi danger">{ic("trash", 16)}删除<span class="grow"></span>{kbd("⌫")}</div></div>'),
-    ]
-    return (f'<div class="cs" data-theme="{mode}"><div class="cs-h">{MODE_NAME[mode]}</div>'
-            + "".join(f'<div class="crow"><span class="clab">{k}</span><span class="cval">{v}</span></div>' for k, v in rows)
-            + "</div>")
-
-
+# ---------- dialog and type scale (desktop, --desktop) ----------
 def dialog(scr, mode, app):
     g = scr["desktop"]["dialog"]
     value = g["value"].replace("{app}", app)
@@ -691,24 +1293,7 @@ def dialog(scr, mode, app):
 </div></div>'''
 
 
-def mini(scr, mode, icon, app):
-    """the warm icon on its blue UI: the top of the sidebar plus a corner of the main view"""
-    d = scr["desktop"]
-    m = d["mini"]
-    nav = "".join(f'<div class="si{" on" if i == d["current"] else ""}">{ic(i_, 16)}<span>{t}</span></div>'
-                  for i, (i_, t, _c) in enumerate(d["nav"][:3]))
-    rows = "".join(f'<div class="mr{" sel" if s else ""}"><span class="lead">{checkbox(True) if s else ic(i_, 16, "t3")}</span>'
-                   f'<b>{t}</b><span class="grow"></span><span class="t3 num">{v}</span></div>' for i_, t, v, s in m["rows"])
-    prog = seg_bar(m["pct"], "mprog") if m["pct"] else '<span class="grow"></span>'
-    return f'''<div class="mini" data-theme="{mode}">
-  <aside class="msb"><div class="ws"><span class="ws-name">{icon(20, mode)}<b>{app}</b>{ic("chev-down", 12, "t3")}</span>
-    <span class="grow"></span><span class="ib">{ic("pen", 16)}</span></div><div class="nav">{nav}</div></aside>
-  <div class="mmain"><div class="mvh"><b>{m["view"]}</b><span class="grow"></span><a class="lnk">{m["link"]}</a></div>{rows}
-    <div class="mfoot"><span class="t3 num">{m["foot"]}</span>{prog}<span class="b pri sm">{m["action"]}</span></div></div>
-</div>'''
-
-
-def type_scale(t, mode, scr):
+def desktop_type_scale(t, mode, scr):
     """the desktop scale; the Latin and figures are marked lang="en" so they keep Inter's tracking on a Chinese page"""
     zh, latin, _ = scr["sample"]
     rows = ""
@@ -716,6 +1301,92 @@ def type_scale(t, mode, scr):
         rows += (f'<div class="ty"><span class="ty-k">{k}<small>{v["size"]} / {v["line"]} · {v["weight"]}</small></span>'
                  f'<span class="td-{k} ty-s">{zh} <span lang="en">{latin}</span></span></div>')
     return f'<div class="tyb" data-theme="{mode}">{rows}</div>'
+
+
+# ---------- component strip, type scale, bottom sheet, icon x UI (phone sizes) ----------
+def strip(mode, scr):
+    """the components at phone sizes, one column per mode, labelled with the screen's own words"""
+    s = scr["strip"]
+    tags = "".join(f'<span class="tagp">{t}</span>' if isinstance(t, str) else
+                   f'<span class="tagp"><i class="pdot" style="background:var(--c-{t[0]})"></i>{t[1]}</span>' for t in s["tags"])
+    glyph = {"success": status_icon("done").replace("var(--c-success)", "currentColor").replace("var(--c-on-success)", "var(--c-success-container)"),
+             "info": status_icon("progress").replace("var(--c-in-progress)", "currentColor")}
+    badges = "".join(f'<span class="badge {k}">{glyph.get(k, "")}{label}</span>' for k, label in s["badges"])
+    sl_label, sl_value, sl_pct, detent = s["slider"]
+    title, pct, left = s["task"]
+    first = s["menu"][0]
+    menu = "".join(f'<div class="cm t-long-text">{label}<span class="grow"></span>{ic(icon, 20)}</div>' for icon, label, _k in s["menu"][:2])
+    rows = [
+        ("按钮 · 主 / 按下 / 次", pbtn(s["ok"]) + pbtn("按下", "prs") + pbtn("取消", "second")),
+        ("分段控件 · 步进器", segmented(s["seg"], 0, "full")
+         + f'<span class="stp-row"><span class="t-row-meta t2">{s["step"][0]} <b class="num">{s["step"][1]}</b></span>{stepper()}</span>'),
+        ("滑块 · 0 点吸附" if detent else "滑块",
+         f'<div class="slw"><div class="sl-head"><b class="t-row-title">{sl_label}</b><span class="t-timecode num t2">{sl_value}</span></div>'
+         f'{slider(sl_pct, detent)}</div>'),
+        ("输入框 · 聚焦", f'<span class="fin2 t-long-text">{s["field"][0]}</span><span class="fin2 focus t-long-text">{s["field"][1]}<span class="icaret"></span></span>'),
+        ("标签 · 状态徽章（进行中是 info）", f'<div class="wrap">{tags}</div><div class="wrap">{badges}</div>'),
+        ("长任务 · 确定进度",
+         f'<div class="task"><div class="task-h">{status_icon("progress")}<b class="t-row-title">{title}</b><span class="grow"></span>'
+         f'<b class="t-amount num">{pct} %</b></div>{progress(pct)}<div class="task-f"><span class="t-row-meta t2">{left}</span>'
+         f'<span class="grow"></span><span class="tbtn t-row-title">取消</span></div></div>'),
+        ("开关 · 单选", switch(True) + switch(False) + radio(True) + radio(False)),
+        ("长按菜单", f'<div class="cmenu">{menu}<div class="cm danger t-long-text">{s["danger"]}<span class="grow"></span>{ic("trash", 20)}</div></div>'),
+        ("可选层 · iPad / Mac 接键盘时", kbd("⌘", "K") + seq("G", "I")
+         + (f'<span class="tip">{first[1]} {kbd(*first[2])}</span>' if first[2] else "")),
+    ]
+    return (f'<div class="ps" data-theme="{mode}"><div class="cs-h">{MODE_NAME[mode]}</div>'
+            + "".join(f'<div class="crow"><span class="clab">{k}</span><span class="cval">{v}</span></div>' for k, v in rows)
+            + "</div>")
+
+
+TYPE_DEFAULT = {"amount": "−¥32.00", "timecode": "01:24 / 03:10"}
+
+
+def phone_type_scale(t, mode, scr):
+    """the phone styles (theme.css .t-*, the iOS text styles), Inter standing in for SF Pro"""
+    zh, latin, _ = scr["sample"]
+    own = {**TYPE_DEFAULT, **scr.get("type", {})}
+    ios = t["font"]["ios"]["styles"]
+    rows = ""
+    for k, v in t["font"]["web"]["phone"].items():
+        sample = f'<span class="num">{own[k]}</span>' if k in own else f'{zh} <span lang="en">{latin}</span>'
+        rows += (f'<div class="ty"><span class="ty-k">{k}<small>{v["size"]} / {v["line"]} · {v["weight"]} · {ios[k]["style"]}</small></span>'
+                 f'<span class="t-{k} ty-s">{sample}</span></div>')
+    return f'<div class="tyb" data-theme="{mode}">{rows}</div>'
+
+
+def sheet(scr, mode):
+    """the screen's bottom sheet at phone size: elevated, radius 16 on top, over scrim"""
+    g = scr["sheet"]
+    rows = ""
+    for r in g["rows"]:
+        k = r[0]
+        if k == "value":
+            rows += f'<div class="shr"><span class="t-row-title">{r[1]}</span><span class="grow"></span><span class="t-row-meta t2 num">{r[2]}</span></div>'
+        elif k == "seg":
+            rows += f'<div class="shr"><span class="t-row-title">{r[1]}</span><span class="grow"></span>{segmented(r[2])}</div>'
+        elif k == "switch":
+            rows += f'<div class="shr"><span class="t-row-title">{r[1]}</span><span class="grow"></span>{switch(r[2])}</div>'
+        elif k == "slider":
+            rows += (f'<div class="shr col"><div class="sl-head"><b class="t-row-title">{r[1]}</b><span class="t-timecode num t2">{r[2]}</span></div>'
+                     f'{slider(r[3])}</div>')
+        elif k == "radio":
+            rows += (f'<div class="shr">{radio(r[3])}<span class="pt"><b class="t-row-title">{r[1]}</b><span class="t-row-meta t2">{r[2]}</span>'
+                     f'</span></div>')
+    act = (pbtn(g["alt"], "second") if g.get("alt") else "") + (pbtn(g["ok"]) if g["ok"] else "")
+    return (f'<div class="sh-stage" data-theme="{mode}"><div class="psheet"><i class="grab"></i>'
+            f'<div class="sh-t"><b class="t-card-title">{g["title"]}</b><span class="xbtn">{ic("x", 16)}</span></div>{rows}'
+            + (f'<div class="sh-act">{act}</div>' if act else "") + f'<p class="t-row-meta t3">{g["note"]}</p></div></div>')
+
+
+ACTION = {"list": "记一笔", "timer": "开始专注", "notes": "新建笔记", "editor": "保存到相册", "chat": "生成 4 张"}
+
+
+def phone_mini(name, scr, mode, icon, app):
+    """the warm icon on its blue UI, phone-sized: the icon at the top, the primary button, the current tab"""
+    tabs = "".join(f'<span class="tab{" on" if i == 0 else ""}">{ic(lu, 22)}<b>{lab}</b></span>' for i, (lu, _ms, lab) in enumerate(scr["tabs"][:3]))
+    return (f'<div class="pmini" data-theme="{mode}"><div class="pm-top">{icon(28, mode)}<b class="t-card-title">{app}</b>'
+            f'<span class="grow"></span><b class="lnk t-row-meta">全部</b></div>{pbtn(ACTION[name])}<nav class="pm-tabs frost">{tabs}</nav></div>')
 
 
 # ---------- swatches ----------
@@ -753,12 +1424,38 @@ def swatches(t, scr):
         for s in STATUS:
             m = low(s)
             stat += (f'<span class="sbadge" style="background:{C[s + "-container"]};color:{C[s]}">{s} {m:.1f}</span>')
+        stat += f'<span class="sbadge" style="background:{C["info-container"]};color:{C["in-progress"]}">in-progress = info</span>'
         frost = (f'<div class="fz"><i class="fz-stripes"></i><span style="background:{C["frost"]};box-shadow:inset 0 1px 0 {C["frost-highlight"]},'
                  f' inset 0 0 0 1px {C["frost-border"]};color:{C["text"]}">frost · {alpha_label(C["frost"])}</span></div>')
         out += (f'<div class="spanel" style="background:{C["bg"]};color:{C["text"]};border-color:{over(C["border"], C["bg"])}">'
                 f'<h4>{SCHEME_NAME[k]} <span style="color:{C["text-3"]}">{k}</span></h4><div class="sws">{chips}</div>'
                 f'<div class="txs">{texts}</div><div class="sws">{acc}</div><div class="stats">{stat}</div>{frost}</div>')
     return out
+
+
+def media_strip(t):
+    """the media tokens: the same in every scheme, because editor and viewer pages are dark in all of them"""
+    C = t["color"]["dark"]
+    lv = PALETTE["media"]["canvas"]
+    chips = "".join(f'<div class="msw"><i style="background:{C[n]}"></i><b>{n}</b><span>L {lv[k]:g} · 彩度 0 · {C[n]}</span></div>'
+                    for n, k in (("media-black", "black"), ("media-dark", "dark"), ("media-mid", "mid"), ("media-white", "white")))
+    chips += (f'<div class="msw"><i class="checker"></i><b>checker-a / -b</b><span>{C["checker-a"]} / {C["checker-b"]} · 格 '
+              f'{t["size"]["media"]["checker"]}</span></div>')
+    white = contrast(C["on-media"], over(C["viewer-scrim"], "#FFFFFF"))
+    chips += (f'<div class="msw"><i class="scr"><b>Aa</b></i><b>viewer-scrim</b><span>{alpha_label(C["viewer-scrim"])} · '
+              f'白字叠在白图上 {white:.1f}:1</span></div>')
+    chips += (f'<div class="msw"><i class="guide"><span class="sel-demo"></span></i><b>media-guide · media-selected</b>'
+              f'<span>{alpha_label(C["media-guide"])} · 深 {C["media-selected"]} / 浅 {t["color"]["light"]["media-selected"]}</span></div>')
+    play = contrast(C["primary"], C["media-dark"])
+    chips += (f'<div class="msw"><i style="background:{C["media-dark"]}"><span class="playhead"></span></i><b>播放头 · 滑块填充</b>'
+              f'<span>primary 在 media-dark 上 {play:.1f}:1</span></div>')
+    g, h = t["motion"]["gesture"], t["haptic"]
+    note = (f'触感：选中 {h["selection"]["ios"]} / {h["selection"]["android"]} · 吸附 {h["snap"]["ios"]} / {h["snap"]["android"]} · '
+            f'完成 {h["success"]["ios"]} / {h["success"]["android"]} · 失败 {h["failure"]["ios"]} / {h["failure"]["android"]}。'
+            f'手势：双击放大到 {g["zoom-double-tap"]:g} 倍，最大 {g["zoom-max"]:g} 倍；下滑超过屏高 {g["dismiss-distance"] * 100:g} % '
+            f'或 {g["dismiss-velocity"]:g} pt/s 关闭查看器；网格到查看器 zoom {t["motion"]["duration"]["zoom"]} ms。')
+    return (f'<div class="panel mpanel"><h3>媒体色组 · 每套颜色里都一样（编辑页和查看页强制深色）</h3>'
+            f'<div class="msws">{chips}</div><div class="note2">{note}</div></div>')
 
 
 # ---------- CSS ----------
@@ -790,7 +1487,7 @@ kbd.on-pri { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.
 .panel h3 { font: 590 15px/20px var(--font); color: #1B1C1D; }
 .panel .note2 { font: 400 12px/17px var(--font); color: #55575A; }
 .palette { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
-.measure { padding: 0 40px 40px; } /* below the sheet: measured, never in preview.png */
+.measure { padding: 80px 40px 40px; } /* below the sheet: measured, never in preview.png */
 
 /* ---------- desktop window ---------- */
 .win { position: relative; width: 1280px; height: 800px; border-radius: 12px; overflow: hidden; background: var(--c-canvas);
@@ -911,10 +1608,10 @@ kbd.on-pri { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.
 .mcard, .ncard { margin: 14px 16px 0; padding: 14px 16px; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--r-lg); }
 .mrow { display: flex; justify-content: space-between; color: var(--c-text-2); }
 .mbig { margin-top: 2px; font: 590 28px/34px var(--font); }
-.mbar, .mprog { height: 6px; margin: 10px 0 8px; display: flex; gap: 2px; }
-.mbar i, .mprog i { display: block; height: 100%; border-radius: 3px; }
-.mbar .used, .mprog .used { background: var(--c-primary); }
-.mbar .rest, .mprog .rest { flex: 1; background: var(--c-surface-3); }
+.mbar { height: 6px; margin: 10px 0 8px; display: flex; gap: 2px; }
+.mbar i { display: block; height: 100%; border-radius: 3px; }
+.mbar .used { background: var(--c-primary); }
+.mbar .rest { flex: 1; background: var(--c-surface-3); }
 .mbtn { margin-top: 14px; height: var(--control-h-mobile-lg); border-radius: var(--r-lg); display: flex; align-items: center; justify-content: center;
   gap: 8px; font: var(--t-card-title); }
 .mbtn.pri { background: var(--c-primary); color: var(--c-on-primary); }
@@ -1011,11 +1708,9 @@ mark { background: var(--c-selection); color: inherit; padding: 1px 2px; border-
 .anv.on .aind { background: var(--c-surface-3); }
 .ahandle { position: absolute; z-index: 4; bottom: 10px; left: 50%; width: 108px; height: 4px; margin-left: -54px; border-radius: 2px; background: var(--c-text-2); }
 
-/* ---------- component strip ---------- */
+/* ---------- strip rows; the dialog's buttons and field (desktop sizes) ---------- */
 .comp { padding: 16px 16px 16px; }
 .comp-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.cs { background: var(--c-bg); color: var(--c-text); border-radius: 10px; padding: 2px 12px 10px; box-shadow: 0 0 0 1px var(--c-border);
-  font: var(--td-small); }
 .cs-h { font: 590 12px/16px var(--font); color: var(--c-text-2); padding: 10px 0 4px; }
 .crow { display: flex; flex-direction: column; gap: 6px; padding: 8px 0 10px; border-top: 1px solid var(--c-border); }
 .clab { font: var(--td-caption); color: var(--c-text-3); }
@@ -1024,16 +1719,9 @@ mark { background: var(--c-selection); color: inherit; padding: 1px 2px; border-
   font: var(--td-body-medium); font-size: 13px; white-space: nowrap; }
 .b.pri { background: var(--c-primary); color: var(--c-on-primary); }
 .b.pri .kbds { margin-left: 2px; }
-.b.pri.hov { background: var(--c-primary-hover); }
 .b.pri.prs { background: var(--c-primary-pressed); }
 .b.second { background: var(--c-surface-2); border: 1px solid var(--c-border); color: var(--c-text); }
-.b .ic { color: var(--c-text-3); }
-.b.ghost { color: var(--c-text-2); padding: 0 8px; }
-.b.ghost.hov { background: var(--c-hover); color: var(--c-text); }
-.b.danger, .b.danger .ic { color: var(--c-danger); }
-.b.sm { height: var(--control-h-sm); padding: 0 10px; font: var(--td-caption); }
 .b .kbd { margin-left: 2px; }
-.ib2 { width: 28px; height: 28px; display: grid; place-items: center; border-radius: var(--r-sm); color: var(--c-text-3); background: var(--c-hover); }
 .fin { width: 104px; height: var(--control-h-lg); padding: 0 10px; border-radius: var(--r-sm); background: var(--c-surface); border: 1px solid var(--c-border-strong);
   display: flex; align-items: center; font: var(--td-body); color: var(--c-text-placeholder); }
 .fin.focus { border-color: var(--c-focus); box-shadow: 0 0 0 1px var(--c-focus); color: var(--c-text); }
@@ -1044,19 +1732,8 @@ mark { background: var(--c-selection); color: inherit; padding: 1px 2px; border-
 .badge.success { background: var(--c-success-container); color: var(--c-success); }
 .badge.warning { background: var(--c-warning-container); color: var(--c-warning); }
 .badge.danger { background: var(--c-danger-container); color: var(--c-danger); }
-.tg { position: relative; width: 32px; height: 18px; border-radius: 9px; box-shadow: inset 0 0 0 1px var(--c-border-strong); }
-.tg::after { content: ""; position: absolute; left: 4px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--c-border-strong); }
-.tg.on { background: var(--c-primary); box-shadow: none; }
-.tg.on::after { left: 16px; top: 2px; width: 14px; height: 14px; background: var(--c-on-primary); }
-.mm { width: 220px; padding: 4px; background: var(--c-elevated); border: 1px solid var(--c-border); border-radius: var(--r-lg); box-shadow: var(--elev-2); }
-.mi { height: 28px; padding: 0 6px 0 8px; border-radius: var(--r-sm); display: flex; align-items: center; gap: 8px; color: var(--c-text); }
-.mi .ic { color: var(--c-text-3); }
-.mi.cur { background: var(--c-menu-active); }
-.mi.cur .ic { color: var(--c-text-2); }
-.mi.danger, .mi.danger .ic { color: var(--c-danger); }
-.msep { display: block; height: 1px; background: var(--c-border); margin: 4px 0; }
 
-/* ---------- right column: type scale, dialog, icon x UI ---------- */
+/* ---------- right column: type scale, dialog ---------- */
 .tyb { background: var(--c-bg); color: var(--c-text); border-radius: 10px; padding: 4px 16px; box-shadow: 0 0 0 1px var(--c-border); }
 .ty { display: flex; align-items: baseline; gap: 12px; padding: 6px 0; border-top: 1px solid var(--c-border); }
 .ty:first-child { border-top: 0; }
@@ -1076,24 +1753,6 @@ mark { background: var(--c-selection); color: inherit; padding: 1px 2px; border-
 .iu-head .appicon { box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
 .iu-head p { font: 400 12px/17px var(--font); color: #55575A; }
 .iu-head p b { color: #1B1C1D; font-weight: 590; }
-.mini { position: relative; height: 164px; border-radius: 10px; overflow: hidden; background: var(--c-canvas); color: var(--c-text);
-  font: var(--td-small); box-shadow: 0 0 0 1px rgba(0,0,0,.12); }
-.msb { width: 168px; padding: 4px 6px; }
-.msb .ws { margin-top: 0; height: 40px; }
-.msb .ws-name { padding: 0 4px; gap: 7px; }
-.mmain { position: absolute; left: 168px; top: 6px; right: 6px; bottom: 6px; background: var(--c-bg); border: 1px solid var(--c-border);
-  border-radius: var(--r-md); display: flex; flex-direction: column; }
-.mvh { height: 34px; flex: none; display: flex; align-items: center; padding: 0 12px; border-bottom: 1px solid var(--c-border); }
-.mvh b { font-weight: 510; }
-.lnk { color: var(--c-primary-text); font: var(--td-caption); }
-.mr { height: 28px; display: flex; align-items: center; gap: 10px; padding: 0 12px; }
-.mr b { font-weight: 510; }
-.mr.sel { background: var(--c-selected); }
-.mr .t3 { font: var(--td-caption); }
-.mfoot { margin-top: auto; height: 36px; flex: none; display: flex; align-items: center; gap: 10px; padding: 0 6px 0 12px; border-top: 1px solid var(--c-border); }
-.mfoot .t3 { font: var(--td-caption); }
-.mprog { flex: 1; height: 4px; margin: 0; }
-.mprog i { border-radius: 2px; }
 
 /* ---------- swatches ---------- */
 .spanel { border-radius: 12px; border: 1px solid; padding: 16px 16px 18px; font: var(--td-small); }
@@ -1116,6 +1775,327 @@ mark { background: var(--c-selection); color: inherit; padding: 1px 2px; border-
 .fz { position: relative; height: 34px; border-radius: 8px; overflow: hidden; }
 .fz-stripes { position: absolute; inset: 0; background: repeating-linear-gradient(135deg, #808080 0 8px, #2B72E0 8px 16px, #F2F4F7 16px 24px); filter: blur(3px); }
 .fz span { position: absolute; inset: 5px 0; display: flex; align-items: center; padding-left: 10px; font: 510 12px/16px var(--font); }
+/* ---------- phone pages: media, controls ---------- */
+.screen.media, .ascreen.media { background: var(--c-media-black); color: var(--c-on-media); }
+.ascreen.media .asb { background: var(--c-media-black); color: var(--c-on-media); }
+.screen.grouped { background: var(--c-canvas); }
+.photo { background-size: cover; background-position: center; }
+.lnk { color: var(--c-primary-text); font-weight: 510; }
+.gpill { position: relative; height: 44px; padding: 0 16px; border-radius: 22px; display: inline-flex; align-items: center; color: var(--c-text); }
+.gpill b { font-weight: inherit; }
+.gpill.prom { background: var(--c-primary); color: var(--c-on-primary); box-shadow: inset 0 1px 0 rgba(255,255,255,.22), var(--elev-2); }
+.nbar { position: absolute; top: 54px; left: 16px; right: 16px; height: 44px; display: flex; align-items: center; justify-content: center; z-index: 4; }
+.nbar .nb-l { position: absolute; left: 0; top: 0; }
+.nbar .nb-r { position: absolute; right: 0; top: 0; }
+.pbtn { height: var(--control-h-mobile-lg); padding: 0 16px; border-radius: var(--r-lg); display: flex; align-items: center; justify-content: center;
+  gap: 8px; font: var(--t-card-title); white-space: nowrap; flex: none; }
+.pbtn.pri { background: var(--c-primary); color: var(--c-on-primary); }
+.pbtn.prs { background: var(--c-primary-pressed); color: var(--c-on-primary); }
+.pbtn.second { background: var(--c-surface-2); border: 1px solid var(--c-border); color: var(--c-text); }
+.pbtn.plain { color: var(--c-primary-text); font-weight: 510; }
+.pbtn.sm { height: 36px; padding: 0 14px; font: var(--t-row-title); border-radius: 18px; }
+.segc { height: 32px; padding: 2px; border-radius: 9px; background: var(--c-surface-3); display: inline-flex; flex: none; }
+.segc.full { flex: 1; }
+.seg { flex: 1; min-width: 44px; padding: 0 10px; display: grid; place-items: center; border-radius: 7px; font: var(--t-row-meta);
+  font-weight: 510; color: var(--c-text-2); white-space: nowrap; }
+.seg.on { background: var(--c-elevated); color: var(--c-text); box-shadow: 0 0 0 .5px rgba(0,0,0,.06), 0 2px 6px rgba(0,0,0,.12); }
+[data-theme="dark"] .seg.on { background: var(--c-menu-active); box-shadow: none; }
+.stp { height: 32px; border-radius: 9px; background: var(--c-surface-3); display: inline-flex; align-items: center; flex: none; }
+.stp b { width: 40px; display: grid; place-items: center; font: 400 20px/1 var(--font); color: var(--c-text); }
+.stp i { width: 1px; height: 18px; background: var(--c-border-strong); opacity: .5; }
+.stp-row { width: 100%; display: flex; align-items: center; justify-content: space-between; }
+.stp-row b { color: var(--c-text); font-weight: 510; }
+.sw2 { position: relative; width: 51px; height: 31px; border-radius: 16px; background: var(--c-surface-3); flex: none;
+  box-shadow: inset 0 0 0 1px var(--c-border-strong); }
+.sw2::after { content: ""; position: absolute; left: 2px; top: 2px; width: 27px; height: 27px; border-radius: 50%; background: #FFFFFF;
+  box-shadow: 0 0 0 .5px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.2); }
+.sw2.on { background: var(--c-primary); box-shadow: none; }
+.sw2.on::after { left: 22px; }
+.rad { position: relative; width: 22px; height: 22px; border-radius: 50%; box-shadow: inset 0 0 0 1.5px var(--c-border-strong); flex: none; }
+.rad.on { background: var(--c-primary); box-shadow: none; }
+.rad.on::after { content: ""; position: absolute; inset: 7px; border-radius: 50%; background: var(--c-on-primary); }
+.sl { position: relative; height: 32px; }
+.sl-track, .sl-fill { position: absolute; top: 50%; height: var(--slider-track-h); margin-top: -2px; border-radius: 2px; }
+.sl-track { left: 0; right: 0; background: var(--c-surface-3); }
+.sl-fill { background: var(--c-primary); }
+.sl-tick { position: absolute; left: 50%; top: 50%; width: 2px; height: var(--slider-tick-h); margin: -4px 0 0 -1px; border-radius: 1px; background: var(--c-text-3); }
+.sl-thumb { position: absolute; top: 50%; width: var(--slider-thumb); height: var(--slider-thumb); margin: -12px 0 0 -12px; border-radius: 50%;
+  background: #FFFFFF; box-shadow: 0 0 0 .5px rgba(0,0,0,.12), 0 2px 8px rgba(0,0,0,.25); }
+.sl-head { display: flex; justify-content: space-between; align-items: baseline; }
+.xbar { height: 6px; margin: 10px 0 8px; display: flex; gap: 2px; }
+.xbar i { display: block; height: 100%; border-radius: 3px; }
+.xbar .used { background: var(--c-primary); }
+.xbar .rest { flex: 1; background: var(--c-surface-3); }
+.grab { display: block; width: 36px; height: 5px; border-radius: 3px; background: var(--c-border-strong); opacity: .6; margin: 0 auto 12px; }
+.art { position: relative; margin: 0 auto; flex: none; }
+.art .slices { position: absolute; inset: 0; }
+.art-icon { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.art-icon .appicon { box-shadow: var(--elev-2); }
+.demo { position: absolute; left: 50%; bottom: 4px; width: 288px; height: 64px; margin-left: -144px; padding: 0 16px; display: flex; align-items: center;
+  gap: 12px; background: var(--c-elevated); color: var(--c-text); border: 1px solid var(--c-border); border-radius: var(--r-lg); box-shadow: var(--elev-2); }
+.demo .pt span { color: var(--c-text-2); }
+
+/* settings (inset grouped), paywall, consent */
+.pc.set { padding-top: 98px; }
+.sg-h { padding: 16px 32px 6px; color: var(--c-text-3); }
+.sg { margin: 0 16px; background: var(--c-surface); border-radius: var(--r-lg); }
+.sr { position: relative; height: var(--row-h-mobile-single); display: flex; align-items: center; gap: 8px; padding: 0 12px 0 16px; }
+.sr + .sr::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; height: 1px; background: var(--c-border); }
+.sr .segc { margin-right: 4px; }
+.sg-f { padding: 6px 32px 0; color: var(--c-text-3); }
+.pw { position: absolute; inset: 0; padding: 100px 20px 34px; display: flex; flex-direction: column; }
+.pw-title { text-align: center; margin-top: 10px; }
+.pw-sub { text-align: center; color: var(--c-text-2); margin-top: 2px; }
+.feats { display: flex; flex-direction: column; gap: 8px; margin: 16px 0 16px 12px; }
+.feat { display: flex; align-items: center; gap: 10px; }
+.feat .ic { color: var(--c-primary-text); }
+.plans { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.plan { height: 60px; padding: 0 16px; border-radius: var(--r-lg); border: 1px solid var(--c-border); background: var(--c-surface);
+  display: flex; align-items: center; gap: 12px; }
+.plan.on { border: 2px solid var(--c-primary-text); padding: 0 15px; }
+.plan .pt { flex: 1; display: flex; flex-direction: column; gap: 1px; }
+.plan .pt span { color: var(--c-text-2); }
+.fine { margin-top: 10px; color: var(--c-text-3); text-align: center; }
+.links { display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 6px; color: var(--c-text-2); }
+.links i { width: 3px; height: 3px; border-radius: 50%; background: var(--c-text-3); }
+.low { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding: 8px 12px; border-radius: var(--r-md);
+  background: var(--c-warning-container); color: var(--c-warning); }
+.low b { font-weight: 590; }
+.pw .pbtn + .pbtn { margin-top: 6px; }
+.conss { display: flex; flex-direction: column; gap: 14px; margin: 16px 4px 0; }
+.cons { display: flex; gap: 14px; }
+.cons p { color: var(--c-text-2); margin-top: 2px; }
+
+/* Android shell: onboarding, permission pre-prompt, report sheet */
+.onb { position: absolute; top: 44px; left: 0; right: 0; bottom: 28px; padding: 8px 24px 16px; display: flex; flex-direction: column; }
+.onb-skip { align-self: flex-end; height: 48px; padding: 0 12px; display: grid; place-items: center; color: var(--c-text-2); margin-right: -12px; }
+.onb.perm { padding-top: 56px; }
+.dots { display: flex; gap: 8px; justify-content: center; margin: 24px 0 20px; }
+.dots i { width: 8px; height: 8px; border-radius: 4px; background: var(--c-border-strong); opacity: .5; }
+.dots i.on { width: 20px; background: var(--c-text); opacity: 1; }
+.onb-t { color: var(--c-text); text-align: center; }
+.perm .onb-t { margin-top: 28px; }
+.onb-b { margin-top: 12px; color: var(--c-text-2); text-align: center; }
+.onb-n { margin-top: 12px; text-align: center; }
+.onb .pbtn + .pbtn { margin-top: 8px; }
+.notif { position: absolute; left: 50%; bottom: 6px; width: 300px; margin-left: -150px; padding: 12px 16px 14px; display: flex; flex-direction: column;
+  gap: 2px; background: var(--c-elevated); color: var(--c-text); border: 1px solid var(--c-border); border-radius: 20px; box-shadow: var(--elev-2); }
+.nh { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.areply { padding: 16px; color: var(--c-text); }
+.areply p + p { margin-top: 8px; }
+.ascrim { position: absolute; inset: 0; background: var(--c-scrim); z-index: 4; }
+.bsheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; padding: 0 24px 40px; background: var(--c-elevated); color: var(--c-text);
+  border-radius: var(--r-xl) var(--r-xl) 0 0; }
+.bgrab { display: block; width: 32px; height: 4px; border-radius: 2px; background: var(--c-border-strong); opacity: .6; margin: 16px auto 20px; }
+.bsheet > .m3-bodyMedium { margin: 6px 0 8px; }
+.rrow { height: 48px; display: flex; align-items: center; gap: 16px; }
+.afield { height: 56px; margin: 8px 0 16px; padding: 0 16px; border: 1px solid var(--c-border-strong); border-radius: var(--r-sm); display: flex; align-items: center; }
+
+/* editor */
+.ed { position: absolute; inset: 0; display: flex; flex-direction: column; }
+.ed-top { position: absolute; top: 54px; left: 16px; right: 16px; height: 44px; display: flex; align-items: center; justify-content: space-between; z-index: 4; }
+.ed-top > b { position: absolute; left: 0; right: 0; text-align: center; pointer-events: none; }
+.ed-canvas { position: relative; flex: none; margin-top: 104px; background: var(--c-media-dark); display: grid; place-items: center; overflow: hidden; }
+.ed-canvas.checker { background: var(--checker-image) 0 0 / calc(2 * var(--checker-size)) calc(2 * var(--checker-size)); }
+.ba { position: relative; width: 358px; height: 268px; }
+.ba .photo, .before { position: absolute; inset: 0; }
+.before { clip-path: inset(0 55% 0 0); }
+.before .photo { filter: saturate(.45) brightness(.86) contrast(.9); }
+.ba-line { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--c-on-media); box-shadow: 0 0 0 .5px var(--c-media-edge); }
+.ba-knob { position: absolute; top: 50%; width: 36px; height: 36px; margin: -18px 0 0 -18px; border-radius: 50%; background: var(--c-on-media);
+  color: var(--c-media-black); display: grid; place-items: center; box-shadow: var(--elev-2); }
+.ba-chip { position: absolute; top: 12px; height: 24px; padding: 0 8px; border-radius: 12px; background: var(--c-viewer-scrim); color: var(--c-on-media);
+  display: inline-flex; align-items: center; }
+.ed-sl { padding: 12px 24px 0; }
+.ed-sl .sl-head .t-timecode { color: var(--c-on-media); }
+.tray { height: var(--tool-tray-h); display: flex; padding: 0 8px; margin-top: 10px; overflow: hidden; }
+.tool { width: var(--tool-item-w); flex: none; display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--c-text-3); }
+.tool-ic { width: 44px; height: 44px; border-radius: 22px; display: grid; place-items: center; }
+.tool.set .tool-ic { box-shadow: inset 0 0 0 1.5px var(--c-surface-3); color: var(--c-text-2); }
+.tool.on { color: var(--c-on-media); }
+.tool.on .tool-ic { background: var(--c-surface-3); box-shadow: inset 0 0 0 1.5px var(--c-on-media); color: var(--c-on-media); }
+.modes { display: flex; justify-content: center; gap: 28px; margin-top: 14px; }
+.mode { color: var(--c-text-3); }
+.mode.on { color: var(--c-on-media); }
+.plant { display: block; }
+.xsheet { position: absolute; left: 0; right: 0; bottom: 0; top: 446px; padding: 8px 20px 34px; background: var(--c-elevated); color: var(--c-text);
+  border-radius: var(--r-xl) var(--r-xl) 0 0; display: flex; flex-direction: column; }
+.xs-h { display: flex; align-items: center; gap: 8px; }
+.qlist { margin-top: 8px; }
+.qrow { height: 36px; display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--c-border); }
+.qrow .t-row-meta { color: var(--c-text-2); }
+.qrow .ip { color: var(--c-in-progress); }
+.xs-note { display: flex; gap: 8px; align-items: center; color: var(--c-text-3); margin: 6px 0 12px; }
+.atop.media { background: var(--c-media-black); border-bottom: 0; color: var(--c-on-media); }
+.atop.media .aib { color: var(--c-on-media); }
+.atext { height: 40px; padding: 0 12px; display: grid; place-items: center; color: var(--c-primary-text); }
+.cr-canvas { position: absolute; top: 108px; left: 0; right: 0; height: 500px; overflow: hidden; }
+.cr-canvas .photo { position: absolute; inset: 0; }
+.cr-box { position: absolute; left: 40px; right: 40px; top: 50px; bottom: 50px; border: 1px solid var(--c-on-media); box-shadow: 0 0 0 999px var(--c-viewer-scrim); }
+.cr-box .g { position: absolute; background: var(--c-media-guide); }
+.g.v1, .g.v2 { top: 0; bottom: 0; width: 1px; }
+.g.v1 { left: 33.33%; } .g.v2 { left: 66.67%; }
+.g.h1, .g.h2 { left: 0; right: 0; height: 1px; }
+.g.h1 { top: 33.33%; } .g.h2 { top: 66.67%; }
+.hd { position: absolute; width: var(--crop-handle); height: var(--crop-handle); border: 0 solid var(--c-on-media); }
+.hd.c-tl { left: -3px; top: -3px; border-width: var(--crop-stroke) 0 0 var(--crop-stroke); }
+.hd.c-tr { right: -3px; top: -3px; border-width: var(--crop-stroke) var(--crop-stroke) 0 0; }
+.hd.c-bl { left: -3px; bottom: -3px; border-width: 0 0 var(--crop-stroke) var(--crop-stroke); }
+.hd.c-br { right: -3px; bottom: -3px; border-width: 0 var(--crop-stroke) var(--crop-stroke) 0; }
+.eh { position: absolute; background: var(--c-on-media); border-radius: 2px; }
+.eh.e-t, .eh.e-b { left: 50%; width: 24px; height: var(--crop-stroke); margin-left: -12px; }
+.eh.e-t { top: -3px; } .eh.e-b { bottom: -3px; }
+.eh.e-l, .eh.e-r { top: 50%; width: var(--crop-stroke); height: 24px; margin-top: -12px; }
+.eh.e-l { left: -3px; } .eh.e-r { right: -3px; }
+.dial { position: absolute; top: 620px; left: 0; right: 0; height: 56px; display: flex; flex-direction: column; align-items: center; }
+.dial b { color: var(--c-on-media); }
+.ticks { display: flex; gap: 6px; align-items: flex-end; height: 18px; margin-top: 8px; }
+.ticks i { width: 1px; height: 8px; background: var(--c-text-3); }
+.ticks i.big { height: 14px; background: var(--c-text-2); }
+.dial-0 { position: absolute; bottom: 4px; left: 50%; width: 2px; height: 24px; margin-left: -1px; border-radius: 1px; background: var(--c-on-media); }
+.achips.ratio { position: absolute; top: 690px; left: 0; right: 0; }
+.cr-tools { position: absolute; bottom: 36px; left: 8px; right: 8px; height: 56px; display: flex; align-items: center; }
+
+/* photo grid and viewer */
+.limited { margin: 12px 16px 0; padding: 10px 12px; border-radius: var(--r-lg); background: var(--c-surface-2); display: flex; align-items: center;
+  gap: 8px; color: var(--c-text-2); }
+.limited .ic { color: var(--c-info); }
+.pgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--thumb-gap); margin-top: 12px; }
+.cell { position: relative; aspect-ratio: 1; }
+.cell .photo { position: absolute; inset: 0; }
+.cell.media-selected .photo { box-shadow: inset 0 0 0 var(--select-outline) var(--c-media-selected); }
+.chk { position: absolute; right: 6px; bottom: 6px; }
+.chk-off { position: absolute; right: 6px; bottom: 6px; width: 22px; height: 22px; border-radius: 50%; background: rgba(0,0,0,.12);
+  box-shadow: inset 0 0 0 1.5px #FFFFFF, 0 0 2px rgba(0,0,0,.4); }
+.gtool { position: absolute; left: 16px; right: 16px; bottom: 24px; height: 56px; border-radius: 28px; z-index: 3; display: flex; align-items: center;
+  justify-content: space-between; padding: 0 20px; color: var(--c-text-2); }
+.gtool b { color: var(--c-text); }
+.vw { position: absolute; inset: 0; background: var(--c-media-black); }
+.vw-photo { position: absolute; inset: 0; }
+.vw-s { position: absolute; left: 0; right: 0; z-index: 2; }
+.vw-s.top { top: 0; } .vw-s.bot { bottom: 0; }
+.vw-bar { position: absolute; left: 8px; right: 8px; height: 44px; z-index: 3; display: flex; align-items: center; justify-content: space-between;
+  color: var(--c-on-media); }
+.vw-bar.top { top: 54px; }
+.vw-bar.bot { bottom: 34px; padding: 0 12px; }
+.vib { width: 44px; height: 44px; display: grid; place-items: center; }
+.vw-t { display: flex; flex-direction: column; align-items: center; }
+.vw-toast { bottom: 96px; }
+
+/* chat and generation */
+.pc.chat, .pc.gen { padding: 108px 16px 0; display: flex; flex-direction: column; }
+.bub { align-self: flex-end; max-width: 286px; margin-top: 14px; padding: 8px 14px; border-radius: 20px; background: var(--c-surface-2); color: var(--c-text); }
+.bub.img { padding: 0; background: none; }
+.att { width: 96px; height: 128px; border-radius: var(--r-lg); }
+.reply { margin-top: 14px; color: var(--c-text); }
+.reply p + p { margin-top: 8px; }
+.acts { display: flex; margin: 2px 0 0 -12px; }
+.act { width: 44px; height: 44px; display: grid; place-items: center; color: var(--c-text-3); }
+.caret-s { display: inline-block; width: 10px; height: 10px; margin-left: 6px; border-radius: 50%; background: var(--c-text); vertical-align: 1px; }
+.model { display: inline-flex; align-items: center; gap: 4px; }
+.credit { gap: 6px; padding: 0 14px 0 12px; }
+.credit .ic { color: var(--c-text-2); }
+.composer { position: absolute; left: 12px; right: 12px; bottom: 30px; z-index: 3; min-height: var(--prompt-min-h); padding: 4px 4px 4px 2px;
+  border-radius: 24px; display: flex; align-items: flex-end; gap: 2px; }
+.cbtn { width: 40px; height: 40px; display: grid; place-items: center; flex: none; color: var(--c-text-2); }
+.composer .cfield { flex: 1; min-width: 0; margin: 8px 4px; line-height: 24px; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;
+  color: var(--c-text); }
+.send { width: 40px; height: 40px; border-radius: 20px; display: grid; place-items: center; flex: none; background: var(--c-disabled-bg); color: var(--c-disabled-fg); }
+.send.on { background: var(--c-primary); color: var(--c-on-primary); }
+.send.stop { background: var(--c-text); }
+.send.stop i { width: 12px; height: 12px; border-radius: 3px; background: var(--c-bg); }
+.aspect { height: 28px; margin: 0 4px 6px; padding: 0 10px; border-radius: 14px; border: 1px solid var(--c-border-strong); display: inline-flex; align-items: center;
+  flex: none; color: var(--c-text-2); }
+.pcard { padding: 12px 14px; border-radius: var(--r-lg); background: var(--c-surface); border: 1px solid var(--c-border); }
+.gchips { display: flex; gap: 6px; align-items: center; margin-top: 10px; }
+.ggrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.gcell { position: relative; aspect-ratio: 1; border-radius: var(--r-lg); overflow: hidden; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 4px; }
+.gcell .photo { position: absolute; inset: 0; }
+.ring { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--c-on-media); }
+.ring b { text-shadow: 0 1px 2px rgba(0,0,0,.4); }
+.gcell.fail { background: var(--c-surface-2); color: var(--c-text-2); }
+.gcell.fail .t-row-meta { color: var(--c-text-3); }
+.gcell.fail .pbtn { margin-top: 6px; }
+.gcell.queue { background: var(--c-surface); border: 1px dashed var(--c-border-strong); color: var(--c-text); }
+.gcell.queue .t-row-meta { color: var(--c-text-2); }
+.refused { display: flex; gap: 12px; margin-top: 12px; padding: 12px 14px; border-radius: var(--r-lg); background: var(--c-surface-2); color: var(--c-text); }
+.refused > .ic { flex: none; margin-top: 1px; color: var(--c-text-2); }
+.refused p { margin: 2px 0 4px; color: var(--c-text-2); }
+.model-chip { margin-left: 4px; }
+.credit-chip { margin-right: 8px; }
+.acontent.ach { padding: 20px 16px 0; display: flex; flex-direction: column; align-items: center; }
+.ach-sub { margin-top: 6px; text-align: center; }
+.samples { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; width: 100%; }
+.scard { border-radius: var(--r-lg); background: var(--c-surface); border: 1px solid var(--c-border); overflow: hidden; }
+.scard .photo { height: 110px; }
+.scard span { display: block; padding: 10px 12px; color: var(--c-text); }
+.acomp { position: absolute; left: 12px; right: 12px; bottom: 40px; height: 56px; border-radius: 28px; background: var(--c-surface-3);
+  display: flex; align-items: center; padding: 0 8px 0 4px; z-index: 3; }
+.acomp .aib { width: 44px; }
+.ph-t { color: var(--c-text-placeholder); }
+.asend { width: 40px; height: 40px; border-radius: 20px; display: grid; place-items: center; background: var(--c-disabled-bg); color: var(--c-disabled-fg); }
+
+/* ---------- phone component strip ---------- */
+.ps { background: var(--c-bg); color: var(--c-text); border-radius: 10px; padding: 2px 12px 8px; box-shadow: 0 0 0 1px var(--c-border); }
+.ps .crow { padding: 8px 0 10px; }
+.ps .cval > .pbtn { flex: 1; padding: 0 6px; }
+.ps .wrap { display: flex; gap: 6px; flex-wrap: wrap; width: 100%; }
+.ps .tagp { height: 24px; }
+.ps .badge { height: 24px; font: var(--t-tag-label); }
+.ps .badge svg { width: 14px; height: 14px; }
+.badge.info { background: var(--c-info-container); color: var(--c-info); }
+.slw, .task { width: 100%; }
+.task-h, .task-f { display: flex; align-items: center; gap: 8px; }
+.task .xbar { margin: 8px 0 2px; }
+.tbtn { height: 44px; display: grid; place-items: center; padding: 0 4px; margin: -10px 0 -12px; color: var(--c-text); }
+.fin2 { flex: 1; min-width: 0; height: var(--control-h-mobile-md); padding: 0 12px; border-radius: 10px; background: var(--c-surface);
+  border: 1px solid var(--c-border-strong); display: flex; align-items: center; color: var(--c-text-placeholder); white-space: nowrap; }
+.fin2.focus { border-color: var(--c-focus); box-shadow: 0 0 0 1px var(--c-focus); color: var(--c-text); }
+.cmenu { width: 100%; background: var(--c-elevated); border: 1px solid var(--c-border); border-radius: var(--r-lg); box-shadow: var(--elev-2); overflow: hidden; }
+.cm { height: 44px; padding: 0 14px 0 16px; display: flex; align-items: center; gap: 10px; color: var(--c-text); }
+.cm + .cm { border-top: 1px solid var(--c-border); }
+.cm .ic { color: var(--c-text-2); }
+.cm.danger { border-top: 6px solid var(--c-surface-2); }
+.cm.danger, .cm.danger .ic { color: var(--c-danger); }
+.tip { height: 26px; padding: 0 4px 0 8px; display: inline-flex; align-items: center; gap: 6px; border-radius: var(--r-sm);
+  background: var(--c-inverse-surface); color: var(--c-on-inverse); font: var(--td-caption); }
+
+/* ---------- right column: type scale, sheet, icon x UI; media swatches ---------- */
+.sh-stage { position: relative; height: 420px; border-radius: 10px; overflow: hidden; display: flex; align-items: flex-end; justify-content: center;
+  background: repeating-linear-gradient(180deg, var(--c-bg) 0 59px, var(--c-surface-2) 59px 60px); }
+.sh-stage::before { content: ""; position: absolute; inset: 0; background: var(--c-scrim); }
+.psheet { position: relative; width: 390px; padding: 8px 20px 18px; background: var(--c-elevated); color: var(--c-text);
+  border-radius: var(--r-xl) var(--r-xl) 0 0; box-shadow: var(--elev-3); }
+.sh-t { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.xbtn { width: 30px; height: 30px; border-radius: 15px; background: var(--c-surface-3); display: grid; place-items: center; color: var(--c-text-2); }
+.shr { min-height: 52px; display: flex; align-items: center; gap: 12px; border-top: 1px solid var(--c-border); }
+.shr.col { flex-direction: column; align-items: stretch; justify-content: center; gap: 0; padding: 8px 0 2px; }
+.shr .pt { flex: 1; display: flex; flex-direction: column; }
+.sh-act { display: flex; gap: 8px; margin-top: 14px; }
+.sh-act .pbtn { flex: 1; }
+.psheet > p { margin-top: 10px; text-align: center; }
+.pminis { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.pmini { padding: 12px; border-radius: 14px; background: var(--c-bg); color: var(--c-text); box-shadow: 0 0 0 1px rgba(0,0,0,.12);
+  display: flex; flex-direction: column; gap: 12px; }
+.pm-top { display: flex; align-items: center; gap: 10px; }
+.pm-top .appicon { box-shadow: 0 0 0 1px var(--c-border); }
+.pm-tabs { height: 56px; border-radius: 28px; padding: 3px; display: flex; }
+.pm-tabs .tab { border-radius: 25px; }
+.mpanel { grid-column: 1 / -1; }
+.msws { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 14px; }
+.msw { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.msw > i { position: relative; height: 64px; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(127,127,127,.28); overflow: hidden; display: block; }
+.msw > i.scr { display: grid; place-items: center; background: linear-gradient(var(--c-viewer-scrim), var(--c-viewer-scrim)), #FFFFFF; }
+.msw > i.scr b { font: 590 20px/1 var(--font); color: var(--c-on-media); }
+.msw > i.guide { background: linear-gradient(90deg, transparent 33%, var(--c-media-guide) 33% calc(33% + 1px), transparent 0 66%,
+  var(--c-media-guide) 66% calc(66% + 1px), transparent 0), var(--c-media-mid); }
+.sel-demo { position: absolute; inset: 0; box-shadow: inset 0 0 0 var(--select-outline) var(--c-media-selected); border-radius: 8px; }
+.playhead { position: absolute; left: 50%; top: 8px; bottom: 8px; width: var(--playhead-w); background: var(--c-primary); }
+.playhead::before { content: ""; position: absolute; left: 50%; top: -2px; width: var(--playhead-knob); height: var(--playhead-knob);
+  margin-left: calc(var(--playhead-knob) / -2); border-radius: 50%; background: var(--c-primary); }
+.msw b { font: 510 11px/14px var(--font); color: #1B1C1D; }
+.msw span { font: 400 10.5px/14px var(--font); color: #55575A; font-variant-numeric: tabular-nums; }
 """
 
 
@@ -1129,44 +2109,88 @@ def m3_css(t):
 
 
 # ---------- the sheet ----------
-def page(t, theme_css, screen, icon, desk_mode, fonts_css="", font_note=""):
+LIST_SCREENS = ("timer", "notes", "list")
+
+
+def rows_for(screen, scr, icon, app):
+    """the six phones of the sheet: the sample screen (row 1) and the shell or media screens (row 2)"""
+    if screen in LIST_SCREENS:
+        return ([ios_phone(screen, scr, "light", icon, caption="<b>iPhone · 浅色</b> · 静止态；筛选 pill 视觉高 36，点击区补到 44"),
+                 ios_phone(screen, scr, "dark", icon, scrolled=True, toast=True, pid="ios-dark",
+                           caption="<b>iPhone · 深色</b> · 滚动态：内容在玻璃栏下面，toast 是自定义浮层"),
+                 android(screen, scr, "light", caption="<b>Android · 浅色</b> · M3：TopAppBar 不透明，滚动后只加 1 px border")],
+                [settings_ios(scr, "light", app, caption="<b>iPhone · 浅色 · 设置</b> · 固定顺序：通用、外观、语言、会员、支持、关于"),
+                 paywall_ios(scr, "dark", icon, app, caption="<b>iPhone · 深色 · 付费墙</b> · 恢复购买、条款、隐私、价格和自动续费写清楚"),
+                 onboarding_android(scr, "light", caption="<b>Android · 浅色 · 引导</b> · 最多 3 屏，第一屏就演示核心功能")])
+    if screen == "editor":
+        return ([editor_adjust_ios(scr, caption="<b>iPhone · 编辑</b> · 系统浅色也强制深色；画布 media-dark（L 18，彩度 0）；前后对比；滑块 0 点吸附"),
+                 editor_cutout_ios(scr, caption="<b>iPhone · 抠图和导出</b> · 棋盘格；长任务：确定进度、剩余时间、取消、后台继续"),
+                 editor_crop_android(scr, caption="<b>Android · 裁剪</b> · 白色手柄和三分线，框外压暗；比例 chip 选中是中性色")],
+                [grid_ios("light", caption="<b>iPhone · 浅色 · 图库</b> · 选中是描边加勾，不叠浅蓝底；受限访问时说明并给「管理」"),
+                 viewer_ios(caption="<b>iPhone · 查看</b> · 白色控件在固定深色渐变上，不用玻璃；轻点画面隐藏"),
+                 permission_android("light", icon, app, caption="<b>Android · 浅色 · 权限预请求</b> · 先用自己的一屏讲为什么，再弹系统对话框")])
+    return ([chat_ios(scr, "light", caption="<b>iPhone · 浅色 · 对话</b> · 用户气泡 surface-2，回复不加气泡；操作行里有举报"),
+             generate_ios(scr, "dark", caption="<b>iPhone · 深色 · 生成</b> · 完成、生成中、失败可重试、排队；被拒的提示词；生成时是停止键"),
+             chat_android(scr, "light", caption="<b>Android · 浅色 · 新对话</b> · 空状态放示例图和示例提示词；没有字时发送键禁用")],
+            [consent_ios("light", caption="<b>iPhone · 浅色 · 第三方 AI 同意</b> · 发什么、发给谁、存多久，可以拒绝"),
+             paywall_ios(scr, "dark", icon, app, credits=True, caption="<b>iPhone · 深色 · 付费墙（点数）</b> · 余额不足时出现；订阅和点数包同一个组件"),
+             report_android(scr, "light", caption="<b>Android · 浅色 · 举报</b> · app 内举报 AI 生成的内容")])
+
+
+def measure_phones(screen, icon):
+    """off the sheet: list content under the glass (both modes), a photo grid under the glass, a bright photo under the
+    viewer scrim"""
+    name = screen if screen in LIST_SCREENS else "timer"
+    scr = SCREENS[name]
+    return (ios_phone(name, scr, "light", icon, scrolled=True, pid="m-frost-light")
+            + ios_phone(name, scr, "dark", icon, scrolled=True, pid="m-frost-dark")
+            + grid_ios("light", pid="m-photo-light", scrolled=True) + grid_ios("dark", pid="m-photo-dark", scrolled=True)
+            + viewer_ios("bright", 5, pid="m-viewer", toast=False))
+
+
+def page(t, theme_css, screen, icon, desk_mode, with_desktop=False, fonts_css="", font_note=""):
     scr = SCREENS[screen]
     app = t["name"]
     s = t["source"]
     warm = "icon-accent" in s
     L, Dk = t["color"]["light"], t["color"]["dark"]
     accent = f'图标强调色 <b>{s.get("icon-accent", s["accent"])}</b> → 界面主色 <b>{s["accent"]}</b>'
+    if s.get("category"):
+        accent = f'类别 <b>{s["category"]}</b> · ' + accent
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     head = (f'<div class="bhead">{icon(48, "light")}<div><h1>{app} · 主题预览</h1>'
-            f'<p>{accent} · primary {Dk["primary"]}（深浅同值，悬停 / 按下 {Dk["primary-hover"]} / {Dk["primary-pressed"]}）· '
+            f'<p>{accent} · primary {Dk["primary"]}（深浅同值，按下 {Dk["primary-pressed"]}）· '
             f'primary-text 深 {Dk["primary-text"]} / 浅 {L["primary-text"]} · 中性色 LCh 色相 {t["base"]["hue"]} · '
             f'样例界面 {scr["label"]}（--screen {screen}）· {font_note} · 生成于 {now}'
             + ("" if icon.given else " · <b>未传 --icon，图标处是占位图</b>") + "</p></div></div>")
-    other = "light" if desk_mode == "dark" else "dark"
-    row1 = (ios_phone(screen, scr, "light", icon, caption="<b>iPhone · 浅色</b> · 静止态；筛选 pill 视觉高 36，点击区补到 44")
-            + ios_phone(screen, scr, "dark", icon, scrolled=True, toast=True, pid="ios-dark",
-                        caption="<b>iPhone · 深色</b> · 滚动态：内容在玻璃栏下面，toast 是自定义浮层")
-            + android(screen, scr, "light", caption="<b>Android · 浅色</b> · M3：TopAppBar 不透明，滚动后只加 1 px border")
-            + f'<div class="panel comp"><h3>组件条 · 桌面尺寸</h3><div class="comp-cols">{components("light", scr)}{components("dark", scr)}</div>'
-              f'<div class="note2">按钮 28、输入框 32、kbd 18、开关 32 × 18；主按钮一屏最多一个</div></div>')
-    q = scr["desktop"]["cmdk"]["query"]
-    desk = (f'<div class="desk">{desktop(screen, scr, desk_mode, icon, app)}<div class="cap"><b>桌面 · {MODE_NAME[desk_mode]}</b>'
-            f' · 1280 × 800，倒 L 布局；第二行是键盘光标行（surface-2），两行多选（selected）；⌘K 输入「{q}」，'
-            f'当前项 menu-active，遮罩 scrim-menu；视图头不放主色按钮</div></div>')
+    row1, row2 = rows_for(screen, scr, icon, app)
+    comp = (f'<div class="panel comp"><h3>组件条 · 手机尺寸</h3><div class="comp-cols">{strip("light", scr)}{strip("dark", scr)}</div>'
+            f'<div class="note2">按钮高 50、圆角 12；分段 32；开关 51 × 31；点击区 44（Android 48）。最后一行是可选层，只在 iPad / Mac 接键盘时出现</div></div>')
     if warm:
-        extra = (f'<div class="panel"><h3>图标 × 界面</h3><div class="iu-head">{icon(88, "light")}'
+        extra = (f'<div class="panel"><h3>图标 × 界面</h3><div class="iu-head">{icon(72, "light")}'
                  f'<p><b>{s["icon-accent"]}只留在图标里，界面主色回落到{s["accent"]}。</b>primary {Dk["primary"]} · primary-text 深 '
                  f'{Dk["primary-text"]} / 浅 {L["primary-text"]}。图标底和界面中性色是同一种石墨（色相 {t["base"]["hue"]}）。</p></div>'
-                 f'{mini(scr, "dark", icon, app)}{mini(scr, "light", icon, app)}</div>')
+                 f'<div class="pminis">{phone_mini(screen, scr, "light", icon, app)}{phone_mini(screen, scr, "dark", icon, app)}</div></div>')
     else:
-        extra = (f'<div class="panel"><h3>弹窗 · {MODE_NAME[desk_mode]}</h3>{dialog(scr, desk_mode, app)}'
-                 f'<div class="note2">elevated、圆角 16、elev-3、遮罩 scrim；primary 填充只用在弹窗和表单的确认上</div></div>')
-    rcol = (f'<div class="rcol"><div class="panel"><h3>桌面字号 · Inter（{MODE_NAME[other]}）</h3>{type_scale(t, other, scr)}</div>{extra}</div>')
-    pal = f'<div class="palette">{swatches(t, scr)}</div>'
-    measure = (f'<div class="measure">{ios_phone(screen, scr, "light", icon, scrolled=True, pid="ios-light-measure")}</div>')
-    css = (fonts_css + "\n" + theme_css + "\n" + CSS.replace("@@W@@", str(BOARD_W)) + m3_css(t) + icon.css())
+        extra = (f'<div class="panel"><h3>底部弹窗 · 深色</h3>{sheet(scr, "dark")}'
+                 f'<div class="note2">elevated、顶部圆角 16、elev-3、遮罩 scrim；主按钮一屏一个</div></div>')
+    rcol = (f'<div class="rcol"><div class="panel"><h3>手机字号 · Inter 代替 SF Pro（浅色）</h3>{phone_type_scale(t, "light", scr)}</div>'
+            f'{extra}</div>')
+    desk = ""
+    if with_desktop:
+        other = "light" if desk_mode == "dark" else "dark"
+        q = scr["desktop"]["cmdk"]["query"]
+        desk = (f'<div class="desk">{desktop(screen, scr, desk_mode, icon, app)}<div class="cap"><b>桌面 · {MODE_NAME[desk_mode]}（可选，--desktop）</b>'
+                f' · 1280 × 800，倒 L 布局；第二行是键盘光标行（surface-2），两行多选（selected）；⌘K 输入「{q}」，'
+                f'当前项 menu-active，遮罩 scrim-menu；视图头不放主色按钮</div></div>'
+                f'<div class="rcol"><div class="panel"><h3>桌面字号 · Inter（{MODE_NAME[other]}）</h3>{desktop_type_scale(t, other, scr)}</div>'
+                f'<div class="panel"><h3>弹窗 · {MODE_NAME[desk_mode]}</h3>{dialog(scr, desk_mode, app)}'
+                f'<div class="note2">elevated、圆角 16、elev-3、遮罩 scrim；primary 填充只用在弹窗和表单的确认上</div></div></div>')
+    pal = f'<div class="palette">{swatches(t, scr)}</div>{media_strip(t)}'
+    measure = f'<div class="measure">{measure_phones(screen, icon)}</div>'
+    css = (fonts_css + "\n" + theme_css + "\n" + CSS.replace("@@W@@", str(BOARD_W)) + m3_css(t) + icon.css() + Photos.css())
     return (f'<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><style>{css}</style></head>'
-            f'<body><div class="board">{head}{row1}{desk}{rcol}{pal}</div>{measure}</body></html>')
+            f'<body><div class="board">{head}{"".join(row1)}{comp}{"".join(row2)}{rcol}{desk}{pal}</div>{measure}</body></html>')
 
 
 # ---------- fonts ----------
@@ -1264,14 +2288,25 @@ BAR_ITEMS = """sel => { const root = document.querySelector(sel), R = root.getBo
     return {text: el.dataset.bar, color: getComputedStyle(el).color, box: [r.left - R.left, r.top - R.top, r.right - R.left, r.bottom - R.top]}; }); }"""
 SIZES = """() => { const out = {}; const add = (sel, what) => { const el = document.querySelector(sel); if (!el) return;
     const r = el.getBoundingClientRect(); out[what] = Math.round(r.width) + ' x ' + Math.round(r.height); };
-  add('.phone .gbtn', 'iOS toolbar button'); add('.phone .ppill', 'iOS filter pill'); add('.phone .prow', 'iOS row');
-  add('.phone .tabbar', 'iOS tab bar'); add('#ios-dark .ptoast', 'iOS toast');
-  add('.android .atop', 'M3 TopAppBar'); add('.android .achip', 'M3 FilterChip'); add('.android .arow', 'M3 list item');
-  add('.android .afab', 'M3 FAB'); add('.android .aind', 'M3 nav indicator'); add('.android .anav', 'M3 NavigationBar + inset');
+  add('.board .phone .gbtn', 'iOS glass button'); add('.board .phone .ppill', 'iOS filter pill'); add('.board .phone .prow', 'iOS row');
+  add('.board .phone .tabbar', 'iOS tab bar'); add('#ios-dark .ptoast', 'iOS toast'); add('.board .sr', 'iOS settings row');
+  add('.board .android .atop', 'M3 TopAppBar'); add('.board .android .achip', 'M3 FilterChip'); add('.board .android .arow', 'M3 list item');
+  add('.board .android .afab', 'M3 FAB'); add('.board .android .anav', 'M3 NavigationBar + inset');
+  add('.ps .pbtn', 'phone button'); add('.ps .segc', 'segmented'); add('.ps .stp', 'stepper'); add('.ps .sw2', 'switch');
+  add('.ps .sl-thumb', 'slider thumb'); add('.ps .cm', 'context menu item'); add('.board .plan', 'paywall plan');
+  add('.board .tool', 'tool item'); add('.board .tray', 'tool tray'); add('.board .hd', 'crop handle'); add('.board .chk', 'select check');
+  add('.board .composer', 'prompt field'); add('.board .send', 'send button'); add('.board .act', 'reply action');
   add('.win .r', 'desktop row'); add('.win .si', 'sidebar item'); add('.win .ci', 'command item'); add('.win .kbd', 'kbd');
   return out; }"""
+# each phone on the sheet: its label, whether it is a conversion screen, and the boxes of its photos, canvases and
+# generated images (left out of the accent area); data-idx lets Python take its screenshot
+PHONES = """() => [...document.querySelectorAll('.board [data-label]')].map((s, i) => { const R = s.getBoundingClientRect();
+  s.dataset.idx = i;
+  return {label: s.dataset.label, conversion: s.hasAttribute('data-conversion'),
+    photos: [...s.querySelectorAll('[data-photo]')].map(p => { const r = p.getBoundingClientRect();
+      return [r.left - R.left, r.top - R.top, r.right - R.left, r.bottom - R.top]; })}; })"""
 # scrolled screens: the iPhone content moves up until a section header sits under the nav bar, with rows still
-# under the tab bar; the Android content until the filter chips meet the TopAppBar
+# under the tab bar; the Android content until the filter chips meet the TopAppBar; the photo grid to the top edge
 SCROLL = """() => document.querySelectorAll('[data-scroll]').forEach(c => {
   const screen = c.parentElement.clientHeight, kind = c.dataset.scroll;
   let a = c.querySelector('.' + kind), top = 0;
@@ -1280,7 +2315,8 @@ SCROLL = """() => document.querySelectorAll('[data-scroll]').forEach(c => {
     for (const h of c.querySelectorAll('.psh')) if (c.offsetHeight - h.offsetTop + top >= screen + 60) a = h;
   }
   c.style.transform = `translateY(${top - a.offsetTop}px)`; })"""
-# the frost check hides the bar text and the iOS scroll edge effect: the glass alone over the raw content
+# the frost and scrim checks hide the bar text and the iOS scroll edge effect: the glass (or the viewer scrim) alone
+# over the raw content
 HIDE_BAR = "[data-bar], .edge, .edge-top { visibility: hidden !important; }"
 HIDE_MENU = ".win .scrim, .win .cmdk { display: none !important; }"
 
@@ -1329,23 +2365,33 @@ def frost_check(back, items, scale):
     return worst
 
 
-def accent_area(img, hue):
+def accent_area(img, hue, holes=(), scale=1):
+    """the share of the image in the primary's hue: strong (chroma >= 20) and incl. the faint selected tint (>= 4);
+    holes (photos, canvases, generated images) never count"""
     import numpy as np
     chroma, h = lch_arrays(img)
     near = np.abs((h - hue + 180) % 360 - 180) <= HUE_BAND
-    return float((near & (chroma >= STRONG_CHROMA)).mean() * 100), float((near & (chroma >= FAINT_CHROMA)).mean() * 100)
+    keep = np.ones(chroma.shape, bool)
+    for x0, y0, x1, y1 in holes:
+        keep[max(0, int(y0 * scale)):max(0, int(y1 * scale)), max(0, int(x0 * scale)):max(0, int(x1 * scale))] = False
+    return (float((near & keep & (chroma >= STRONG_CHROMA)).mean() * 100), float((near & keep & (chroma >= FAINT_CHROMA)).mean() * 100),
+            float((near & (chroma >= STRONG_CHROMA)).mean() * 100))
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("out", help="theme folder written by build.py (reads tokens.json and theme.css, writes preview.png)")
-    ap.add_argument("--screen", choices=list(SCREENS), default="timer", help="sample screen: timer (default), notes or list")
+    ap.add_argument("--screen", choices=list(SCREENS), default="timer",
+                    help="sample screen: timer (default), notes, list, editor or chat")
     ap.add_argument("--icon", metavar="PNG", help="app icon, rian-app-icon's <name>-1024.png (default appearance)")
     ap.add_argument("--icon-dark", metavar="PNG", help="dark app icon for the dark UI, render.py --variants' <name>-dark.png (default: --icon)")
+    ap.add_argument("--desktop", action="store_true", help="add the desktop window, its type scale and a dialog (timer, notes and list)")
     ap.add_argument("--desktop-mode", choices=("dark", "light"), default="dark", help="mode of the desktop window (default dark)")
     ap.add_argument("--offline", action="store_true", help="skip Google Fonts and use the locally installed fonts")
     ap.add_argument("--scale", type=float, default=2, help="device scale factor of the screenshot (default 2)")
     a = ap.parse_args()
+    if a.desktop and "desktop" not in SCREENS[a.screen]:
+        ap.error("--desktop works with --screen timer, notes or list; editor and chat are phone pages")
 
     t = json.load(open(os.path.join(a.out, "tokens.json"), encoding="utf-8"))
     theme_css = open(os.path.join(a.out, "theme.css"), encoding="utf-8").read()
@@ -1356,11 +2402,13 @@ def main():
     tones = PALETTE["accent"].get(s.get("icon-accent", s["accent"]), PALETTE["accent"]["蓝"])["tones"]
     icon = AppIcon(a.icon, a.icon_dark, tones)
 
-    draft = page(t, theme_css, a.screen, icon, a.desktop_mode)  # collects the characters and symbols in use
+    draft = page(t, theme_css, a.screen, icon, a.desktop_mode, a.desktop)  # collects the characters and symbols in use
     fonts_css, note, Glyphs.msr = fonts(draft, a.offline)
-    html = page(t, theme_css, a.screen, icon, a.desktop_mode, fonts_css, note)
+    html = page(t, theme_css, a.screen, icon, a.desktop_mode, a.desktop, fonts_css, note)
     out = os.path.join(a.out, "preview.png")
 
+    glass = {"frost light": "#m-frost-light .screen", "frost dark": "#m-frost-dark .screen",
+             "frost photo light": "#m-photo-light .screen", "frost photo dark": "#m-photo-dark .screen", "viewer scrim": "#m-viewer .screen"}
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
         kw = {"executable_path": find_chromium()} if find_chromium() else {}
@@ -1372,41 +2420,50 @@ def main():
         pg.wait_for_timeout(300)
         pg.locator(".board").screenshot(path=out)
         sizes = pg.evaluate(SIZES)
-        frost_items = {m: pg.evaluate(BAR_ITEMS, sel) for m, sel in
-                       (("light", "#ios-light-measure .screen"), ("dark", "#ios-dark .screen"))}
-        pg.add_style_tag(content=HIDE_BAR)  # the frost alone, behind where the bar text was
-        backs = {m: png_array(pg.locator(sel).screenshot()) for m, sel in
-                 (("light", "#ios-light-measure .screen"), ("dark", "#ios-dark .screen"))}
-        pg.add_style_tag(content="[data-bar], .edge, .edge-top { visibility: visible !important; } " + HIDE_MENU)
-        shots = {"desktop": png_array(pg.locator(".board .win").screenshot()),
-                 "iPhone 浅色": png_array(pg.locator(".board .phone:not(#ios-dark) .screen").screenshot()),
-                 "iPhone 深色": png_array(pg.locator("#ios-dark .screen").screenshot()),
-                 "Android": png_array(pg.locator(".board .ascreen").screenshot())}
+        phones = pg.evaluate(PHONES)
+        shots = [png_array(pg.locator(f'.board [data-idx="{i}"]').screenshot()) for i in range(len(phones))]
+        items = {k: pg.evaluate(BAR_ITEMS, sel) for k, sel in glass.items()}
+        pg.add_style_tag(content=HIDE_BAR)  # the glass or the scrim alone, behind where the bar text was
+        backs = {k: png_array(pg.locator(sel).screenshot()) for k, sel in glass.items()}
+        if a.desktop:
+            pg.add_style_tag(content="[data-bar], .edge, .edge-top { visibility: visible !important; } " + HIDE_MENU)
+            desk = png_array(pg.locator(".board .win").screenshot())
         b.close()
     print("wrote", out)
     print("sizes: " + "; ".join(f"{k} {v}" for k, v in sizes.items()))
 
     fails = 0
-    for m in ("light", "dark"):
-        text, c = frost_check(backs[m], frost_items[m], a.scale)
-        ok = c >= FROST_MIN
+    for k in glass:
+        text, c = frost_check(backs[k], items[k], a.scale)
+        need = SCRIM_MIN if k == "viewer scrim" else FROST_MIN
+        what = {"frost light": "list content scrolled under the glass", "frost dark": "list content scrolled under the glass",
+                "frost photo light": "a photo grid scrolled under the glass", "frost photo dark": "a photo grid scrolled under the glass",
+                "viewer scrim": "white viewer controls over a bright photo, through the scrim"}[k]
+        ok = c >= need
         fails += not ok
-        print(f"frost {m}: lowest bar text contrast over scrolled content {c:.1f}:1 ({text}; glass only, no scroll edge); target >= {FROST_MIN:g}  "
-              f"{'PASS' if ok else 'FAIL'}")
+        print(f"{k}: lowest contrast {c:.1f}:1 ({text}; {what}); target >= {need:g}  {'PASS' if ok else 'FAIL'}")
     hue = hex_to_lch(t["color"]["dark"]["primary"])[2]
-    strong, faint = accent_area(shots["desktop"], hue)
-    ok = strong <= DESK_MAX
-    fails += not ok
-    print(f"accent area desktop: {strong:.1f}% of the window in the primary hue (command menu hidden); "
-          f"target <= {DESK_MAX:g}%  {'PASS' if ok else 'FAIL'}")
-    print(f"  INFO incl. the selected tint: {faint:.1f}%")
-    phones = {k: accent_area(v, hue) for k, v in shots.items() if k != "desktop"}
-    worst = max(phones, key=lambda k: phones[k][0])
-    ok = phones[worst][0] <= PHONE_MAX
-    fails += not ok
-    print(f"accent area phone: {phones[worst][0]:.1f}% ({worst}, the highest of "
-          + ", ".join(f"{k} {v[0]:.1f}%" for k, v in phones.items()) + f"); target <= {PHONE_MAX:g}%  {'PASS' if ok else 'FAIL'}")
-    print("  INFO incl. the selected tint: " + ", ".join(f"{k} {v[1]:.1f}%" for k, v in phones.items()))
+    area = [(ph_["label"], ph_["conversion"]) + accent_area(img, hue, ph_["photos"], a.scale) for ph_, img in zip(phones, shots)]
+    for conv, limit, name in ((False, PHONE_MAX, "phone"), (True, CONVERSION_MAX, "conversion")):
+        group = [r for r in area if r[1] == conv]
+        if not group:
+            continue
+        worst = max(group, key=lambda r: r[2])
+        ok = worst[2] <= limit
+        fails += not ok
+        print(f"accent area {name}: {worst[2]:.1f}% ({worst[0]}, the highest of " + ", ".join(f"{r[0]} {r[2]:.1f}%" for r in group)
+              + f"; photos, canvases and generated images left out); target <= {limit:g}%  {'PASS' if ok else 'FAIL'}")
+        print("  INFO incl. the selected tint: " + ", ".join(f"{r[0]} {r[3]:.1f}%" for r in group))
+        media = [r for r in group if r[4] - r[2] >= 0.5]
+        if media:
+            print("  INFO with the photos counted: " + ", ".join(f"{r[0]} {r[4]:.1f}%" for r in media))
+    if a.desktop:
+        strong, faint, _ = accent_area(desk, hue)
+        ok = strong <= DESK_MAX
+        fails += not ok
+        print(f"accent area desktop: {strong:.1f}% of the window in the primary hue (command menu hidden); "
+              f"target <= {DESK_MAX:g}%  {'PASS' if ok else 'FAIL'}")
+        print(f"  INFO incl. the selected tint: {faint:.1f}%")
     if fails:
         sys.exit(1)
 
