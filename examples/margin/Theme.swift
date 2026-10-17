@@ -44,7 +44,8 @@ extension Color {
 /// inProgress (= info) is a running task. Media pages (editor, viewer) are dark: mediaBlack, mediaDark, mediaMid and
 /// mediaWhite are the chroma-0 canvas steps (viewer black, editor dark grey by default), checkerA / checkerB the
 /// transparency checkerboard, onMedia the white controls on viewerScrim, mediaEdge the dark edge under white handles,
-/// mediaGuide the white guides (thirds grid, scrubber track), mediaSelected the outline of a selected picture.
+/// mediaGuide the white guides (thirds grid, waveform), mediaTrack the video scrubber's track (its played part is
+/// onMedia, not the primary: the primary falls short over a bright frame), mediaSelected the outline of a selected picture.
 enum Palette {
     static let canvas = Color(light: 0xF6F8FA, dark: 0x111215, lightHC: 0xF6F8FA, darkHC: 0x111215)
     static let bg = Color(light: 0xFFFFFF, dark: 0x16181A, lightHC: 0xFFFFFF, darkHC: 0x16181A)
@@ -104,6 +105,7 @@ enum Palette {
     static let viewerScrim = Color(light: 0x000000, dark: 0x000000, lightHC: 0x000000, darkHC: 0x000000, alpha: (0.56, 0.56, 0.56, 0.56))
     static let mediaEdge = Color(light: 0x000000, dark: 0x000000, lightHC: 0x000000, darkHC: 0x000000, alpha: (0.32, 0.32, 0.32, 0.32))
     static let mediaGuide = Color(light: 0xFFFFFF, dark: 0xFFFFFF, lightHC: 0xFFFFFF, darkHC: 0xFFFFFF, alpha: (0.5, 0.5, 0.5, 0.5))
+    static let mediaTrack = Color(light: 0xFFFFFF, dark: 0xFFFFFF, lightHC: 0xFFFFFF, darkHC: 0xFFFFFF, alpha: (0.24, 0.24, 0.24, 0.24))
     static let mediaSelected = Color(light: 0x0064CD, dark: 0x6E97FF, lightHC: 0x004CA0, darkHC: 0xADBDFF)
 
     // old names, kept for one version
@@ -141,9 +143,9 @@ enum Size {
     static let row: CGFloat = 60
     static let rowSingle: CGFloat = 44
     static let pill: CGFloat = 36
-    /// media and AI components: the editor's tool tray and slider, crop handles, the video timeline, the thumbnail grid
-    /// and its selection, checkerboard squares and the viewer scrim's height; the prompt field grows from promptMin
-    /// to promptMaxLines lines, then scrolls
+    /// media and AI components: the editor's tool tray and slider, crop handles, the video timeline and its waveform, the
+    /// thumbnail grid and its selection, checkerboard squares and the viewer scrim's height; the prompt field grows from
+    /// promptMin to promptMaxLines lines, then scrolls (its corner radius stays promptMin / 2)
     static let toolTray: CGFloat = 64
     static let toolItem: CGFloat = 64
     static let sliderTrack: CGFloat = 4
@@ -155,6 +157,7 @@ enum Size {
     static let playheadKnob: CGFloat = 10
     static let timeline: CGFloat = 48
     static let trimHandle: CGFloat = 14
+    static let waveform: CGFloat = 24
     static let thumbGap: CGFloat = 2
     static let selectOutline: CGFloat = 3
     static let selectCheck: CGFloat = 22
@@ -227,8 +230,9 @@ enum MediaGesture {
 
 /// Haptics, one per role: selection (a tool, a segment, a picture picked), snap (a slider or dial reaching its detent,
 /// a crop edge meeting a guide), success (an export or save finished), failure (it failed). Play them on the event,
-/// never on every frame. iOS 17 and later: .sensoryFeedback(Haptic.snap.feedback, trigger: value); earlier, call
-/// Haptic.snap.play() from the action.
+/// never on every frame: sensoryFeedback plays whenever its trigger changes, so a slider gives it a condition,
+/// .sensoryFeedback(Haptic.snap.feedback, trigger: value) { old, new in new == 0 && old != 0 } (iOS 17 and later);
+/// earlier, call Haptic.snap.play() from the action when the value lands on the detent.
 enum Haptic {
     case selection, snap, success, failure
 

@@ -49,6 +49,7 @@
   --playhead-knob: 10px;
   --timeline-h: 48px;
   --trim-handle-w: 14px;
+  --waveform-h: 24px;
   --thumb-gap: 2px;
   --select-outline: 3px;
   --select-check: 22px;
@@ -222,6 +223,7 @@
   --c-viewer-scrim: rgba(0, 0, 0, 0.56);
   --c-media-edge: rgba(0, 0, 0, 0.32);
   --c-media-guide: rgba(255, 255, 255, 0.5);
+  --c-media-track: rgba(255, 255, 255, 0.24);
   --c-media-selected: #0064CD;
   --c-canvas-rgb: 246 248 250;
   --c-bg-rgb: 255 255 255;
@@ -341,6 +343,7 @@
     --c-viewer-scrim: rgba(0, 0, 0, 0.56);
     --c-media-edge: rgba(0, 0, 0, 0.32);
     --c-media-guide: rgba(255, 255, 255, 0.5);
+    --c-media-track: rgba(255, 255, 255, 0.24);
     --c-media-selected: #6E97FF;
     --c-canvas-rgb: 17 18 21;
     --c-bg-rgb: 22 24 26;
@@ -460,6 +463,7 @@
   --c-viewer-scrim: rgba(0, 0, 0, 0.56);
   --c-media-edge: rgba(0, 0, 0, 0.32);
   --c-media-guide: rgba(255, 255, 255, 0.5);
+  --c-media-track: rgba(255, 255, 255, 0.24);
   --c-media-selected: #6E97FF;
   --c-canvas-rgb: 17 18 21;
   --c-bg-rgb: 22 24 26;
@@ -582,6 +586,7 @@
     --c-viewer-scrim: rgba(0, 0, 0, 0.56);
     --c-media-edge: rgba(0, 0, 0, 0.32);
     --c-media-guide: rgba(255, 255, 255, 0.5);
+    --c-media-track: rgba(255, 255, 255, 0.24);
     --c-media-selected: #004CA0;
     --c-canvas-rgb: 246 248 250;
     --c-bg-rgb: 255 255 255;
@@ -702,6 +707,7 @@
     --c-viewer-scrim: rgba(0, 0, 0, 0.56);
     --c-media-edge: rgba(0, 0, 0, 0.32);
     --c-media-guide: rgba(255, 255, 255, 0.5);
+    --c-media-track: rgba(255, 255, 255, 0.24);
     --c-media-selected: #ADBDFF;
     --c-canvas-rgb: 17 18 21;
     --c-bg-rgb: 22 24 26;
@@ -822,6 +828,7 @@
     --c-viewer-scrim: rgba(0, 0, 0, 0.56);
     --c-media-edge: rgba(0, 0, 0, 0.32);
     --c-media-guide: rgba(255, 255, 255, 0.5);
+    --c-media-track: rgba(255, 255, 255, 0.24);
     --c-media-selected: #ADBDFF;
     --c-canvas-rgb: 17 18 21;
     --c-bg-rgb: 22 24 26;
@@ -900,13 +907,16 @@ textarea.input { height: auto; min-height: var(--control-h-lg); padding: 6px 10p
 .inline-edit:focus-visible { outline: none; }
 .inline-edit.kb-focus { outline: 2px solid var(--c-focus); outline-offset: 2px; }
 
-/* hover: rows, menu items and ghost buttons, only where a pointer can hover (touch screens get the pressed state).
-   The highlight appears at once and fades out over 150 ms. */
+/* hover: rows, menu items and ghost buttons, only where a pointer can hover. The highlight appears at once and
+   fades out over 150 ms. Touch screens get the pressed state instead: at once on touch, a fast fade on release. */
 .hoverable { transition: background-color var(--m-hover-out) var(--ease-exit); }
 @media (hover: hover) {
   .hoverable:hover { background-color: var(--c-hover); transition-duration: var(--m-hover-in); }
 }
-.hoverable:active { background-color: var(--c-pressed); }
+@media (hover: none) {
+  .hoverable { transition-duration: var(--m-fast); }
+}
+.hoverable:active { background-color: var(--c-pressed); transition-duration: 0ms; }
 
 /* frost (glass): floating bars, the mobile-web tab bar and custom floating buttons; never cards, lists, menus,
    dialogs or toasts (those are elevated). A full-width bar keeps only the hairline on its content side, e.g. border-width: 0 0 1px. */

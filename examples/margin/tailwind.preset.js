@@ -4,9 +4,13 @@
 // the .td-* classes in theme.css add Inter's opsz and the cv01 / ss03 features, so prefer them for display text.
 // focus-visible:ring is the focus ring: 2 px of focus, 2 px away, the gap in bg (ring-offset-surface etc. elsewhere).
 // Media: bg-checker (the checkerboard, image and square size), bg-viewer-scrim-top / -bottom with h-viewer-scrim, and a
-// selected picture is ring-select ring-inset ring-media-selected (an outline, never a tint). text-timecode is the phone
-// timecode size: add tabular-nums. The kbd hints and hover are an optional layer (theme.css hides .kbd on touch screens).
+// selected picture is outline outline-select outline-offset-select outline-media-selected: an outline inside its edge,
+// drawn over the picture (a ring is an inset shadow, which an <img> covers), never a tint; theme.css's .media-selected
+// is the same. text-timecode is the phone timecode size: add tabular-nums. The kbd hints and hover are an optional
+// layer: theme.css hides .kbd on touch screens, and future.hoverOnlyWhenSupported keeps hover: off touch screens (a
+// future block in your own config replaces this one: add the flag there).
 module.exports = {
+  future: { hoverOnlyWhenSupported: true },
   theme: {
     extend: {
       colors: {
@@ -68,6 +72,7 @@ module.exports = {
         'viewer-scrim': 'var(--c-viewer-scrim)',
         'media-edge': 'var(--c-media-edge)',
         'media-guide': 'var(--c-media-guide)',
+        'media-track': 'var(--c-media-track)',
         'media-selected': 'rgb(var(--c-media-selected-rgb) / <alpha-value>)',
         // old names, kept for one version
         'state-hover': 'var(--c-hover)',
@@ -75,7 +80,9 @@ module.exports = {
       },
       borderColor: { DEFAULT: 'var(--c-border)' },
       ringColor: { DEFAULT: 'var(--c-focus)' },
-      ringWidth: { DEFAULT: '2px', select: 'var(--select-outline)' },
+      ringWidth: { DEFAULT: '2px' },
+      outlineWidth: { select: 'var(--select-outline)' },
+      outlineOffset: { select: 'calc(-1 * var(--select-outline))' },
       ringOffsetWidth: { DEFAULT: '2px' },
       ringOffsetColor: { DEFAULT: 'var(--c-bg)' },
       borderRadius: {
@@ -102,7 +109,7 @@ module.exports = {
       fontFamily: { sans: ['var(--font)'], mono: ['var(--font-mono)'] },
       transitionDuration: { 'hover-in': 'var(--m-hover-in)', 'hover-out': 'var(--m-hover-out)', 'fast': 'var(--m-fast)', 'standard': 'var(--m-standard)', 'slow': 'var(--m-slow)', 'zoom': 'var(--m-zoom)', 'fast-exit': 'var(--m-fast-exit)', 'standard-exit': 'var(--m-standard-exit)', 'slow-exit': 'var(--m-slow-exit)', 'zoom-exit': 'var(--m-zoom-exit)' },
       transitionTimingFunction: { enter: 'var(--ease-enter)', exit: 'var(--ease-exit)' },
-      height: { 'control-xs': 'var(--control-h-xs)', 'control-sm': 'var(--control-h-sm)', 'control-md': 'var(--control-h-md)', 'control-lg': 'var(--control-h-lg)', 'control-mobile-md': 'var(--control-h-mobile-md)', 'control-mobile-lg': 'var(--control-h-mobile-lg)', row: 'var(--row-h)', 'row-compact': 'var(--row-h-compact)', 'row-mobile': 'var(--row-h-mobile)', 'view-header': 'var(--view-header-h)', kbd: 'var(--kbd-h)', 'tool-tray': 'var(--tool-tray-h)', 'slider-track': 'var(--slider-track-h)', timeline: 'var(--timeline-h)', 'viewer-scrim': 'var(--viewer-scrim-h)' },
+      height: { 'control-xs': 'var(--control-h-xs)', 'control-sm': 'var(--control-h-sm)', 'control-md': 'var(--control-h-md)', 'control-lg': 'var(--control-h-lg)', 'control-mobile-md': 'var(--control-h-mobile-md)', 'control-mobile-lg': 'var(--control-h-mobile-lg)', row: 'var(--row-h)', 'row-compact': 'var(--row-h-compact)', 'row-mobile': 'var(--row-h-mobile)', 'view-header': 'var(--view-header-h)', kbd: 'var(--kbd-h)', 'tool-tray': 'var(--tool-tray-h)', 'slider-track': 'var(--slider-track-h)', timeline: 'var(--timeline-h)', waveform: 'var(--waveform-h)', 'viewer-scrim': 'var(--viewer-scrim-h)' },
       minHeight: { hit: 'var(--hit-min)', prompt: 'var(--prompt-min-h)' },
       minWidth: { hit: 'var(--hit-min)', kbd: 'var(--kbd-h)' },
       width: { sidebar: 'var(--sidebar-w)', 'tool-item': 'var(--tool-item-w)', playhead: 'var(--playhead-w)', 'trim-handle': 'var(--trim-handle-w)' },
