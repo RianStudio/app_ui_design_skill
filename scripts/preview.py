@@ -31,10 +31,13 @@ Then prints the checks, each PASS or FAIL (exit status 1 when one fails; preview
                               (all on phones rendered off the sheet; glass and scrim only: the scroll-edge fade is
                               hidden while measuring)
   accent area phone           pixels in the primary's hue (+-25 deg, LCh chroma >= 20) <= 8 % of each phone screen
-                              (worst of them); photos, canvases and generated images are left out
-  accent area conversion      the same for the paywall, onboarding and consent screens, <= 15 %
+                              (worst of them), measured with photos, canvases and generated images hidden (the checks
+                              and outlines drawn over them still count)
+  accent area conversion      the same for the paywall, onboarding, permission, consent and sample-empty screens, <= 15 %
   accent area desktop         with --desktop: <= 5 % of the window, measured with the command menu hidden
-Counting the faint selected tint too (chroma >= 4) is printed as INFO only.
+  safe area                   paywall, onboarding, permission, consent, export and report sheets end above the home
+                              indicator (iOS) or the gesture bar (Android): nothing pushed into it
+Counting the faint selected tint too (chroma >= 4), or the photos, is printed as INFO only.
 
 The photos are procedural (numpy), so the sheet needs no image files. Fonts: Inter (variable, opsz 14..32), Roboto
 Flex, Material Symbols Rounded and a Noto Sans SC subset come from Google Fonts and are cached in
@@ -323,10 +326,11 @@ SCREENS = {
                   "danger": "删除这一条", "seg": ("支出", "收入", "转账"), "step": ("提前提醒", "3 天"),
                   "slider": ("预算提醒线", "80 %", 80, False), "task": ("导入支付宝账单", 62, "第 2 / 3 个文件 · 还剩约 8 秒"),
                   "menu": [("copy", "复制一条", ("⌘", "D")), ("tag", "改分类", ("L",)), ("wallet", "改账户", ("A",))]},
-        "shell": {"features": ["不限账户和账本", "按分类的月度统计和预算", "导出 CSV 和 Excel", "同步到 iPad 和 Mac"],
+        "shell": {"pitch": "账户、统计和预算不设上限",
+                  "features": ["不限账户和账本", "按分类的月度统计和预算", "导出 CSV 和 Excel", "同步到 iPad 和 Mac"],
                   "onboard": ("记一笔只要 3 秒", "打开就是数字键盘：输入金额，选个分类，就记好了。"),
                   "demo": ("utensils", "午餐", money(-32), "餐饮 · 招行信用卡"),
-                  "general": [("默认账户", "招商银行"), ("记账提醒", "每天 21:00")]},
+                  "general": [("默认账户", "招商银行")]},
         "sheet": {"title": EXPORT, "rows": [("value", "范围", "2026年10月 · 128 笔"), ("seg", "格式", ("CSV", "Excel", "PDF")),
                                              ("switch", "包含备注", True)],
                   "ok": "导出", "note": "导出后可以存到「文件」，或者分享给别人"},
@@ -406,10 +410,11 @@ SCREENS = {
                   "danger": "删除这次专注", "seg": ("专注", "短休", "长休"), "step": ("番茄个数", "2"),
                   "slider": ("白噪音音量", "60 %", 60, False), "task": ("导出专注记录 PDF", 62, "第 52 / 84 页 · 还剩约 6 秒"),
                   "menu": [("copy", "复制任务", ("⌘", "D")), ("folder", "改项目", ("P",)), ("clock", "改时长", ("T",))]},
-        "shell": {"features": ["不限项目和任务", "专注统计和每周回顾", "白噪音和自定义时长", "同步到 iPad 和 Mac"],
+        "shell": {"pitch": "专注统计和白噪音全部解锁",
+                  "features": ["不限项目和任务", "专注统计和每周回顾", "白噪音和自定义时长", "同步到 iPad 和 Mac"],
                   "onboard": ("一次只做一件事", "选一个任务，开始 25 分钟专注。中途想到别的事，先记下来，结束再看。"),
                   "demo": ("book", "读论文", "25:00", "论文 · 第 3 节"),
-                  "general": [("默认时长", "25 分钟"), ("提醒声音", "木鱼")]},
+                  "general": [("默认时长", "25 分钟")]},
         "sheet": {"title": "导出专注记录", "rows": [("value", "范围", "2026年10月 · 46 次"), ("seg", "格式", ("PDF", "CSV", "图片")),
                                                   ("switch", "包含每周回顾", True)],
                   "ok": "导出", "note": "导出后可以存到「文件」，或者分享给别人"},
@@ -478,10 +483,11 @@ SCREENS = {
                   "danger": "删除这篇笔记", "seg": ("列表", "卡片", "时间线"), "step": ("正文字号", "17"),
                   "slider": ("行距", "1.6 倍", 55, False), "task": ("导出 86 篇笔记 PDF", 62, "第 53 / 86 篇 · 还剩约 20 秒"),
                   "menu": [("copy", "复制一篇", ("⌘", "D")), ("folder", "移到文件夹", ("M",)), ("tag", "加标签", ("L",))]},
-        "shell": {"features": ["不限笔记和文件夹", "全文搜索和标签", "导出 PDF 和 Markdown", "同步到 iPad 和 Mac"],
+        "shell": {"pitch": "笔记、搜索和导出不设上限",
+                  "features": ["不限笔记和文件夹", "全文搜索和标签", "导出 PDF 和 Markdown", "同步到 iPad 和 Mac"],
                   "onboard": ("想到就记", "打开就是一页新笔记，写完不用点保存，标题自动取第一行。"),
                   "demo": ("file-text", "关于专注", "386 字", "读书 · 刚刚保存"),
-                  "general": [("新笔记位置", "全部笔记"), ("正文字号", "17")]},
+                  "general": [("新笔记位置", "全部笔记")]},
         "sheet": {"title": "导出笔记", "rows": [("value", "范围", "选中的 2 篇"), ("seg", "格式", ("PDF", "Markdown", "纯文本")),
                                               ("switch", "包含图片", True)],
                   "ok": "导出", "note": "导出后可以存到「文件」，或者分享给别人"},
@@ -538,7 +544,7 @@ SCREENS = {
         "sheet": {"title": "导出 4 张照片", "rows": [("seg", "格式", ("JPEG", "PNG", "HEIC")), ("slider", "质量", "85 %", 85),
                                                   ("value", "尺寸", "原始 · 4032 × 3024"), ("value", "预估体积", "约 9.6 MB")],
                   "ok": "保存到相册", "alt": "分享", "note": "导出要几秒到几分钟；离开 app 也会继续，系统会显示进度"},
-        "sample": ("调整曝光", "Photo 4032 × 3024", "曝光 +12"),
+        "sample": ("调整曝光", "4032 × 3024", "曝光 +12"),
         "type": {"amount": "9.6 MB → 3.2 MB", "timecode": "01:24 / 03:10"},
     },
     "chat": {
@@ -553,7 +559,8 @@ SCREENS = {
         "model": "标准模型", "credits": 128,
         "prompt": "黄昏时的海边小镇，白色房子沿着山坡排开，窗户透出暖黄的灯光，胶片质感",
         "samples": [("dusk", "黄昏的海边小镇"), ("flowers", "雨后的花园，微距"), ("night", "霓虹灯下的街角"), ("sea", "夏天的海，俯拍")],
-        "shell": {"features": ["每月 500 点，约 500 张图", "4K 放大和去背景", "高峰时优先排队", "生成的图可以商用"]},
+        "shell": {"pitch": "每月 500 点，放大和去背景",
+                  "features": ["每月 500 点，约 500 张图", "4K 放大和去背景", "高峰时优先排队", "生成的图可以商用"]},
         "sheet": {"title": "选择模型", "rows": [("radio", "标准", "1 点 / 张 · 约 15 秒", True), ("radio", "精细", "2 点 / 张 · 约 40 秒", False),
                                               ("radio", "快速", "0.5 点 / 张 · 约 5 秒", False)],
                   "ok": "", "note": "点数余额 128 · 每月 1 日加 500 点"},
@@ -901,9 +908,9 @@ def settings_ios(scr, mode, app, caption=""):
                 f'<span class="t-row-meta t2">{value}</span>{ic("chev-right", 16, "t3") if chev else ""}</div>')
     body = (group("通用", [row(k, v) for k, v in scr["shell"]["general"]])
             + group("外观", [f'<div class="sr">{segmented(("跟随系统", "浅色", "深色"), 0, "full")}</div>'])
-            + group("语言", [row("语言", "简体中文")], "在系统设置里可以只给这个 app 换语言")
+            + group("语言", [row("语言", "简体中文")])
             + group("会员", [row("管理订阅", "年付"), row("恢复购买", "", False, True)])
-            + group("支持", [row(f"给 {app} 评分"), row("发送反馈", "带上版本和设备")])
+            + group("支持", [row("给我们评分"), row("发送反馈", "邮件"), row("帮助")])
             + group("关于", [row(f"关于 {app}", '<span class="num">2.3.0</span>'), row("更多 Rian Studio 的 app")],
                     "A Rian Studio app"))
     inner = f'''<div class="pc set">{body}</div>
@@ -912,24 +919,34 @@ def settings_ios(scr, mode, app, caption=""):
 
 
 PLANS = [("年付", "¥98 / 年", "约 ¥8.17 / 月 · 7 天免费试用"), ("月付", "¥18 / 月", ""), ("终身", "¥198", "一次买断")]
-CREDIT_PLANS = [("年付", "¥98 / 年", "每月 500 点 · 7 天免费试用"), ("月付", "¥18 / 月", "每月 500 点"), ("点数包", "¥12", "100 点 · 不过期")]
+# the credits paywall: subscriptions and credit packs in one component, two groups
+CREDIT_PLANS = [("订阅", [("年付", "¥98 / 年", "每月 500 点 · 7 天免费试用"), ("月付", "¥18 / 月", "每月 500 点")]),
+                ("点数包", [("100 点", "¥12", "不过期")])]
 
 
 def paywall_ios(scr, mode, icon, app, caption="", credits=False):
-    """one paywall: yearly, monthly, lifetime or credits, a trial; restore purchases, terms and privacy, the price and
-    auto-renewal in words (App Store 3.1.2); StoreKit 2 on iOS"""
-    feats = "".join(f'<div class="feat">{ic("check", 18)}<span class="t-row-title">{f}</span></div>' for f in scr["shell"]["features"])
-    plans = "".join(f'<div class="plan{" on" if i == 0 else ""}">{radio(i == 0)}<span class="pt"><b class="t-row-title">{n}</b>'
-                    + (f'<span class="t-row-meta">{m}</span>' if m else "") + f'</span><b class="t-amount num">{p}</b></div>'
-                    for i, (n, p, m) in enumerate(CREDIT_PLANS if credits else PLANS))
-    low = (f'<div class="low t-row-meta">{ic("coins", 16)}<span>剩余 <b class="num">3</b> 点，这次生成要 <b class="num">4</b> 点</span></div>'
+    """one paywall for every app, the same layout and wording, only the benefits change: yearly, monthly, lifetime or
+    credits, a trial; restore purchases, terms and privacy, the price and auto-renewal in words (App Store 3.1.2);
+    StoreKit 2 on iOS"""
+    feats = "".join(f'<div class="feat">{ic("check", 18)}<span class="t-row-title">{f}</span></div>'
+                    for f in scr["shell"]["features"][:3 if credits else 4])
+
+    def plan(i, n, p, m):
+        return (f'<div class="plan{" on" if i == 0 else ""}">{radio(i == 0)}<span class="pt"><b class="t-row-title">{n}</b>'
+                + (f'<span class="t-row-meta">{m}</span>' if m else "") + f'</span><b class="t-amount num">{p}</b></div>')
+    if credits:
+        plans = "".join(f'<div class="plan-h t-section-header">{head}</div>' + "".join(plan(g + i, *r) for i, r in enumerate(group))
+                        for g, (head, group) in enumerate(CREDIT_PLANS))
+    else:
+        plans = "".join(plan(i, *r) for i, r in enumerate(PLANS))
+    low = (f'<div class="low t-row-meta">{ic("coins", 16)}<span>点数不够这次生成（还差 <b class="num">1</b> 点）</span></div>'
            if credits else "")
-    inner = f'''<div class="pw">
-    {slices(300, 150, f'<span class="art-icon">{icon(64, mode)}</span>')}
-    <div class="pw-title t-title-1">{app} 会员</div><div class="pw-sub t-row-meta">解锁全部功能，随时可以取消</div>
+    inner = f'''<div class="pw{" credits" if credits else ""}">
+    {slices(300, 110 if credits else 150, f'<span class="art-icon">{icon(64, mode)}</span>')}
+    <div class="pw-title t-title-1">{scr["shell"]["pitch"]}</div><div class="pw-sub t-row-meta">{app} 会员 · 随时可以取消</div>
     {low}<div class="feats">{feats}</div>
     <div class="plans">{plans}</div>
-    {pbtn("开始 7 天免费试用")}
+    {pbtn("免费试用 7 天")}
     <p class="fine t-row-meta">试用结束后按 <span class="num">¥98</span> / 年自动续费。到期前至少 24 小时在 设置 › Apple 账户 › 订阅 里取消，就不会续费。</p>
     <div class="links t-row-meta"><span>恢复购买</span><i></i><span>使用条款</span><i></i><span>隐私政策</span></div>
   </div>
@@ -1447,8 +1464,10 @@ def media_strip(t):
     chips += (f'<div class="msw"><i class="guide"><span class="sel-demo"></span></i><b>media-guide · media-selected</b>'
               f'<span>{alpha_label(C["media-guide"])} · 深 {C["media-selected"]} / 浅 {t["color"]["light"]["media-selected"]}</span></div>')
     play = contrast(C["primary"], C["media-dark"])
-    chips += (f'<div class="msw"><i style="background:{C["media-dark"]}"><span class="playhead"></span></i><b>播放头 · 滑块填充</b>'
-              f'<span>primary 在 media-dark 上 {play:.1f}:1</span></div>')
+    scrub = contrast(C["on-media"], over(C["media-track"], over(C["viewer-scrim"], "#FFFFFF")))
+    chips += (f'<div class="msw"><i style="background:{C["media-dark"]}"><span class="playhead"></span>'
+              f'<span class="scrub"><b></b></span></i><b>播放头 · 拖动条</b>'
+              f'<span>primary 对 media-dark {play:.1f}:1；白段对 media-track（亮图上）{scrub:.1f}:1</span></div>')
     g, h = t["motion"]["gesture"], t["haptic"]
     note = (f'触感：选中 {h["selection"]["ios"]} / {h["selection"]["android"]} · 吸附 {h["snap"]["ios"]} / {h["snap"]["android"]} · '
             f'完成 {h["success"]["ios"]} / {h["success"]["android"]} · 失败 {h["failure"]["ios"]} / {h["failure"]["android"]}。'
@@ -1794,13 +1813,13 @@ mark { background: var(--c-selection); color: inherit; padding: 1px 2px; border-
 .pbtn.second { background: var(--c-surface-2); border: 1px solid var(--c-border); color: var(--c-text); }
 .pbtn.plain { color: var(--c-primary-text); font-weight: 510; }
 .pbtn.sm { height: 36px; padding: 0 14px; font: var(--t-row-title); border-radius: 18px; }
-.segc { height: 32px; padding: 2px; border-radius: 9px; background: var(--c-surface-3); display: inline-flex; flex: none; }
+.segc { height: 32px; padding: 2px; border-radius: var(--r-md); background: var(--c-surface-3); display: inline-flex; flex: none; }
 .segc.full { flex: 1; }
-.seg { flex: 1; min-width: 44px; padding: 0 10px; display: grid; place-items: center; border-radius: 7px; font: var(--t-row-meta);
+.seg { flex: 1; min-width: 44px; padding: 0 10px; display: grid; place-items: center; border-radius: var(--r-sm); font: var(--t-row-meta);
   font-weight: 510; color: var(--c-text-2); white-space: nowrap; }
 .seg.on { background: var(--c-elevated); color: var(--c-text); box-shadow: 0 0 0 .5px rgba(0,0,0,.06), 0 2px 6px rgba(0,0,0,.12); }
 [data-theme="dark"] .seg.on { background: var(--c-menu-active); box-shadow: none; }
-.stp { height: 32px; border-radius: 9px; background: var(--c-surface-3); display: inline-flex; align-items: center; flex: none; }
+.stp { height: 32px; border-radius: var(--r-md); background: var(--c-surface-3); display: inline-flex; align-items: center; flex: none; }
 .stp b { width: 40px; display: grid; place-items: center; font: 400 20px/1 var(--font); color: var(--c-text); }
 .stp i { width: 1px; height: 18px; background: var(--c-border-strong); opacity: .5; }
 .stp-row { width: 100%; display: flex; align-items: center; justify-content: space-between; }
@@ -1850,6 +1869,9 @@ mark { background: var(--c-selection); color: inherit; padding: 1px 2px; border-
 .feat { display: flex; align-items: center; gap: 10px; }
 .feat .ic { color: var(--c-primary-text); }
 .plans { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.plan-h { color: var(--c-text-3); margin: 2px 0 -2px 4px; }
+.pw.credits .feats { margin: 12px 0 12px 12px; }
+.pw.credits .plans { margin-bottom: 12px; }
 .plan { height: 60px; padding: 0 16px; border-radius: var(--r-lg); border: 1px solid var(--c-border); background: var(--c-surface);
   display: flex; align-items: center; gap: 12px; }
 .plan.on { border: 2px solid var(--c-primary-text); padding: 0 15px; }
@@ -1871,8 +1893,8 @@ mark { background: var(--c-selection); color: inherit; padding: 1px 2px; border-
 .onb-skip { align-self: flex-end; height: 48px; padding: 0 12px; display: grid; place-items: center; color: var(--c-text-2); margin-right: -12px; }
 .onb.perm { padding-top: 56px; }
 .dots { display: flex; gap: 8px; justify-content: center; margin: 24px 0 20px; }
-.dots i { width: 8px; height: 8px; border-radius: 4px; background: var(--c-border-strong); opacity: .5; }
-.dots i.on { width: 20px; background: var(--c-text); opacity: 1; }
+.dots i { width: 8px; height: 8px; border-radius: 4px; background: var(--c-text-placeholder); }
+.dots i.on { width: 20px; background: var(--c-text); }
 .onb-t { color: var(--c-text); text-align: center; }
 .perm .onb-t { margin-top: 28px; }
 .onb-b { margin-top: 12px; color: var(--c-text-2); text-align: center; }
@@ -1922,7 +1944,7 @@ mark { background: var(--c-selection); color: inherit; padding: 1px 2px; border-
   border-radius: var(--r-xl) var(--r-xl) 0 0; display: flex; flex-direction: column; }
 .xs-h { display: flex; align-items: center; gap: 8px; }
 .qlist { margin-top: 8px; }
-.qrow { height: 36px; display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--c-border); }
+.qrow { height: var(--row-h-mobile-single); display: flex; align-items: center; gap: 10px; border-top: 1px solid var(--c-border); }
 .qrow .t-row-meta { color: var(--c-text-2); }
 .qrow .ip { color: var(--c-in-progress); }
 .xs-note { display: flex; gap: 8px; align-items: center; color: var(--c-text-3); margin: 6px 0 12px; }
@@ -1984,7 +2006,8 @@ mark { background: var(--c-selection); color: inherit; padding: 1px 2px; border-
 
 /* chat and generation */
 .pc.chat, .pc.gen { padding: 108px 16px 0; display: flex; flex-direction: column; }
-.bub { align-self: flex-end; max-width: 286px; margin-top: 14px; padding: 8px 14px; border-radius: 20px; background: var(--c-surface-2); color: var(--c-text); }
+.bub { align-self: flex-end; max-width: 286px; margin-top: 14px; padding: 8px 14px; border-radius: var(--r-xl); background: var(--c-surface-2);
+  color: var(--c-text); }
 .bub.img { padding: 0; background: none; }
 .att { width: 96px; height: 128px; border-radius: var(--r-lg); }
 .reply { margin-top: 14px; color: var(--c-text); }
@@ -1996,7 +2019,7 @@ mark { background: var(--c-selection); color: inherit; padding: 1px 2px; border-
 .credit { gap: 6px; padding: 0 14px 0 12px; }
 .credit .ic { color: var(--c-text-2); }
 .composer { position: absolute; left: 12px; right: 12px; bottom: 30px; z-index: 3; min-height: var(--prompt-min-h); padding: 4px 4px 4px 2px;
-  border-radius: 24px; display: flex; align-items: flex-end; gap: 2px; }
+  border-radius: calc(var(--prompt-min-h) / 2); display: flex; align-items: flex-end; gap: 2px; }
 .cbtn { width: 40px; height: 40px; display: grid; place-items: center; flex: none; color: var(--c-text-2); }
 .composer .cfield { flex: 1; min-width: 0; margin: 8px 4px; line-height: 24px; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;
   color: var(--c-text); }
@@ -2091,7 +2114,9 @@ mark { background: var(--c-selection); color: inherit; padding: 1px 2px; border-
 .msw > i.guide { background: linear-gradient(90deg, transparent 33%, var(--c-media-guide) 33% calc(33% + 1px), transparent 0 66%,
   var(--c-media-guide) 66% calc(66% + 1px), transparent 0), var(--c-media-mid); }
 .sel-demo { position: absolute; inset: 0; box-shadow: inset 0 0 0 var(--select-outline) var(--c-media-selected); border-radius: 8px; }
-.playhead { position: absolute; left: 50%; top: 8px; bottom: 8px; width: var(--playhead-w); background: var(--c-primary); }
+.playhead { position: absolute; left: 50%; top: 8px; bottom: 22px; width: var(--playhead-w); background: var(--c-primary); }
+.scrub { position: absolute; left: 10px; right: 10px; bottom: 9px; height: var(--slider-track-h); border-radius: 2px; background: var(--c-media-track); }
+.scrub b { display: block; width: 62%; height: 100%; border-radius: 2px; background: var(--c-on-media); }
 .playhead::before { content: ""; position: absolute; left: 50%; top: -2px; width: var(--playhead-knob); height: var(--playhead-knob);
   margin-left: calc(var(--playhead-knob) / -2); border-radius: 50%; background: var(--c-primary); }
 .msw b { font: 510 11px/14px var(--font); color: #1B1C1D; }
@@ -2295,16 +2320,22 @@ SIZES = """() => { const out = {}; const add = (sel, what) => { const el = docum
   add('.ps .pbtn', 'phone button'); add('.ps .segc', 'segmented'); add('.ps .stp', 'stepper'); add('.ps .sw2', 'switch');
   add('.ps .sl-thumb', 'slider thumb'); add('.ps .cm', 'context menu item'); add('.board .plan', 'paywall plan');
   add('.board .tool', 'tool item'); add('.board .tray', 'tool tray'); add('.board .hd', 'crop handle'); add('.board .chk', 'select check');
-  add('.board .composer', 'prompt field'); add('.board .send', 'send button'); add('.board .act', 'reply action');
+  const pf = document.querySelector('.board .composer'); if (pf) out['prompt field min-height'] = getComputedStyle(pf).minHeight;
+  add('.board .send', 'send button'); add('.board .act', 'reply action');
   add('.win .r', 'desktop row'); add('.win .si', 'sidebar item'); add('.win .ci', 'command item'); add('.win .kbd', 'kbd');
   return out; }"""
-# each phone on the sheet: its label, whether it is a conversion screen, and the boxes of its photos, canvases and
-# generated images (left out of the accent area); data-idx lets Python take its screenshot
-PHONES = """() => [...document.querySelectorAll('.board [data-label]')].map((s, i) => { const R = s.getBoundingClientRect();
-  s.dataset.idx = i;
-  return {label: s.dataset.label, conversion: s.hasAttribute('data-conversion'),
-    photos: [...s.querySelectorAll('[data-photo]')].map(p => { const r = p.getBoundingClientRect();
-      return [r.left - R.left, r.top - R.top, r.right - R.left, r.bottom - R.top]; })}; })"""
+# each phone on the sheet: its label and whether it is a conversion screen; data-idx lets Python take its screenshot
+PHONES = """() => [...document.querySelectorAll('.board [data-label]')].map((s, i) => { s.dataset.idx = i;
+  return {label: s.dataset.label, conversion: s.hasAttribute('data-conversion')}; })"""
+# the accent area is measured with photos, canvases and generated images hidden: what shows through is the neutral page
+# or canvas, and the checks and outlines drawn over the photos still count
+HIDE_PHOTOS = "[data-photo] { visibility: hidden !important; }"
+# full-screen pages and sheets whose content must end above the home indicator (iOS) or the gesture bar (Android):
+# the last child's bottom against the container's bottom padding
+SAFE = """() => [...document.querySelectorAll('.board [data-label]')].flatMap(s =>
+  [...s.querySelectorAll('.pw, .onb, .xsheet, .bsheet')].map(el => { const r = el.getBoundingClientRect();
+    const end = Math.max(...[...el.children].map(c => c.getBoundingClientRect().bottom));
+    return [s.dataset.label, Math.round(end - (r.bottom - parseFloat(getComputedStyle(el).paddingBottom)))]; }))"""
 # scrolled screens: the iPhone content moves up until a section header sits under the nav bar, with rows still
 # under the tab bar; the Android content until the filter chips meet the TopAppBar; the photo grid to the top edge
 SCROLL = """() => document.querySelectorAll('[data-scroll]').forEach(c => {
@@ -2365,17 +2396,12 @@ def frost_check(back, items, scale):
     return worst
 
 
-def accent_area(img, hue, holes=(), scale=1):
-    """the share of the image in the primary's hue: strong (chroma >= 20) and incl. the faint selected tint (>= 4);
-    holes (photos, canvases, generated images) never count"""
+def accent_area(img, hue):
+    """the share of the image in the primary's hue: strong (chroma >= 20) and incl. the faint selected tint (>= 4)"""
     import numpy as np
     chroma, h = lch_arrays(img)
     near = np.abs((h - hue + 180) % 360 - 180) <= HUE_BAND
-    keep = np.ones(chroma.shape, bool)
-    for x0, y0, x1, y1 in holes:
-        keep[max(0, int(y0 * scale)):max(0, int(y1 * scale)), max(0, int(x0 * scale)):max(0, int(x1 * scale))] = False
-    return (float((near & keep & (chroma >= STRONG_CHROMA)).mean() * 100), float((near & keep & (chroma >= FAINT_CHROMA)).mean() * 100),
-            float((near & (chroma >= STRONG_CHROMA)).mean() * 100))
+    return float((near & (chroma >= STRONG_CHROMA)).mean() * 100), float((near & (chroma >= FAINT_CHROMA)).mean() * 100)
 
 
 def main():
@@ -2420,8 +2446,12 @@ def main():
         pg.wait_for_timeout(300)
         pg.locator(".board").screenshot(path=out)
         sizes = pg.evaluate(SIZES)
+        safe = pg.evaluate(SAFE)
         phones = pg.evaluate(PHONES)
+        full = [png_array(pg.locator(f'.board [data-idx="{i}"]').screenshot()) for i in range(len(phones))]
+        hidden = pg.add_style_tag(content=HIDE_PHOTOS)
         shots = [png_array(pg.locator(f'.board [data-idx="{i}"]').screenshot()) for i in range(len(phones))]
+        hidden.evaluate("e => e.remove()")
         items = {k: pg.evaluate(BAR_ITEMS, sel) for k, sel in glass.items()}
         pg.add_style_tag(content=HIDE_BAR)  # the glass or the scrim alone, behind where the bar text was
         backs = {k: png_array(pg.locator(sel).screenshot()) for k, sel in glass.items()}
@@ -2443,7 +2473,8 @@ def main():
         fails += not ok
         print(f"{k}: lowest contrast {c:.1f}:1 ({text}; {what}); target >= {need:g}  {'PASS' if ok else 'FAIL'}")
     hue = hex_to_lch(t["color"]["dark"]["primary"])[2]
-    area = [(ph_["label"], ph_["conversion"]) + accent_area(img, hue, ph_["photos"], a.scale) for ph_, img in zip(phones, shots)]
+    area = [(ph_["label"], ph_["conversion"]) + accent_area(img, hue) + accent_area(whole, hue)[:1]
+            for ph_, img, whole in zip(phones, shots, full)]
     for conv, limit, name in ((False, PHONE_MAX, "phone"), (True, CONVERSION_MAX, "conversion")):
         group = [r for r in area if r[1] == conv]
         if not group:
@@ -2452,13 +2483,17 @@ def main():
         ok = worst[2] <= limit
         fails += not ok
         print(f"accent area {name}: {worst[2]:.1f}% ({worst[0]}, the highest of " + ", ".join(f"{r[0]} {r[2]:.1f}%" for r in group)
-              + f"; photos, canvases and generated images left out); target <= {limit:g}%  {'PASS' if ok else 'FAIL'}")
+              + f"; photos, canvases and generated images hidden); target <= {limit:g}%  {'PASS' if ok else 'FAIL'}")
         print("  INFO incl. the selected tint: " + ", ".join(f"{r[0]} {r[3]:.1f}%" for r in group))
         media = [r for r in group if r[4] - r[2] >= 0.5]
         if media:
             print("  INFO with the photos counted: " + ", ".join(f"{r[0]} {r[4]:.1f}%" for r in media))
+    pushed = [f"{label} +{px} px" for label, px in safe if px > 0]
+    fails += bool(pushed)
+    print(f"safe area: {len(safe)} pages and sheets, " + (", ".join(pushed) + " into the home indicator or gesture bar  FAIL"
+                                                          if pushed else "all end above the home indicator or gesture bar  PASS"))
     if a.desktop:
-        strong, faint, _ = accent_area(desk, hue)
+        strong, faint = accent_area(desk, hue)
         ok = strong <= DESK_MAX
         fails += not ok
         print(f"accent area desktop: {strong:.1f}% of the window in the primary hue (command menu hidden); "
