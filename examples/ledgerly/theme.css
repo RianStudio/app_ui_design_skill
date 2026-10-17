@@ -36,6 +36,26 @@
   --view-header-h: 44px;
   --filter-bar-h: 36px;
   --kbd-h: 18px;
+  /* media and AI components: tool tray, sliders, crop handles, video timeline, thumbnail grid and its selection,
+     checkerboard squares, viewer scrim; the prompt field grows from its minimum height to max-lines, then scrolls */
+  --tool-tray-h: 64px;
+  --tool-item-w: 64px;
+  --slider-track-h: 4px;
+  --slider-thumb: 24px;
+  --slider-tick-h: 8px;
+  --crop-handle: 20px;
+  --crop-stroke: 3px;
+  --playhead-w: 2px;
+  --playhead-knob: 10px;
+  --timeline-h: 48px;
+  --trim-handle-w: 14px;
+  --thumb-gap: 2px;
+  --select-outline: 3px;
+  --select-check: 22px;
+  --checker-size: 8px;
+  --viewer-scrim-h: 140px;
+  --prompt-min-h: 48px;
+  --prompt-max-lines: 6;
   --font: InterVariable, Inter, 'PingFang SC', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
   /* desktop and web text: --td-* is a font shorthand, --tr-td-* its tracking (the .td-* classes add opsz and features) */
@@ -74,6 +94,8 @@
   --tr-tag-label: 0.0005em;
   --t-amount: 510 15px/20px var(--font);
   --tr-amount: -0.0088em;
+  --t-timecode: 510 13px/18px var(--font);
+  --tr-timecode: -0.0032em;
   /* old phone text names, kept for one version: same size and line height as before, in Inter */
   --t-large-title: var(--t-page-title);
   --tr-large-title: var(--tr-page-title);
@@ -103,9 +125,11 @@
   --m-fast: 100ms;
   --m-standard: 180ms;
   --m-slow: 250ms;
+  --m-zoom: 300ms;
   --m-fast-exit: 67ms;
   --m-standard-exit: 120ms;
   --m-slow-exit: 167ms;
+  --m-zoom-exit: 200ms;
   --ease-enter: cubic-bezier(0.2, 0, 0, 1);
   --ease-exit: cubic-bezier(0.3, 0, 1, 1);
   --icon-sm: 16px;
@@ -114,6 +138,25 @@
   --icon-stroke: 1.5;
   --frost-blur: 24px;
   --frost-saturate: 1.5;
+  /* the viewer scrim, from the screen edge inward: white controls of the photo and video viewer sit on it */
+  --viewer-scrim-top: linear-gradient(to bottom, rgba(0, 0, 0, 0.64) 0%, rgba(0, 0, 0, 0.56) 70%, rgba(0, 0, 0, 0) 100%);
+  --viewer-scrim-bottom: linear-gradient(to top, rgba(0, 0, 0, 0.64) 0%, rgba(0, 0, 0, 0.56) 70%, rgba(0, 0, 0, 0) 100%);
+  --checker-image: repeating-conic-gradient(var(--c-checker-a) 0 25%, var(--c-checker-b) 0 50%);
+  /* gestures, for your scripts: zoom range from fit, pan momentum per ms, rubber band, viewer dismissal
+     (share of the height, pt/s), slider and dial detent (share of the range) */
+  --gesture-zoom-double-tap: 2.5;
+  --gesture-zoom-max: 8;
+  --gesture-deceleration: 0.998;
+  --gesture-rubber-band: 0.55;
+  --gesture-dismiss-distance: 0.25;
+  --gesture-dismiss-velocity: 800;
+  --gesture-detent: 0.02;
+  /* haptics: navigator.vibrate patterns in ms (Android browsers; iOS Safari has no vibration), e.g.
+     navigator.vibrate?.(getComputedStyle(document.documentElement).getPropertyValue('--haptic-snap').split(',').map(Number)) */
+  --haptic-selection: 10;
+  --haptic-snap: 16;
+  --haptic-success: 12, 80, 24;
+  --haptic-failure: 32, 60, 32;
   /* old names, kept for one version: --m-spring bounced and is now the standard entry; --icon-xl (28) is lg (24).
      --control-h-sm / md / lg changed meaning (desktop 24 / 28 / 32): see rules.md, upgrading */
   --m-spring: var(--m-standard) var(--ease-enter);
@@ -156,6 +199,7 @@
   --c-info: #0064CD;
   --c-info-container: #EBF2FD;
   --c-on-info: #FFFFFF;
+  --c-in-progress: #0064CD;
   --c-hover: rgba(0, 0, 0, 0.04);
   --c-pressed: rgba(0, 0, 0, 0.07);
   --c-disabled-fg: #828486;
@@ -168,6 +212,17 @@
   --c-inverse-surface: #26282A;
   --c-on-inverse: #F2F4F7;
   --c-inverse-primary: #34AF76;
+  --c-media-black: #000000;
+  --c-media-dark: #2C2C2C;
+  --c-media-mid: #777777;
+  --c-media-white: #FFFFFF;
+  --c-checker-a: #F3F3F3;
+  --c-checker-b: #D7D7D7;
+  --c-on-media: #FFFFFF;
+  --c-viewer-scrim: rgba(0, 0, 0, 0.56);
+  --c-media-edge: rgba(0, 0, 0, 0.32);
+  --c-media-guide: rgba(255, 255, 255, 0.5);
+  --c-media-selected: #00764A;
   --c-canvas-rgb: 246 248 250;
   --c-bg-rgb: 255 255 255;
   --c-surface-rgb: 255 255 255;
@@ -202,11 +257,20 @@
   --c-info-rgb: 0 100 205;
   --c-info-container-rgb: 235 242 253;
   --c-on-info-rgb: 255 255 255;
+  --c-in-progress-rgb: 0 100 205;
   --c-disabled-fg-rgb: 130 132 134;
   --c-disabled-bg-rgb: 236 238 240;
   --c-inverse-surface-rgb: 38 40 42;
   --c-on-inverse-rgb: 242 244 247;
   --c-inverse-primary-rgb: 52 175 118;
+  --c-media-black-rgb: 0 0 0;
+  --c-media-dark-rgb: 44 44 44;
+  --c-media-mid-rgb: 119 119 119;
+  --c-media-white-rgb: 255 255 255;
+  --c-checker-a-rgb: 243 243 243;
+  --c-checker-b-rgb: 215 215 215;
+  --c-on-media-rgb: 255 255 255;
+  --c-media-selected-rgb: 0 118 74;
   --elev-0: none;
   --elev-2: 0px 4px 12px rgba(0, 0, 0, 0.06), 0px 8px 24px rgba(0, 0, 0, 0.1);
   --elev-3: 0px 8px 16px rgba(0, 0, 0, 0.06), 0px 24px 64px rgba(0, 0, 0, 0.12);
@@ -254,6 +318,7 @@
     --c-info: #6E97FF;
     --c-info-container: #202B3D;
     --c-on-info: #16181A;
+    --c-in-progress: #6E97FF;
     --c-hover: rgba(255, 255, 255, 0.04);
     --c-pressed: rgba(255, 255, 255, 0.07);
     --c-disabled-fg: #7A7C7F;
@@ -266,6 +331,17 @@
     --c-inverse-surface: #ECEEF0;
     --c-on-inverse: #1B1C1D;
     --c-inverse-primary: #00764A;
+    --c-media-black: #000000;
+    --c-media-dark: #2C2C2C;
+    --c-media-mid: #777777;
+    --c-media-white: #FFFFFF;
+    --c-checker-a: #F3F3F3;
+    --c-checker-b: #D7D7D7;
+    --c-on-media: #FFFFFF;
+    --c-viewer-scrim: rgba(0, 0, 0, 0.56);
+    --c-media-edge: rgba(0, 0, 0, 0.32);
+    --c-media-guide: rgba(255, 255, 255, 0.5);
+    --c-media-selected: #34AF76;
     --c-canvas-rgb: 17 18 21;
     --c-bg-rgb: 22 24 26;
     --c-surface-rgb: 27 29 31;
@@ -300,11 +376,20 @@
     --c-info-rgb: 110 151 255;
     --c-info-container-rgb: 32 43 61;
     --c-on-info-rgb: 22 24 26;
+    --c-in-progress-rgb: 110 151 255;
     --c-disabled-fg-rgb: 122 124 127;
     --c-disabled-bg-rgb: 38 40 42;
     --c-inverse-surface-rgb: 236 238 240;
     --c-on-inverse-rgb: 27 28 29;
     --c-inverse-primary-rgb: 0 118 74;
+    --c-media-black-rgb: 0 0 0;
+    --c-media-dark-rgb: 44 44 44;
+    --c-media-mid-rgb: 119 119 119;
+    --c-media-white-rgb: 255 255 255;
+    --c-checker-a-rgb: 243 243 243;
+    --c-checker-b-rgb: 215 215 215;
+    --c-on-media-rgb: 255 255 255;
+    --c-media-selected-rgb: 52 175 118;
     --elev-0: none;
     --elev-2: 0px 8px 24px rgba(0, 0, 0, 0.5);
     --elev-3: 0px 16px 48px rgba(0, 0, 0, 0.6);
@@ -352,6 +437,7 @@
   --c-info: #6E97FF;
   --c-info-container: #202B3D;
   --c-on-info: #16181A;
+  --c-in-progress: #6E97FF;
   --c-hover: rgba(255, 255, 255, 0.04);
   --c-pressed: rgba(255, 255, 255, 0.07);
   --c-disabled-fg: #7A7C7F;
@@ -364,6 +450,17 @@
   --c-inverse-surface: #ECEEF0;
   --c-on-inverse: #1B1C1D;
   --c-inverse-primary: #00764A;
+  --c-media-black: #000000;
+  --c-media-dark: #2C2C2C;
+  --c-media-mid: #777777;
+  --c-media-white: #FFFFFF;
+  --c-checker-a: #F3F3F3;
+  --c-checker-b: #D7D7D7;
+  --c-on-media: #FFFFFF;
+  --c-viewer-scrim: rgba(0, 0, 0, 0.56);
+  --c-media-edge: rgba(0, 0, 0, 0.32);
+  --c-media-guide: rgba(255, 255, 255, 0.5);
+  --c-media-selected: #34AF76;
   --c-canvas-rgb: 17 18 21;
   --c-bg-rgb: 22 24 26;
   --c-surface-rgb: 27 29 31;
@@ -398,11 +495,20 @@
   --c-info-rgb: 110 151 255;
   --c-info-container-rgb: 32 43 61;
   --c-on-info-rgb: 22 24 26;
+  --c-in-progress-rgb: 110 151 255;
   --c-disabled-fg-rgb: 122 124 127;
   --c-disabled-bg-rgb: 38 40 42;
   --c-inverse-surface-rgb: 236 238 240;
   --c-on-inverse-rgb: 27 28 29;
   --c-inverse-primary-rgb: 0 118 74;
+  --c-media-black-rgb: 0 0 0;
+  --c-media-dark-rgb: 44 44 44;
+  --c-media-mid-rgb: 119 119 119;
+  --c-media-white-rgb: 255 255 255;
+  --c-checker-a-rgb: 243 243 243;
+  --c-checker-b-rgb: 215 215 215;
+  --c-on-media-rgb: 255 255 255;
+  --c-media-selected-rgb: 52 175 118;
   --elev-0: none;
   --elev-2: 0px 8px 24px rgba(0, 0, 0, 0.5);
   --elev-3: 0px 16px 48px rgba(0, 0, 0, 0.6);
@@ -453,6 +559,7 @@
     --c-info: #004CA0;
     --c-info-container: #EBF2FD;
     --c-on-info: #FFFFFF;
+    --c-in-progress: #004CA0;
     --c-hover: rgba(0, 0, 0, 0.04);
     --c-pressed: rgba(0, 0, 0, 0.07);
     --c-disabled-fg: #646667;
@@ -465,6 +572,17 @@
     --c-inverse-surface: #26282A;
     --c-on-inverse: #FFFFFF;
     --c-inverse-primary: #5FD599;
+    --c-media-black: #000000;
+    --c-media-dark: #2C2C2C;
+    --c-media-mid: #777777;
+    --c-media-white: #FFFFFF;
+    --c-checker-a: #F3F3F3;
+    --c-checker-b: #D7D7D7;
+    --c-on-media: #FFFFFF;
+    --c-viewer-scrim: rgba(0, 0, 0, 0.56);
+    --c-media-edge: rgba(0, 0, 0, 0.32);
+    --c-media-guide: rgba(255, 255, 255, 0.5);
+    --c-media-selected: #005B38;
     --c-canvas-rgb: 246 248 250;
     --c-bg-rgb: 255 255 255;
     --c-surface-rgb: 255 255 255;
@@ -499,11 +617,20 @@
     --c-info-rgb: 0 76 160;
     --c-info-container-rgb: 235 242 253;
     --c-on-info-rgb: 255 255 255;
+    --c-in-progress-rgb: 0 76 160;
     --c-disabled-fg-rgb: 100 102 103;
     --c-disabled-bg-rgb: 236 238 240;
     --c-inverse-surface-rgb: 38 40 42;
     --c-on-inverse-rgb: 255 255 255;
     --c-inverse-primary-rgb: 95 213 153;
+    --c-media-black-rgb: 0 0 0;
+    --c-media-dark-rgb: 44 44 44;
+    --c-media-mid-rgb: 119 119 119;
+    --c-media-white-rgb: 255 255 255;
+    --c-checker-a-rgb: 243 243 243;
+    --c-checker-b-rgb: 215 215 215;
+    --c-on-media-rgb: 255 255 255;
+    --c-media-selected-rgb: 0 91 56;
     --elev-0: none;
     --elev-2: 0px 4px 12px rgba(0, 0, 0, 0.06), 0px 8px 24px rgba(0, 0, 0, 0.1);
     --elev-3: 0px 8px 16px rgba(0, 0, 0, 0.06), 0px 24px 64px rgba(0, 0, 0, 0.12);
@@ -552,6 +679,7 @@
     --c-info: #ADBDFF;
     --c-info-container: #202B3D;
     --c-on-info: #16181A;
+    --c-in-progress: #ADBDFF;
     --c-hover: rgba(255, 255, 255, 0.04);
     --c-pressed: rgba(255, 255, 255, 0.07);
     --c-disabled-fg: #999B9E;
@@ -564,6 +692,17 @@
     --c-inverse-surface: #ECEEF0;
     --c-on-inverse: #121315;
     --c-inverse-primary: #005B38;
+    --c-media-black: #000000;
+    --c-media-dark: #2C2C2C;
+    --c-media-mid: #777777;
+    --c-media-white: #FFFFFF;
+    --c-checker-a: #F3F3F3;
+    --c-checker-b: #D7D7D7;
+    --c-on-media: #FFFFFF;
+    --c-viewer-scrim: rgba(0, 0, 0, 0.56);
+    --c-media-edge: rgba(0, 0, 0, 0.32);
+    --c-media-guide: rgba(255, 255, 255, 0.5);
+    --c-media-selected: #5FD599;
     --c-canvas-rgb: 17 18 21;
     --c-bg-rgb: 22 24 26;
     --c-surface-rgb: 27 29 31;
@@ -598,11 +737,20 @@
     --c-info-rgb: 173 189 255;
     --c-info-container-rgb: 32 43 61;
     --c-on-info-rgb: 22 24 26;
+    --c-in-progress-rgb: 173 189 255;
     --c-disabled-fg-rgb: 153 155 158;
     --c-disabled-bg-rgb: 38 40 42;
     --c-inverse-surface-rgb: 236 238 240;
     --c-on-inverse-rgb: 18 19 21;
     --c-inverse-primary-rgb: 0 91 56;
+    --c-media-black-rgb: 0 0 0;
+    --c-media-dark-rgb: 44 44 44;
+    --c-media-mid-rgb: 119 119 119;
+    --c-media-white-rgb: 255 255 255;
+    --c-checker-a-rgb: 243 243 243;
+    --c-checker-b-rgb: 215 215 215;
+    --c-on-media-rgb: 255 255 255;
+    --c-media-selected-rgb: 95 213 153;
     --elev-0: none;
     --elev-2: 0px 8px 24px rgba(0, 0, 0, 0.5);
     --elev-3: 0px 16px 48px rgba(0, 0, 0, 0.6);
@@ -651,6 +799,7 @@
     --c-info: #ADBDFF;
     --c-info-container: #202B3D;
     --c-on-info: #16181A;
+    --c-in-progress: #ADBDFF;
     --c-hover: rgba(255, 255, 255, 0.04);
     --c-pressed: rgba(255, 255, 255, 0.07);
     --c-disabled-fg: #999B9E;
@@ -663,6 +812,17 @@
     --c-inverse-surface: #ECEEF0;
     --c-on-inverse: #121315;
     --c-inverse-primary: #005B38;
+    --c-media-black: #000000;
+    --c-media-dark: #2C2C2C;
+    --c-media-mid: #777777;
+    --c-media-white: #FFFFFF;
+    --c-checker-a: #F3F3F3;
+    --c-checker-b: #D7D7D7;
+    --c-on-media: #FFFFFF;
+    --c-viewer-scrim: rgba(0, 0, 0, 0.56);
+    --c-media-edge: rgba(0, 0, 0, 0.32);
+    --c-media-guide: rgba(255, 255, 255, 0.5);
+    --c-media-selected: #5FD599;
     --c-canvas-rgb: 17 18 21;
     --c-bg-rgb: 22 24 26;
     --c-surface-rgb: 27 29 31;
@@ -697,11 +857,20 @@
     --c-info-rgb: 173 189 255;
     --c-info-container-rgb: 32 43 61;
     --c-on-info-rgb: 22 24 26;
+    --c-in-progress-rgb: 173 189 255;
     --c-disabled-fg-rgb: 153 155 158;
     --c-disabled-bg-rgb: 38 40 42;
     --c-inverse-surface-rgb: 236 238 240;
     --c-on-inverse-rgb: 18 19 21;
     --c-inverse-primary-rgb: 0 91 56;
+    --c-media-black-rgb: 0 0 0;
+    --c-media-dark-rgb: 44 44 44;
+    --c-media-mid-rgb: 119 119 119;
+    --c-media-white-rgb: 255 255 255;
+    --c-checker-a-rgb: 243 243 243;
+    --c-checker-b-rgb: 215 215 215;
+    --c-on-media-rgb: 255 255 255;
+    --c-media-selected-rgb: 95 213 153;
     --elev-0: none;
     --elev-2: 0px 8px 24px rgba(0, 0, 0, 0.5);
     --elev-3: 0px 16px 48px rgba(0, 0, 0, 0.6);
@@ -731,9 +900,12 @@ textarea.input { height: auto; min-height: var(--control-h-lg); padding: 6px 10p
 .inline-edit:focus-visible { outline: none; }
 .inline-edit.kb-focus { outline: 2px solid var(--c-focus); outline-offset: 2px; }
 
-/* hover: rows, menu items and ghost buttons. The highlight appears at once and fades out over 150 ms. */
+/* hover: rows, menu items and ghost buttons, only where a pointer can hover (touch screens get the pressed state).
+   The highlight appears at once and fades out over 150 ms. */
 .hoverable { transition: background-color var(--m-hover-out) var(--ease-exit); }
-.hoverable:hover { background-color: var(--c-hover); transition-duration: var(--m-hover-in); }
+@media (hover: hover) {
+  .hoverable:hover { background-color: var(--c-hover); transition-duration: var(--m-hover-in); }
+}
 .hoverable:active { background-color: var(--c-pressed); }
 
 /* frost (glass): floating bars, the mobile-web tab bar and custom floating buttons; never cards, lists, menus,
@@ -754,6 +926,20 @@ textarea.input { height: auto; min-height: var(--control-h-lg); padding: 6px 10p
   font-variant-numeric: tabular-nums; color: var(--c-text-2); background: var(--c-surface-2); border: 1px solid var(--c-border); }
 .kbd + .kbd { margin-left: 4px; }
 .kbd-then { margin: 0 4px; font: var(--td-micro); color: var(--c-text-3); }
+/* the keyboard layer (kbd hints, shortcuts in tooltips and menus, hover) is optional: it shows where a pointer can hover
+   (Mac, desktop, an iPad or tablet with a trackpad), or once your script sets data-keyboard on <html> after a
+   hardware-keyboard shortcut. Phones never show it; the command menu's phone entry is the search field */
+@media (hover: none) {
+  :root:not([data-keyboard]) :is(.kbd, .kbd-then) { display: none; }
+}
+
+/* media pages: the transparency checkerboard; the viewer scrim at the top and bottom edges, under white controls
+   (tapping the picture hides both); a selected picture gets an outline inside its edge plus a check badge, never a tint */
+.checker { background: var(--checker-image) 0 0 / calc(2 * var(--checker-size)) calc(2 * var(--checker-size)); }
+.viewer-scrim-top, .viewer-scrim-bottom { height: var(--viewer-scrim-h); pointer-events: none; }
+.viewer-scrim-top { background: var(--viewer-scrim-top); }
+.viewer-scrim-bottom { background: var(--viewer-scrim-bottom); }
+.media-selected { outline: var(--select-outline) solid var(--c-media-selected); outline-offset: calc(-1 * var(--select-outline)); }
 
 /* desktop and web text styles: Inter with Linear's cv01 and ss03; opsz 32 is Inter Display */
 .td-display { font: var(--td-display); --tr: var(--tr-td-display); letter-spacing: var(--tr); font-variation-settings: "opsz" 32; font-feature-settings: "cv01", "ss03"; }
@@ -775,6 +961,7 @@ textarea.input { height: auto; min-height: var(--control-h-lg); padding: 6px 10p
 .t-section-header { font: var(--t-section-header); --tr: var(--tr-section-header); letter-spacing: var(--tr); font-feature-settings: "cv01", "ss03"; }
 .t-tag-label { font: var(--t-tag-label); --tr: var(--tr-tag-label); letter-spacing: var(--tr); font-feature-settings: "cv01", "ss03"; }
 .t-amount { font: var(--t-amount); --tr: var(--tr-amount); letter-spacing: var(--tr); font-feature-settings: "cv01", "ss03"; font-variant-numeric: tabular-nums; }
+.t-timecode { font: var(--t-timecode); --tr: var(--tr-timecode); letter-spacing: var(--tr); font-feature-settings: "cv01", "ss03"; font-variant-numeric: tabular-nums; }
 
 /* old phone text classes, kept for one version */
 .t-large-title { font: var(--t-large-title); --tr: var(--tr-large-title); letter-spacing: var(--tr); font-feature-settings: "cv01", "ss03"; }
@@ -791,8 +978,8 @@ textarea.input { height: auto; min-height: var(--control-h-lg); padding: 6px 10p
 
 /* Chinese, Japanese and Korean keep their natural spacing: the tracking above is for Latin. On a Chinese page,
    Latin words and figures inside these styles get it back when marked lang="en" or .num */
-:is(.td-display, .td-title-1, .td-title-2, .td-title-3, .td-body, .td-body-medium, .td-small, .td-caption, .td-micro, .t-page-title, .t-card-title, .t-long-text, .t-row-title, .t-row-meta, .t-section-header, .t-tag-label, .t-amount, .t-large-title, .t-title-1, .t-title-2, .t-title-3, .t-headline, .t-body, .t-body-long, .t-callout, .t-subhead, .t-footnote, .t-caption):is(:lang(zh), :lang(ja), :lang(ko)) { letter-spacing: 0; }
-:is(.td-display, .td-title-1, .td-title-2, .td-title-3, .td-body, .td-body-medium, .td-small, .td-caption, .td-micro, .t-page-title, .t-card-title, .t-long-text, .t-row-title, .t-row-meta, .t-section-header, .t-tag-label, .t-amount, .t-large-title, .t-title-1, .t-title-2, .t-title-3, .t-headline, .t-body, .t-body-long, .t-callout, .t-subhead, .t-footnote, .t-caption) :is(:lang(en), .num), :is(.td-display, .td-title-1, .td-title-2, .td-title-3, .td-body, .td-body-medium, .td-small, .td-caption, .td-micro, .t-page-title, .t-card-title, .t-long-text, .t-row-title, .t-row-meta, .t-section-header, .t-tag-label, .t-amount, .t-large-title, .t-title-1, .t-title-2, .t-title-3, .t-headline, .t-body, .t-body-long, .t-callout, .t-subhead, .t-footnote, .t-caption).num { letter-spacing: var(--tr); }
+:is(.td-display, .td-title-1, .td-title-2, .td-title-3, .td-body, .td-body-medium, .td-small, .td-caption, .td-micro, .t-page-title, .t-card-title, .t-long-text, .t-row-title, .t-row-meta, .t-section-header, .t-tag-label, .t-amount, .t-timecode, .t-large-title, .t-title-1, .t-title-2, .t-title-3, .t-headline, .t-body, .t-body-long, .t-callout, .t-subhead, .t-footnote, .t-caption):is(:lang(zh), :lang(ja), :lang(ko)) { letter-spacing: 0; }
+:is(.td-display, .td-title-1, .td-title-2, .td-title-3, .td-body, .td-body-medium, .td-small, .td-caption, .td-micro, .t-page-title, .t-card-title, .t-long-text, .t-row-title, .t-row-meta, .t-section-header, .t-tag-label, .t-amount, .t-timecode, .t-large-title, .t-title-1, .t-title-2, .t-title-3, .t-headline, .t-body, .t-body-long, .t-callout, .t-subhead, .t-footnote, .t-caption) :is(:lang(en), .num), :is(.td-display, .td-title-1, .td-title-2, .td-title-3, .td-body, .td-body-medium, .td-small, .td-caption, .td-micro, .t-page-title, .t-card-title, .t-long-text, .t-row-title, .t-row-meta, .t-section-header, .t-tag-label, .t-amount, .t-timecode, .t-large-title, .t-title-1, .t-title-2, .t-title-3, .t-headline, .t-body, .t-body-long, .t-callout, .t-subhead, .t-footnote, .t-caption).num { letter-spacing: var(--tr); }
 
 /* tabular digits for amounts, times and counts. !important because a font shorthand (the styles above, or your
    own font: var(--td-*)) resets font-variant-numeric, so class="td-caption num" would otherwise lose it */
@@ -815,8 +1002,10 @@ textarea.input { height: auto; min-height: var(--control-h-lg); padding: 6px 10p
     --m-fast: 0ms;
     --m-standard: 0ms;
     --m-slow: 0ms;
+    --m-zoom: 0ms;
     --m-fast-exit: 0ms;
     --m-standard-exit: 0ms;
     --m-slow-exit: 0ms;
+    --m-zoom-exit: 0ms;
   }
 }

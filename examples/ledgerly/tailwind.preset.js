@@ -3,6 +3,9 @@
 // opacity modifiers, e.g. bg-primary/10. fontSize holds the desktop scale (text-body, text-small, text-caption …);
 // the .td-* classes in theme.css add Inter's opsz and the cv01 / ss03 features, so prefer them for display text.
 // focus-visible:ring is the focus ring: 2 px of focus, 2 px away, the gap in bg (ring-offset-surface etc. elsewhere).
+// Media: bg-checker (the checkerboard, image and square size), bg-viewer-scrim-top / -bottom with h-viewer-scrim, and a
+// selected picture is ring-select ring-inset ring-media-selected (an outline, never a tint). text-timecode is the phone
+// timecode size: add tabular-nums. The kbd hints and hover are an optional layer (theme.css hides .kbd on touch screens).
 module.exports = {
   theme: {
     extend: {
@@ -42,6 +45,7 @@ module.exports = {
         'info': 'rgb(var(--c-info-rgb) / <alpha-value>)',
         'info-container': 'rgb(var(--c-info-container-rgb) / <alpha-value>)',
         'on-info': 'rgb(var(--c-on-info-rgb) / <alpha-value>)',
+        'in-progress': 'rgb(var(--c-in-progress-rgb) / <alpha-value>)',
         'hover': 'var(--c-hover)',
         'pressed': 'var(--c-pressed)',
         'disabled-fg': 'rgb(var(--c-disabled-fg-rgb) / <alpha-value>)',
@@ -54,13 +58,24 @@ module.exports = {
         'inverse-surface': 'rgb(var(--c-inverse-surface-rgb) / <alpha-value>)',
         'on-inverse': 'rgb(var(--c-on-inverse-rgb) / <alpha-value>)',
         'inverse-primary': 'rgb(var(--c-inverse-primary-rgb) / <alpha-value>)',
+        'media-black': 'rgb(var(--c-media-black-rgb) / <alpha-value>)',
+        'media-dark': 'rgb(var(--c-media-dark-rgb) / <alpha-value>)',
+        'media-mid': 'rgb(var(--c-media-mid-rgb) / <alpha-value>)',
+        'media-white': 'rgb(var(--c-media-white-rgb) / <alpha-value>)',
+        'checker-a': 'rgb(var(--c-checker-a-rgb) / <alpha-value>)',
+        'checker-b': 'rgb(var(--c-checker-b-rgb) / <alpha-value>)',
+        'on-media': 'rgb(var(--c-on-media-rgb) / <alpha-value>)',
+        'viewer-scrim': 'var(--c-viewer-scrim)',
+        'media-edge': 'var(--c-media-edge)',
+        'media-guide': 'var(--c-media-guide)',
+        'media-selected': 'rgb(var(--c-media-selected-rgb) / <alpha-value>)',
         // old names, kept for one version
         'state-hover': 'var(--c-hover)',
         'state-pressed': 'var(--c-pressed)'
       },
       borderColor: { DEFAULT: 'var(--c-border)' },
       ringColor: { DEFAULT: 'var(--c-focus)' },
-      ringWidth: { DEFAULT: '2px' },
+      ringWidth: { DEFAULT: '2px', select: 'var(--select-outline)' },
       ringOffsetWidth: { DEFAULT: '2px' },
       ringOffsetColor: { DEFAULT: 'var(--c-bg)' },
       borderRadius: {
@@ -80,16 +95,20 @@ module.exports = {
         'body-medium': ['14px', { lineHeight: '20px', letterSpacing: '-0.0062em', fontWeight: '510' }],
         'small': ['13px', { lineHeight: '18px', letterSpacing: '-0.0032em', fontWeight: '400' }],
         'caption': ['12px', { lineHeight: '16px', letterSpacing: '0.0005em', fontWeight: '510' }],
-        'micro': ['11px', { lineHeight: '14px', letterSpacing: '0.0048em', fontWeight: '510' }]
+        'micro': ['11px', { lineHeight: '14px', letterSpacing: '0.0048em', fontWeight: '510' }],
+        'timecode': ['13px', { lineHeight: '18px', letterSpacing: '-0.0032em', fontWeight: '510' }]
       },
       boxShadow: { e2: 'var(--elev-2)', e3: 'var(--elev-3)', e1: 'var(--elev-1)' /* old name: none, cards have no shadow */ },
       fontFamily: { sans: ['var(--font)'], mono: ['var(--font-mono)'] },
-      transitionDuration: { 'hover-in': 'var(--m-hover-in)', 'hover-out': 'var(--m-hover-out)', 'fast': 'var(--m-fast)', 'standard': 'var(--m-standard)', 'slow': 'var(--m-slow)', 'fast-exit': 'var(--m-fast-exit)', 'standard-exit': 'var(--m-standard-exit)', 'slow-exit': 'var(--m-slow-exit)' },
+      transitionDuration: { 'hover-in': 'var(--m-hover-in)', 'hover-out': 'var(--m-hover-out)', 'fast': 'var(--m-fast)', 'standard': 'var(--m-standard)', 'slow': 'var(--m-slow)', 'zoom': 'var(--m-zoom)', 'fast-exit': 'var(--m-fast-exit)', 'standard-exit': 'var(--m-standard-exit)', 'slow-exit': 'var(--m-slow-exit)', 'zoom-exit': 'var(--m-zoom-exit)' },
       transitionTimingFunction: { enter: 'var(--ease-enter)', exit: 'var(--ease-exit)' },
-      height: { 'control-xs': 'var(--control-h-xs)', 'control-sm': 'var(--control-h-sm)', 'control-md': 'var(--control-h-md)', 'control-lg': 'var(--control-h-lg)', 'control-mobile-md': 'var(--control-h-mobile-md)', 'control-mobile-lg': 'var(--control-h-mobile-lg)', row: 'var(--row-h)', 'row-compact': 'var(--row-h-compact)', 'row-mobile': 'var(--row-h-mobile)', 'view-header': 'var(--view-header-h)', kbd: 'var(--kbd-h)' },
-      minHeight: { hit: 'var(--hit-min)' },
+      height: { 'control-xs': 'var(--control-h-xs)', 'control-sm': 'var(--control-h-sm)', 'control-md': 'var(--control-h-md)', 'control-lg': 'var(--control-h-lg)', 'control-mobile-md': 'var(--control-h-mobile-md)', 'control-mobile-lg': 'var(--control-h-mobile-lg)', row: 'var(--row-h)', 'row-compact': 'var(--row-h-compact)', 'row-mobile': 'var(--row-h-mobile)', 'view-header': 'var(--view-header-h)', kbd: 'var(--kbd-h)', 'tool-tray': 'var(--tool-tray-h)', 'slider-track': 'var(--slider-track-h)', timeline: 'var(--timeline-h)', 'viewer-scrim': 'var(--viewer-scrim-h)' },
+      minHeight: { hit: 'var(--hit-min)', prompt: 'var(--prompt-min-h)' },
       minWidth: { hit: 'var(--hit-min)', kbd: 'var(--kbd-h)' },
-      width: { sidebar: 'var(--sidebar-w)' },
+      width: { sidebar: 'var(--sidebar-w)', 'tool-item': 'var(--tool-item-w)', playhead: 'var(--playhead-w)', 'trim-handle': 'var(--trim-handle-w)' },
+      gap: { thumb: 'var(--thumb-gap)' },
+      backgroundImage: { checker: 'var(--checker-image)', 'viewer-scrim-top': 'var(--viewer-scrim-top)', 'viewer-scrim-bottom': 'var(--viewer-scrim-bottom)' },
+      backgroundSize: { checker: 'calc(2 * var(--checker-size)) calc(2 * var(--checker-size))' },
     },
   },
 };
