@@ -8,7 +8,9 @@
 // drawn over the picture (a ring is an inset shadow, which an <img> covers), never a tint; theme.css's .media-selected
 // is the same. text-timecode is the phone timecode size: add tabular-nums. The kbd hints and hover are an optional
 // layer: theme.css hides .kbd on touch screens, and future.hoverOnlyWhenSupported keeps hover: off touch screens (a
-// future block in your own config replaces this one: add the flag there).
+// future block in your own config replaces this one: add the flag there). Brand surfaces: bg-brand-surface with
+// rounded-xl (a panel; add data-theme="dark" so the text inside is the dark set) or aspect-square rounded-brand-tile
+// (the icon's 22.37 % corner); the brand-accent colours are for brand art only, never for a control.
 module.exports = {
   future: { hoverOnlyWhenSupported: true },
   theme: {
@@ -74,6 +76,14 @@ module.exports = {
         'media-guide': 'var(--c-media-guide)',
         'media-track': 'var(--c-media-track)',
         'media-selected': 'rgb(var(--c-media-selected-rgb) / <alpha-value>)',
+        'brand-surface-top': 'rgb(var(--c-brand-surface-top-rgb) / <alpha-value>)',
+        'brand-surface-bottom': 'rgb(var(--c-brand-surface-bottom-rgb) / <alpha-value>)',
+        'on-brand': 'rgb(var(--c-on-brand-rgb) / <alpha-value>)',
+        'on-brand-2': 'rgb(var(--c-on-brand-2-rgb) / <alpha-value>)',
+        'brand-body-top': 'rgb(var(--c-brand-body-top-rgb) / <alpha-value>)',
+        'brand-body-bottom': 'rgb(var(--c-brand-body-bottom-rgb) / <alpha-value>)',
+        'brand-accent-light': 'rgb(var(--c-brand-accent-light-rgb) / <alpha-value>)',
+        'brand-accent': 'rgb(var(--c-brand-accent-rgb) / <alpha-value>)',
         // old names, kept for one version
         'state-hover': 'var(--c-hover)',
         'state-pressed': 'var(--c-pressed)'
@@ -91,7 +101,8 @@ module.exports = {
         'md': 'var(--r-md)',
         'lg': 'var(--r-lg)',
         'xl': 'var(--r-xl)',
-        'full': 'var(--r-full)'
+        'full': 'var(--r-full)',
+        'brand-tile': 'var(--brand-tile-radius)'
       },
       fontSize: {
         'display': ['32px', { lineHeight: '38px', letterSpacing: '-0.022em', fontWeight: '590' }],
@@ -114,7 +125,8 @@ module.exports = {
       minWidth: { hit: 'var(--hit-min)', kbd: 'var(--kbd-h)' },
       width: { sidebar: 'var(--sidebar-w)', 'tool-item': 'var(--tool-item-w)', playhead: 'var(--playhead-w)', 'trim-handle': 'var(--trim-handle-w)' },
       gap: { thumb: 'var(--thumb-gap)' },
-      backgroundImage: { checker: 'var(--checker-image)', 'viewer-scrim-top': 'var(--viewer-scrim-top)', 'viewer-scrim-bottom': 'var(--viewer-scrim-bottom)' },
+      backgroundImage: { checker: 'var(--checker-image)', 'viewer-scrim-top': 'var(--viewer-scrim-top)', 'viewer-scrim-bottom': 'var(--viewer-scrim-bottom)',
+        'brand-surface': 'var(--brand-surface)', 'brand-body': 'var(--brand-body)', 'brand-accent-fill': 'var(--brand-accent)' },
       backgroundSize: { checker: 'calc(2 * var(--checker-size)) calc(2 * var(--checker-size))' },
     },
   },

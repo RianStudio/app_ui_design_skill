@@ -6,6 +6,7 @@
     python3 scripts/preview.py out/ --screen editor                    # photo editor: canvas, slider, crop, viewer
     python3 scripts/preview.py out/ --screen chat                      # AI chat and image generation
     python3 scripts/preview.py out/ --screen notes --desktop           # add the desktop window
+    python3 scripts/preview.py out/ --icon squeeze-1024.png --mark squeeze-mark.png  # the icon's subject for brand art
 
 Writes out/preview.png: a 1960 px wide sheet of phones, saved at --scale 2 (3920 px). From the top:
   1. title row: app name, icon accent -> UI primary, primary and primary-text values, time of the render;
@@ -17,7 +18,12 @@ Writes out/preview.png: a 1960 px wide sheet of phones, saved at --scale 2 (3920
      when the icon accent is 珊瑚 / 黄 / 灰, an "icon x UI" cell: the warm icon next to the blue UI it falls back to;
   4. with --desktop (timer, notes and list): a 1280 x 800 desktop window (inverted-L layout, keyboard-cursor row,
      two multi-selected rows, the command menu open over scrim-menu), the desktop type scale and a dialog;
-  5. swatches of the four schemes (light, dark, light-hc, dark-hc) and of the media tokens.
+  5. brand surfaces: the launch screen, the about panel, an empty state in light and dark and the export-complete page,
+     on the icon's graphite with the icon's own subject as the art (--mark, else <name>-mark.png next to --icon, else
+     keyed out of the --icon PNG, else a stand-in); the paywall, onboarding, permission and consent art is the same;
+  6. swatches of the four schemes (light, dark, light-hc, dark-hc) and of the media tokens.
+
+UI icons are solid (Material Symbols Rounded, FILL 1, weight 500; on the iPhone screens in place of SF Symbols' .fill).
 
 Screens: timer (focus timer), notes (long Chinese text, highlight, search field), list (ledger: amounts, filter
 pills, list grouped by day), editor (photo editor, a dark page in every scheme: neutral canvas, before/after divider,
@@ -31,8 +37,8 @@ Then prints the checks, each PASS or FAIL (exit status 1 when one fails; preview
                               (all on phones rendered off the sheet; glass and scrim only: the scroll-edge fade is
                               hidden while measuring)
   accent area phone           pixels in the primary's hue (+-25 deg, LCh chroma >= 20) <= 8 % of each phone screen
-                              (worst of them), measured with photos, canvases and generated images hidden (the checks
-                              and outlines drawn over them still count)
+                              (worst of them), measured with photos, canvases, generated images and brand art hidden
+                              (the checks and outlines drawn over them still count)
   accent area conversion      the same for the paywall, onboarding, permission, consent and sample-empty screens, <= 15 %
   accent area desktop         with --desktop: <= 5 % of the window, measured with the command menu hidden
   safe area                   paywall, onboarding, permission, consent, export and report sheets end above the home
@@ -46,7 +52,7 @@ The iPhone screens use Inter in place of SF Pro.
 
 Needs Playwright + Chromium, numpy and Pillow (set CHROMIUM_PATH to use an existing Chromium).
 """
-import argparse, base64, datetime, glob, hashlib, json, os, re, sys, urllib.parse, urllib.request
+import argparse, base64, datetime, glob, hashlib, io, json, os, re, sys, urllib.parse, urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.dont_write_bytecode = True  # importing build.py must not leave a __pycache__ in the skill
@@ -61,7 +67,9 @@ FROST_MIN, SCRIM_MIN, DESK_MAX, PHONE_MAX, CONVERSION_MAX = 3.0, 4.5, 5.0, 8.0, 
 HUE_BAND, STRONG_CHROMA, FAINT_CHROMA = 25, 20, 4
 
 
-# ---------- icons: Lucide on a 24 grid, 1.5 px non-scaling stroke ----------
+# ---------- icons: solid, like the app icon's pieces ----------
+# The sheet draws every UI icon from Material Symbols Rounded, FILL 1, weight 500 (the iPhone screens use it in place of
+# SF Symbols' .fill variant at .semibold). LUCIDE is only the offline fallback, drawn at a heavier 2.25 px.
 LUCIDE = {
     "search": '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
     "plus": '<path d="M5 12h14"/><path d="M12 5v14"/>',
@@ -148,6 +156,25 @@ LUCIDE = {
     "grid": '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
     "layers": '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
 }
+# the sheet's icon names -> Material Symbols Rounded
+MS_NAME = {"search": "search", "plus": "add", "inbox": "inbox", "list": "list", "chart": "bar_chart", "target": "target",
+           "card": "credit_card", "wallet": "account_balance_wallet", "settings": "settings", "hash": "tag",
+           "chev-down": "expand_more", "chev-left": "chevron_left", "chev-right": "chevron_right", "filter": "filter_list",
+           "sliders": "tune", "utensils": "restaurant", "train": "train", "coffee": "coffee", "bag": "shopping_bag",
+           "cart": "shopping_cart", "banknote": "payments", "phone": "smartphone", "car": "directions_car",
+           "file-down": "download", "file-text": "description", "folder": "folder", "pin": "push_pin", "archive": "archive",
+           "clock": "schedule", "book": "menu_book", "briefcase": "work", "mail": "mail", "bulb": "lightbulb",
+           "history": "history", "star": "star", "play": "play_arrow", "home": "home", "pen": "edit_square", "help": "help",
+           "receipt": "receipt_long", "dumbbell": "fitness_center", "zap": "bolt", "x": "close", "trash": "delete",
+           "tag": "sell", "merge": "merge", "arrow-in": "south_west", "copy": "content_copy", "timer": "timer",
+           "sun": "light_mode", "square": "square", "check": "check", "more": "more_vert", "more-h": "more_horiz",
+           "wand": "auto_fix_high", "contrast": "contrast", "droplet": "water_drop", "thermometer": "thermostat",
+           "crop": "crop", "scissors": "content_cut", "share": "ios_share", "heart": "favorite", "arrow-up": "arrow_upward",
+           "paperclip": "attach_file", "image": "image", "refresh": "refresh", "thumbs-up": "thumb_up",
+           "thumbs-down": "thumb_down", "flag": "flag", "bell": "notifications", "globe": "language", "info": "info",
+           "shield": "shield", "updown": "unfold_more", "rotate-ccw": "rotate_left", "flip": "flip", "coins": "toll",
+           "panel": "menu", "move-h": "swap_horiz", "palette": "palette", "gem": "diamond", "buoy": "support",
+           "grid": "grid_view", "layers": "layers"}
 # Material Symbols Rounded names for the Android screen; LUCIDE stands in when the font is unavailable
 MS_FALLBACK = {"add": "plus", "check": "check", "search": "search", "more_vert": "more", "settings": "settings",
                "receipt_long": "receipt", "bar_chart": "chart", "savings": "wallet", "payments": "banknote",
@@ -164,14 +191,18 @@ MS_FALLBACK = {"add": "plus", "check": "check", "search": "search", "more_vert":
 
 
 def ic(name, size=16, cls="", bar=""):
-    """a Lucide icon; bar names it as something on a glass bar, which the frost check measures"""
+    """a solid UI icon (Material Symbols Rounded, FILL 1, weight 500); bar names it as something on a glass bar, which
+    the frost check measures. Without the font, a Lucide line icon at 2.25 px stands in"""
     attr = f' data-bar="{bar}"' if bar else ""
+    if Glyphs.msr:
+        Glyphs.used.add(MS_NAME[name])
+        return (f'<i class="ms ic {cls}"{attr} style="font-size:{size}px;width:{size}px;height:{size}px">{MS_NAME[name]}</i>')
     return (f'<svg class="ic {cls}"{attr} width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
-            f'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">{LUCIDE[name]}</svg>')
+            f'stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">{LUCIDE[name]}</svg>')
 
 
 class Glyphs:
-    """Material Symbols Rounded (weight 300, fill 0; 'fill' for the selected navigation item), or Lucide without the font"""
+    """Material Symbols Rounded (FILL 1, weight 500: solid like the app icon), or Lucide without the font"""
     msr = True
     used = set()
 
@@ -184,21 +215,22 @@ class Glyphs:
 
 
 def status_icon(kind):
-    """Linear-style status circles, 16 px; a ledger draws only the exceptions"""
+    """Linear-style status circles, 16 px, with 2 px rings so they weigh the same as the solid icons; a ledger draws only
+    the exceptions"""
     if kind == "booked":  # the default state of a ledger row: nothing to say, keep the slot so titles align
         return '<span class="st-empty"></span>'
     if kind == "done":
         return ('<svg class="st" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="var(--c-success)"/>'
                 '<path d="M5 8.2l2 2 4-4.3" stroke="var(--c-on-success)" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>')
     if kind == "todo":
-        return ('<svg class="st" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.25" fill="none" '
-                'stroke="var(--c-text-3)" stroke-width="1.5"/></svg>')
+        return ('<svg class="st" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" '
+                'stroke="var(--c-text-3)" stroke-width="2"/></svg>')
     if kind == "backlog":
-        return ('<svg class="st" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.25" fill="none" '
-                'stroke="var(--c-text-3)" stroke-width="1.5" stroke-dasharray="2.2 2"/></svg>')
+        return ('<svg class="st" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" '
+                'stroke="var(--c-text-3)" stroke-width="2" stroke-dasharray="2.6 2.1"/></svg>')
     if kind == "progress":  # in progress is information (in-progress = info), never a warning
-        return ('<svg class="st" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.25" fill="none" stroke="var(--c-in-progress)" stroke-width="1.5"/>'
-                '<path d="M8 8V4a4 4 0 0 1 0 8z" fill="var(--c-in-progress)"/></svg>')
+        return ('<svg class="st" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="var(--c-in-progress)" stroke-width="2"/>'
+                '<path d="M8 8V4.5a3.5 3.5 0 0 1 0 7z" fill="var(--c-in-progress)"/></svg>')
     if kind == "cancel":
         return ('<svg class="st" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="var(--c-text-3)"/>'
                 '<path d="M5.6 5.6l4.8 4.8M10.4 5.6l-4.8 4.8" stroke="var(--c-bg)" stroke-width="1.6" stroke-linecap="round"/></svg>')
@@ -261,6 +293,77 @@ class AppIcon:
 
     def __call__(self, size, mode):
         return f'<i class="appicon m-{mode}" style="width:{size}px;height:{size}px;border-radius:{size * .2237:.2f}px"></i>'
+
+
+class BrandMark:
+    """the icon's subject alone (its body pieces and accent piece, glow kept, no background) for brand art on the
+    graphite brand panel: --mark (rian-app-icon render.py --variants' <name>-mark.png or .svg), else the <name>-mark.png
+    next to --icon, else keyed out of the --icon PNG (its base is the known graphite gradient), else a stand-in in the
+    icon accent. It is only ever scaled as a whole, so the cuts stay 48 / 1024 of the icon."""
+
+    def __init__(self, mark, icon, tones):
+        self.how = "stand-in"
+        if not mark and icon:
+            sib = re.sub(r"-1024\.png$", "-mark.png", icon)
+            mark = sib if sib != icon and os.path.isfile(sib) else None
+        if mark:
+            self.how = "mark"
+            data = open(mark, "rb").read()
+            if mark.lower().endswith(".svg"):
+                vb = [float(v) for v in re.search(r'viewBox="([^"]+)"', data.decode()).group(1).split()]
+                self.ratio = vb[2] / vb[3]
+                self.src = "data:image/svg+xml;base64," + base64.b64encode(data).decode()
+            else:
+                from PIL import Image
+                im = Image.open(io.BytesIO(data))
+                self.ratio = im.width / im.height
+                self.src = "data:image/png;base64," + base64.b64encode(data).decode()
+        elif icon:
+            self.how = "keyed"
+            self.src, self.ratio = self._keyed(icon)
+        else:
+            self.src, self.ratio = self._stand_in(tones), 1.0
+
+    @staticmethod
+    def _keyed(path):
+        """the icon PNG minus its graphite base: alpha from the distance to the base gradient at each row"""
+        import numpy as np
+        from PIL import Image
+        im = Image.open(path).convert("RGB").resize((1024, 1024))
+        a = np.asarray(im).astype(float)
+        top, bot = (np.array([int(h[i:i + 2], 16) for i in (1, 3, 5)], float) for h in PALETTE["brand"]["surface"])
+        t = np.linspace(0, 1, 1024)[:, None, None]
+        base = top * (1 - t) + bot * t
+        d = np.abs(a - base).max(axis=2)
+        alpha = np.clip((d - 4) / 20, 0, 1)
+        ys, xs = np.nonzero(alpha > .02)
+        x0, y0, x1, y1 = max(xs.min() - 8, 0), max(ys.min() - 8, 0), min(xs.max() + 9, 1024), min(ys.max() + 9, 1024)
+        # un-premultiply against the base so half-covered edge pixels keep their own colour
+        fg = np.where(alpha[..., None] > 0, (a - base * (1 - alpha[..., None])) / np.maximum(alpha[..., None], 1e-3), 0)
+        rgba = np.dstack([np.clip(fg, 0, 255), alpha * 255]).astype("uint8")[y0:y1, x0:x1]
+        buf = io.BytesIO()
+        Image.fromarray(rgba, "RGBA").save(buf, "PNG")
+        return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode(), (x1 - x0) / (y1 - y0)
+
+    @staticmethod
+    def _stand_in(tones):
+        """a body piece and an accent piece, 48 / 1024-proportional cut between them, in the icon's gradients"""
+        a, b = tones
+        body_a, body_b = PALETTE["brand"]["body"]
+        svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><defs>'
+               f'<linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{body_a}"/><stop offset="1" stop-color="{body_b}"/></linearGradient>'
+               f'<linearGradient id="a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{a}"/><stop offset="1" stop-color="{b}"/></linearGradient>'
+               f'<mask id="m"><rect width="600" height="600" fill="#fff"/><circle cx="430" cy="170" r="178" fill="#000"/></mask></defs>'
+               f'<rect x="20" y="120" width="460" height="460" rx="110" fill="url(#b)" mask="url(#m)"/>'
+               f'<circle cx="430" cy="170" r="130" fill="url(#a)"/></svg>')
+        return "data:image/svg+xml;base64," + base64.b64encode(svg.encode()).decode()
+
+    def __call__(self, h, max_w=None):
+        """the mark at height h (the icon subject's height), in pt; a wide mark is fitted into max_w"""
+        if max_w and h * self.ratio > max_w:
+            h = max_w / self.ratio
+        return (f'<img class="bmark" data-brand alt="" src="{self.src}" '
+                f'style="height:{h}px;width:{h * self.ratio:.1f}px">')
 
 
 # ---------- content ----------
@@ -778,17 +881,23 @@ def check_badge():
             'stroke-linecap="round" stroke-linejoin="round"/></svg>')
 
 
-def slices(w, h, demo=""):
-    """onboarding and paywall art: geometric slices like the app icon's (graphite pieces, 4-unit gaps, one piece in
-    the primary), with an optional card on top that shows the app at work"""
-    svg = (f'<svg class="slices" width="{w}" height="{h}" viewBox="0 0 320 200" preserveAspectRatio="xMidYMid meet">'
-           '<path d="M158 16a84 84 0 0 0 0 168z" fill="var(--c-surface-3)"/>'
-           '<path d="M162 16a84 84 0 0 1 84 84h-84z" fill="var(--c-border-strong)" opacity=".55"/>'
-           '<path d="M162 104h84a84 84 0 0 1-84 80z" fill="var(--c-surface-3)"/>'
-           '<rect x="34" y="112" width="72" height="72" rx="18" fill="var(--c-surface-3)"/>'
-           '<circle cx="262" cy="46" r="26" fill="var(--c-primary)"/>'
-           '<rect x="54" y="30" width="44" height="44" rx="22" fill="var(--c-border-strong)" opacity=".35"/></svg>')
-    return f'<div class="art" style="width:{w}px;height:{h}px">{svg}{demo}</div>'
+class Brand:
+    """the brand mark of this sheet (set in main)"""
+    mark = None
+
+
+def brand_art(w, h, mark_h, overlay=""):
+    """onboarding, paywall, consent and permission art: the app icon's own mark on the graphite brand panel, lit from
+    the top like the icon (light and dark mode alike), with an optional real UI fragment under it that never covers it.
+    The icon's accent appears only in the mark; the panel's corner is r-xl"""
+    return (f'<div class="art bpanel{" over" if overlay else ""}" style="width:{w}px;height:{h}px"><span class="bp-mark">'
+            f'{Brand.mark(mark_h, w - 2 * 48)}</span>{overlay}</div>')
+
+
+def brand_tile(side, mark_h):
+    """empty-state art: the mark on a square graphite tile with the app icon's corner (22.37 % of the side)"""
+    return (f'<div class="btile" style="width:{side}px;height:{side}px;border-radius:{side * PALETTE["brand"]["tile_radius"]:.2f}px">'
+            f'{Brand.mark(mark_h, side * .72)}</div>')
 
 
 def demo_card(sh):
@@ -942,7 +1051,7 @@ def paywall_ios(scr, mode, icon, app, caption="", credits=False):
     low = (f'<div class="low t-row-meta">{ic("coins", 16)}<span>点数不够这次生成（还差 <b class="num">1</b> 点）</span></div>'
            if credits else "")
     inner = f'''<div class="pw{" credits" if credits else ""}">
-    {slices(300, 110 if credits else 150, f'<span class="art-icon">{icon(64, mode)}</span>')}
+    {brand_art(350, 110 if credits else 150, PALETTE["brand"]["mark"]["empty" if credits else "hero"])}
     <div class="pw-title t-title-1">{scr["shell"]["pitch"]}</div><div class="pw-sub t-row-meta">{app} 会员 · 随时可以取消</div>
     {low}<div class="feats">{feats}</div>
     <div class="plans">{plans}</div>
@@ -959,7 +1068,7 @@ def onboarding_android(scr, mode, caption=""):
     title, body = scr["shell"]["onboard"]
     inner = f'''<div class="onb">
     <div class="onb-skip m3-labelLarge">跳过</div>
-    {slices(340, 240, demo_card(scr["shell"]))}
+    {brand_art(364, 232, PALETTE["brand"]["mark"]["hero"], demo_card(scr["shell"]))}
     <div class="dots"><i class="on"></i><i></i><i></i></div>
     <div class="m3-headlineSmall onb-t">{title}</div><p class="m3-bodyLarge onb-b">{body}</p>
     <div class="grow"></div>{pbtn("继续")}
@@ -1086,7 +1195,7 @@ def permission_android(mode, icon, app, caption=""):
     card = (f'<div class="notif"><div class="nh">{icon(18, mode)}<span class="m3-labelMedium t2">{app} · 现在</span></div>'
             f'<b class="m3-titleSmall">导出完成</b><span class="m3-bodyMedium t2">4 张照片已保存到相册，点按查看</span></div>')
     inner = f'''<div class="onb perm">
-    {slices(340, 240, card)}
+    {brand_art(364, 262, PALETTE["brand"]["mark"]["hero"], card)}
     <div class="m3-headlineSmall onb-t">导出完成时通知你</div>
     <p class="m3-bodyLarge onb-b">导出要几秒到几分钟。允许通知后可以离开 app：进度显示在通知栏，完成后提醒你。</p>
     <p class="m3-bodyMedium onb-n t3">下一步是系统的权限对话框；以后也可以在系统设置里改。</p>
@@ -1172,7 +1281,7 @@ def chat_android(scr, mode, caption=""):
       {Glyphs.ms("expand_more", size=18)}</span><span class="grow"></span>
     <span class="achip m3-labelLarge credit-chip">{Glyphs.ms("bolt", size=18)}<span class="num">{scr["credits"]}</span></span></header>
   <div class="acontent ach">
-    {slices(240, 150)}
+    {brand_tile(128, PALETTE["brand"]["mark"]["empty"])}
     <div class="m3-headlineSmall onb-t">想生成什么？</div><p class="m3-bodyMedium t2 ach-sub">点一个示例试试，或者直接描述你想要的画面</p>
     <div class="samples">{cards}</div>
   </div>
@@ -1191,7 +1300,7 @@ def consent_ios(mode, caption=""):
     rows = "".join(f'<div class="cons">{ic(i, 22, "t2")}<div><b class="t-row-title">{t}</b><p class="t-row-meta">{d}</p></div></div>'
                    for i, t, d in items)
     inner = f'''<div class="pw consent">
-    {slices(300, 140)}
+    {brand_art(350, 140, PALETTE["brand"]["mark"]["empty"])}
     <div class="pw-title t-title-1">要把照片发给第三方 AI 吗？</div>
     <div class="conss">{rows}</div>
     <div class="grow"></div>
@@ -1406,6 +1515,59 @@ def phone_mini(name, scr, mode, icon, app):
             f'<span class="grow"></span><b class="lnk t-row-meta">全部</b></div>{pbtn(ACTION[name])}<nav class="pm-tabs frost">{tabs}</nav></div>')
 
 
+# ---------- brand surfaces: where the app icon's own material enters the UI ----------
+EMPTY = {"list": ("还没有记录", "记下第一笔，月底就能看到钱花在了哪里"), "timer": ("还没有专注记录", "开始第一次专注，这里会按天记下时长"),
+         "notes": ("还没有笔记", "写下第一条，之后可以按标签和全文搜索"), "editor": ("还没有作品", "导出过的照片会出现在这里"),
+         "chat": ("还没有作品", "生成过的图会出现在这里，可以再编辑")}
+
+
+def brand_row(t, screen, icon, app):
+    """launch screen, the about panel, an empty state in light and dark, the export-complete page: the icon's graphite,
+    body and accent at brand positions only; the controls keep the primary"""
+    hero, empty = PALETTE["brand"]["mark"]["hero"], PALETTE["brand"]["mark"]["empty"]
+    title, line = EMPTY[screen]
+    cat = t["source"].get("category")
+    badge = f'<span class="bbadge t-tag-label"><i data-brand></i>{cat} app</span>' if cat else ""
+    chev = ic("chev-right", 16, "t3")
+
+    def card(inner, mode, cap, cls=""):
+        return (f'<div class="bslot"><div class="bcard {cls}" data-theme="{mode}">{inner}</div>'
+                f'<div class="cap">{cap}</div></div>')
+
+    def row(label):
+        return f'<div class="sr"><span class="t-row-title">{label}</span><span class="grow"></span>{chev}</div>'
+
+    launch = card(f'<div class="blaunch">{Brand.mark(hero)}</div>', "dark",
+                  "<b>启动页</b> · 浅色、深色同一张：图标的石墨底加图标主体，不放字")
+    about = card(f'<div class="bnav t-card-title">关于</div>'
+                 f'<div class="bpanel babout" data-theme="dark">{icon(72, "light")}<b class="t-card-title">{app}</b>'
+                 f'<span class="t-row-meta num">版本 2.3.0（231）</span>{badge}</div>'
+                 f'<div class="sg">{row("更多 Rian Studio 的 app")}{row("隐私政策")}{row("开源许可")}</div>'
+                 f'<div class="sg-f t-row-meta">A Rian Studio app</div>', "light",
+                 "<b>关于 · 浅色</b> · 图标在石墨品牌面板上，字是 on-brand" + ("；类别徽章的圆点是图标强调色" if cat else ""),
+                 "grouped")
+
+    def empty_state(mode):
+        return card(f'<div class="bnav t-card-title">{SCREENS[screen]["label"]}</div><div class="bempty">{brand_tile(128, empty)}'
+                    f'<b class="t-card-title">{title}</b><span class="t-row-meta t2">{line}</span>{pbtn(ACTION[screen])}</div>',
+                    mode, f"<b>空状态 · {MODE_NAME[mode]}</b> · 128 的品牌方块（图标的圆角 22.37 %）放 {empty} 高的图标主体；"
+                          "按钮仍是 primary")
+    thumbs = "".join(f'<span class="bthumb" style="transform:translate({x}px,{y}px) rotate({r}deg)">{ph(k, 92, 116, sd)}</span>'
+                     for k, sd, r, x, y in (("sea", 41, -9, -34, 6), ("flowers", 42, 9, 34, 6), ("sky", 43, 0, 0, 0)))
+    export = card(f'<div class="bnav t-card-title">导出完成</div>'
+                  f'<div class="bpanel bexport" data-theme="dark"><span class="bstack">{thumbs}</span>'
+                  f'<b class="t-card-title">已导出 4 张 · <span class="num">9.6 MB</span></b>'
+                  f'<span class="t-row-meta b2">已保存到相册</span></div>'
+                  f'<div class="bact">{pbtn("分享")}{pbtn("完成", "second")}</div>', "dark",
+                  "<b>导出完成 · 深色</b> · 结果放在品牌面板上；「分享」是 primary，强调色不进按钮")
+    L = t["color"]["light"]
+    return (f'<div class="panel brow"><h3>品牌位 · 图标的石墨底、顶光、主体和强调色只在这些地方进界面，工作界面不变</h3>'
+            f'<div class="bcards">{launch}{about}{empty_state("light")}{empty_state("dark")}{export}</div>'
+            f'<div class="note2">brand-surface {L["brand-surface-top"]} → {L["brand-surface-bottom"]}（图标的底，深浅同值）· '
+            f'brand-accent {t["source"].get("brand-accent", "")} {L["brand-accent-light"]} → {L["brand-accent"]}（图标原色，只在图标主体和徽章圆点里，'
+            f'不进按钮和选中态）· 面板里的字和控件用深色那套 token（on-brand {L["on-brand"]}、on-brand-2 {L["on-brand-2"]}）</div></div>')
+
+
 # ---------- swatches ----------
 def alpha_label(c):
     """'rgba(255, 255, 255, 0.07)' -> '白 7 %'"""
@@ -1505,6 +1667,34 @@ kbd.on-pri { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.
   display: flex; flex-direction: column; gap: 12px; }
 .panel h3 { font: 590 15px/20px var(--font); color: #1B1C1D; }
 .panel .note2 { font: 400 12px/17px var(--font); color: #55575A; }
+/* brand row: launch, about, empty states, export complete */
+.brow { grid-column: 1 / -1; }
+.bcards { display: flex; gap: 24px; margin: 14px 0 12px; }
+.bslot { width: 352px; flex: none; }
+.bslot .cap { margin-top: 8px; }
+.bcard { position: relative; height: 470px; border-radius: 28px; overflow: hidden; background: var(--c-bg); color: var(--c-text);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.10); display: flex; flex-direction: column; }
+.bcard.grouped { background: var(--c-canvas); }
+.bnav { height: 52px; display: grid; place-items: center; flex: none; }
+.blaunch { flex: 1; display: grid; place-items: center; background: var(--brand-surface); }
+.babout { margin: 4px 16px 0; padding: 22px 16px 18px; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  background: var(--brand-surface); color: var(--c-on-brand); }
+.babout .appicon { box-shadow: 0 0 0 1px rgba(255,255,255,.10); margin-bottom: 8px; }
+.babout .t-row-meta, .b2 { color: var(--c-on-brand-2); }
+.bbadge { margin-top: 8px; height: 24px; padding: 0 10px 0 8px; display: inline-flex; align-items: center; gap: 6px; border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.14); color: var(--c-on-brand-2); }
+.bbadge i { width: 8px; height: 8px; border-radius: 50%; background: var(--brand-accent); }
+.bcard .sg { margin-top: 20px; }
+.bcard .sg-f { padding-top: 8px; }
+.bempty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 0 28px 40px; text-align: center; }
+.bempty .btile { margin-bottom: 14px; }
+.bempty .pbtn { margin-top: 18px; align-self: stretch; }
+.bexport { margin: 4px 16px 0; padding: 24px 16px 20px; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: var(--brand-surface); color: var(--c-on-brand); }
+.bstack { position: relative; width: 92px; height: 116px; margin-bottom: 18px; }
+.bthumb { position: absolute; inset: 0; border-radius: 10px; overflow: hidden; box-shadow: 0 6px 16px rgba(0,0,0,.4); }
+.bthumb .photo { width: 100%; height: 100%; }
+.bact { display: flex; flex-direction: column; gap: 8px; padding: 20px 16px 0; }
 .palette { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
 .measure { padding: 80px 40px 40px; } /* below the sheet: measured, never in preview.png */
 
@@ -1678,15 +1868,15 @@ mark { background: var(--c-selection); color: inherit; padding: 1px 2px; border-
   box-shadow: var(--elev-2); }
 .ptoast .undo { height: 44px; display: grid; place-items: center; padding: 0 12px; color: var(--c-primary-text); }
 
-/* ---------- Android (Material 3, Roboto Flex, Material Symbols Rounded 300) ---------- */
+/* ---------- Android (Material 3, Roboto Flex, Material Symbols Rounded, FILL 1, 500) ---------- */
 .android { width: 432px; }
 .aframe { padding: 10px; border-radius: 48px; background: #0B0C0E; box-shadow: 0 0 0 1.5px #3A3B3E, 0 24px 56px rgba(15,17,21,.22); }
 .ascreen { position: relative; width: 412px; height: 915px; border-radius: 38px; overflow: hidden; background: var(--c-bg); color: var(--c-text);
   font-family: "Roboto Flex", "Noto Sans SC", sans-serif; }
 .ascreen [class^="m3-"] { font-family: "Roboto Flex", "Noto Sans SC", sans-serif; }
 .ms { font-family: "Material Symbols Rounded"; font-style: normal; font-weight: normal; line-height: 1; display: inline-block; flex: none;
-  overflow: hidden; white-space: nowrap; font-feature-settings: "liga"; font-variation-settings: "FILL" 0, "wght" 300, "GRAD" 0, "opsz" 24; }
-.ms.fill { font-variation-settings: "FILL" 1, "wght" 300, "GRAD" 0, "opsz" 24; }
+  overflow: hidden; white-space: nowrap; font-feature-settings: "liga"; font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24; }
+.ms.ic { display: block; }
 .asb { position: absolute; top: 0; left: 0; right: 0; height: 44px; z-index: 3; display: flex; align-items: center; padding: 4px 24px 0; background: var(--c-bg); }
 .asb b { font: 500 14px/20px "Roboto Flex", sans-serif; }
 .aglyphs { display: flex; gap: 6px; align-items: center; }
@@ -1847,9 +2037,13 @@ mark { background: var(--c-selection); color: inherit; padding: 1px 2px; border-
 .xbar .rest { flex: 1; background: var(--c-surface-3); }
 .grab { display: block; width: 36px; height: 5px; border-radius: 3px; background: var(--c-border-strong); opacity: .6; margin: 0 auto 12px; }
 .art { position: relative; margin: 0 auto; flex: none; }
-.art .slices { position: absolute; inset: 0; }
-.art-icon { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
-.art-icon .appicon { box-shadow: var(--elev-2); }
+/* brand art: the icon's graphite, top-lit, the same in light and dark; the mark is the icon's own subject */
+.bpanel { background: var(--brand-surface); border-radius: var(--r-xl); display: grid; place-items: center; overflow: hidden; }
+.bp-mark, .bmark { display: block; }
+.btile { background: var(--brand-surface); display: grid; place-items: center; flex: none; margin: 0 auto; }
+.bpanel.over { place-items: start center; padding-top: 20px; }
+.pw .bpanel { margin-bottom: 6px; }
+.bpanel .demo, .bpanel .notif { bottom: 14px; }
 .demo { position: absolute; left: 50%; bottom: 4px; width: 288px; height: 64px; margin-left: -144px; padding: 0 16px; display: flex; align-items: center;
   gap: 12px; background: var(--c-elevated); color: var(--c-text); border: 1px solid var(--c-border); border-radius: var(--r-lg); box-shadow: var(--elev-2); }
 .demo .pt span { color: var(--c-text-2); }
@@ -2193,7 +2387,7 @@ def page(t, theme_css, screen, icon, desk_mode, with_desktop=False, fonts_css=""
             f'<div class="note2">按钮高 50、圆角 12；分段 32；开关 51 × 31；点击区 44（Android 48）。最后一行是可选层，只在 iPad / Mac 接键盘时出现</div></div>')
     if warm:
         extra = (f'<div class="panel"><h3>图标 × 界面</h3><div class="iu-head">{icon(72, "light")}'
-                 f'<p><b>{s["icon-accent"]}只留在图标里，界面主色回落到{s["accent"]}。</b>primary {Dk["primary"]} · primary-text 深 '
+                 f'<p><b>{s["icon-accent"]}只留在图标和品牌插图里，界面主色回落到{s["accent"]}。</b>primary {Dk["primary"]} · primary-text 深 '
                  f'{Dk["primary-text"]} / 浅 {L["primary-text"]}。图标底和界面中性色是同一种石墨（色相 {t["base"]["hue"]}）。</p></div>'
                  f'<div class="pminis">{phone_mini(screen, scr, "light", icon, app)}{phone_mini(screen, scr, "dark", icon, app)}</div></div>')
     else:
@@ -2211,7 +2405,7 @@ def page(t, theme_css, screen, icon, desk_mode, with_desktop=False, fonts_css=""
                 f'<div class="rcol"><div class="panel"><h3>桌面字号 · Inter（{MODE_NAME[other]}）</h3>{desktop_type_scale(t, other, scr)}</div>'
                 f'<div class="panel"><h3>弹窗 · {MODE_NAME[desk_mode]}</h3>{dialog(scr, desk_mode, app)}'
                 f'<div class="note2">elevated、圆角 16、elev-3、遮罩 scrim；primary 填充只用在弹窗和表单的确认上</div></div></div>')
-    pal = f'<div class="palette">{swatches(t, scr)}</div>{media_strip(t)}'
+    pal = f'{brand_row(t, screen, icon, app)}<div class="palette">{swatches(t, scr)}</div>{media_strip(t)}'
     measure = f'<div class="measure">{measure_phones(screen, icon)}</div>'
     css = (fonts_css + "\n" + theme_css + "\n" + CSS.replace("@@W@@", str(BOARD_W)) + m3_css(t) + icon.css() + Photos.css())
     return (f'<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><style>{css}</style></head>'
@@ -2265,7 +2459,7 @@ def embed(css_url, tag, family, keep=None):
 def fonts(html, offline=False):
     """@font-face rules for the sheet, and a note on what was used"""
     if offline:
-        return "", "字体：本机（离线）", False
+        return "", "字体：本机（离线；界面图标退回 Lucide 线性 2.25 px）", False
     rules, miss = [], []
     q = urllib.parse.quote
     try:  # the family name theme.css asks for first
@@ -2292,9 +2486,10 @@ def fonts(html, offline=False):
         rules += embed(GF + "Noto+Sans+SC:wght@100..900&text=" + q(chars), tag, "Noto Sans SC")
     except Exception as e:
         miss.append(f"Noto Sans SC（{e}）")
-    note = "字体 Inter 可变 + Noto Sans SC（iPhone 屏用 Inter 代替 SF Pro），Android 屏 Roboto Flex + Material Symbols Rounded 300"
+    note = "字体 Inter 可变 + Noto Sans SC（iPhone 屏用 Inter 代替 SF Pro），Android 屏 Roboto Flex；界面图标 Material Symbols Rounded 实心 500（iPhone 屏代替 SF Symbols .fill）"
     if miss:
-        note = "字体缺 " + "、".join(m.split("（")[0] for m in miss) + "，用本机字体代替"
+        note = "字体缺 " + "、".join(m.split("（")[0] for m in miss) + "，用本机字体代替" + (
+            "；界面图标退回 Lucide 线性 2.25 px" if not msr else "")
         print("fonts: missing " + "; ".join(miss))
     return "\n".join(rules), note, msr
 
@@ -2329,7 +2524,7 @@ PHONES = """() => [...document.querySelectorAll('.board [data-label]')].map((s, 
   return {label: s.dataset.label, conversion: s.hasAttribute('data-conversion')}; })"""
 # the accent area is measured with photos, canvases and generated images hidden: what shows through is the neutral page
 # or canvas, and the checks and outlines drawn over the photos still count
-HIDE_PHOTOS = "[data-photo] { visibility: hidden !important; }"
+HIDE_PHOTOS = "[data-photo], [data-brand] { visibility: hidden !important; }"
 # full-screen pages and sheets whose content must end above the home indicator (iOS) or the gesture bar (Android):
 # the last child's bottom against the container's bottom padding
 SAFE = """() => [...document.querySelectorAll('.board [data-label]')].flatMap(s =>
@@ -2411,6 +2606,8 @@ def main():
                     help="sample screen: timer (default), notes, list, editor or chat")
     ap.add_argument("--icon", metavar="PNG", help="app icon, rian-app-icon's <name>-1024.png (default appearance)")
     ap.add_argument("--icon-dark", metavar="PNG", help="dark app icon for the dark UI, render.py --variants' <name>-dark.png (default: --icon)")
+    ap.add_argument("--mark", metavar="PNG|SVG", help="the icon's subject for brand art, render.py --variants' <name>-mark.png "
+                    "(default: the <name>-mark.png next to --icon, else keyed out of --icon)")
     ap.add_argument("--desktop", action="store_true", help="add the desktop window, its type scale and a dialog (timer, notes and list)")
     ap.add_argument("--desktop-mode", choices=("dark", "light"), default="dark", help="mode of the desktop window (default dark)")
     ap.add_argument("--offline", action="store_true", help="skip Google Fonts and use the locally installed fonts")
@@ -2421,12 +2618,14 @@ def main():
 
     t = json.load(open(os.path.join(a.out, "tokens.json"), encoding="utf-8"))
     theme_css = open(os.path.join(a.out, "theme.css"), encoding="utf-8").read()
-    for p in (a.icon, a.icon_dark):
+    for p in (a.icon, a.icon_dark, a.mark):
         if p and not os.path.isfile(p):
             sys.exit(f"icon not found: {p}")
     s = t["source"]
     tones = PALETTE["accent"].get(s.get("icon-accent", s["accent"]), PALETTE["accent"]["蓝"])["tones"]
     icon = AppIcon(a.icon, a.icon_dark, tones)
+    Dk = t["color"]["dark"]
+    Brand.mark = BrandMark(a.mark, a.icon, (Dk["brand-accent-light"], Dk["brand-accent"]))
 
     draft = page(t, theme_css, a.screen, icon, a.desktop_mode, a.desktop)  # collects the characters and symbols in use
     fonts_css, note, Glyphs.msr = fonts(draft, a.offline)
@@ -2487,7 +2686,7 @@ def main():
         print("  INFO incl. the selected tint: " + ", ".join(f"{r[0]} {r[3]:.1f}%" for r in group))
         media = [r for r in group if r[4] - r[2] >= 0.5]
         if media:
-            print("  INFO with the photos counted: " + ", ".join(f"{r[0]} {r[4]:.1f}%" for r in media))
+            print("  INFO with the photos and brand art counted: " + ", ".join(f"{r[0]} {r[4]:.1f}%" for r in media))
     pushed = [f"{label} +{px} px" for label, px in safe if px > 0]
     fails += bool(pushed)
     print(f"safe area: {len(safe)} pages and sheets, " + (", ".join(pushed) + " into the home indicator or gesture bar  FAIL"

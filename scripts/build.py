@@ -22,6 +22,12 @@ dark pages in every scheme): four chroma-0 canvas steps, the transparency checke
 handles and guides, the video scrubber's track and the media selection outline; white controls are checked on the scrim
 over a white photo, and the scrubber's white played part on its track there.
 
+Brand surfaces (onboarding and paywall hero, empty-state art, the about tile, launch screen, export-complete page) carry
+the app icon's own material in every scheme: its graphite base gradient, its light body and its own accent (the icon
+accent before it is mapped to the UI primary, so a coral icon keeps coral there). on-brand and on-brand-2 are the dark
+scheme's text and text-2 of the same contrast level (a brand panel is a dark island in a light page) and are checked on
+both ends of the gradient, as are the primary fill and the brand accent.
+
 The script prints the contrast matrix of every scheme. If any pair falls short, or a high-contrast
 row is lower than its standard row, it exits with status 1 and writes nothing.
 """
@@ -57,7 +63,10 @@ ORDER = ["canvas", "bg", "surface", "surface-2", "surface-3", "elevated", "menu-
          "in-progress", "hover", "pressed", "disabled-fg", "disabled-bg", "scrim", "scrim-menu",
          "frost", "frost-border", "frost-highlight", "inverse-surface", "on-inverse", "inverse-primary",
          "media-black", "media-dark", "media-mid", "media-white", "checker-a", "checker-b",
-         "on-media", "viewer-scrim", "media-edge", "media-guide", "media-track", "media-selected"]
+         "on-media", "viewer-scrim", "media-edge", "media-guide", "media-track", "media-selected",
+         "brand-surface-top", "brand-surface-bottom", "on-brand", "on-brand-2", "brand-body-top", "brand-body-bottom",
+         "brand-accent-light", "brand-accent"]
+BRAND = PALETTE["brand"]
 
 
 # ---------- colour maths ----------
@@ -314,7 +323,8 @@ def derive(name, accent=None, category=None):
         print(f"note: the icon accent {find(accent)[0]} and the category {cat[0]} ({cat[1]['en']}) give different UI primaries; "
               f"following the icon (the app icon and its UI stay one family)")
     ak, a = find(accent or (cat[1]["icon"] if cat else DEFAULT_ACCENT))
-    source = {"accent": ak, "en": a["en"], **({"category": cat[0]} if cat else {})}
+    brand = a["tones"]  # the icon's own accent, before the UI mapping: it stays at brand positions
+    source = {"accent": ak, "en": a["en"], "brand-accent": ak, **({"category": cat[0]} if cat else {})}
     ui = a.get("ui_primary", ak)
     if ui != ak:
         why = ("a warm accent" if a.get("warm") else
@@ -337,6 +347,15 @@ def derive(name, accent=None, category=None):
         for mode, other in (("light", "dark"), ("dark", "light")):
             C, O = colors[key(mode, level)], colors[key(other, level)]
             C["inverse-surface"], C["on-inverse"], C["inverse-primary"] = O["surface-3"], O["text"], O["primary-text"]
+        # brand surfaces: the icon's graphite, body and accent, the same in light and dark; text on them is the dark
+        # scheme's (a brand panel is a dark island in a light page)
+        D = colors[key("dark", level)]
+        for mode in MODES:
+            C = colors[key(mode, level)]
+            C["brand-surface-top"], C["brand-surface-bottom"] = BRAND["surface"]
+            C["on-brand"], C["on-brand-2"] = D["text"], D["text-2"]
+            C["brand-body-top"], C["brand-body-bottom"] = BRAND["body"]
+            C["brand-accent-light"], C["brand-accent"] = brand
     colors = {k: {t: colors[k][t] for t in ORDER} for k in (key(m, lv) for lv in LEVELS for m in MODES)}
 
     return {
@@ -356,19 +375,25 @@ def derive(name, accent=None, category=None):
             "view-header": 44, "filter-bar": 36, "kbd": 18,
             "media": MEDIA_SIZE,
             "prompt": {"min": 48, "max-lines": 6},
+            "brand": {"tile-radius": BRAND["tile_radius"], **{f"mark-{k}": v for k, v in BRAND["mark"].items()}},
         },
         "font": FONT,
         "elevation": ELEVATION,
         "motion": MOTION,
         "haptic": HAPTIC,
         "gradient": {"viewer-scrim": {"color": PALETTE["media"]["alpha"]["viewer-scrim"][0],
-                                      "stops": PALETTE["media"]["scrim_stops"]}},
+                                      "stops": PALETTE["media"]["scrim_stops"]},
+                     # top -> bottom, like the icon: the base over the panel's height, the accent over its piece
+                     "brand-surface": ["brand-surface-top", "brand-surface-bottom"],
+                     "brand-body": ["brand-body-top", "brand-body-bottom"],
+                     "brand-accent": ["brand-accent-light", "brand-accent"]},
         "blur": {"frost": 24, "saturate": 1.5,
                  "opacity": {"standard": PALETTE["alpha"]["light"]["frost"][1], "high": PALETTE["alpha"]["frost_high"]}},
-        "icon": {"size": {"sm": 16, "md": 20, "lg": 24}, "stroke": 1.5, "non-scaling": True,
-                 "web": "Lucide, stroke-width 1.5 with vector-effect: non-scaling-stroke",
-                 "ios": "SF Symbols, weight .regular",
-                 "android": "Material Symbols Rounded, weight 300, fill 0, grade 0, optical size 24"},
+        # solid, like the icon's pieces: filled glyphs at a medium-heavy weight, never thin outlines
+        "icon": {"size": {"sm": 16, "md": 20, "lg": 24}, "style": "filled", "fill": 1, "weight": 500,
+                 "web": "Material Symbols Rounded, FILL 1, wght 500, GRAD 0, opsz 20 (24 px: opsz 24)",
+                 "ios": "SF Symbols, .fill variant, weight .semibold",
+                 "android": "Material Symbols Rounded, FILL 1, weight 500, grade 0, optical size 24"},
     }
 
 
@@ -546,13 +571,20 @@ def audit(t):
                     checks += [(f"primary-text / {b}", C["primary-text"], C[b], acc),
                                (f"media-selected / {b}", C["media-selected"], C[b], NON_TEXT),
                                (f"playhead primary / {b}", C["primary"], C[b], NON_TEXT)]
+            # brand surfaces: text, the primary fill and the brand accent on both ends of the icon's graphite gradient
+            for b in ("brand-surface-top", "brand-surface-bottom"):
+                checks += [(f"on-brand / {b}", C["on-brand"], C[b], N["text"][0]),
+                           (f"on-brand-2 / {b}", C["on-brand-2"], C[b], N["text-2"][0]),
+                           (f"primary / {b}", C["primary"], C[b], NON_TEXT),
+                           (f"focus (dark) / {b}", t["color"][key("dark", level)]["focus"], C[b], NON_TEXT),
+                           (f"brand-accent / {b}", C["brand-accent"], C[b], NON_TEXT)]
             row = []
             for label, f, b, need in checks:
                 r = contrast(f, b)
                 row.append(f"{label} {r:.2f}{'!' if r < need else ''}")
                 if r < need:
                     fails.append(f"{k}: {label} {r:.2f} < {need:g}")
-            out.append("  pairs (on-* and fills 4.5; borders, focus, slider fill, scrubber, media outline and playhead 3; the rest as the matrix):")
+            out.append("  pairs (on-* and fills 4.5; borders, focus, slider fill, scrubber, media outline, playhead, brand accent 3; on-brand as text / text-2; the rest as the matrix):")
             for i in range(0, len(row), 4):
                 out.append("    " + "   ".join(row[i:i + 4]))
     # the viewer scrim holds at least the checked opacity under the controls: every stop but the last, which fades out
@@ -661,7 +693,7 @@ def css(t):
     common += [f"  --m-{k}-exit: {v}ms;" for k, v in M["exit"].items()]
     common += [f"  --ease-{k}: cubic-bezier({', '.join(num(x) for x in v)});" for k, v in M["ease"].items()]
     common += [f"  --icon-{k}: {v}px;" for k, v in t["icon"]["size"].items()]
-    common.append(f"  --icon-stroke: {t['icon']['stroke']};")
+    common += [f"  --icon-fill: {t['icon']['fill']};", f"  --icon-weight: {t['icon']['weight']};"]
     common += [f"  --frost-blur: {t['blur']['frost']}px;", f"  --frost-saturate: {t['blur']['saturate']};"]
     G = t["gradient"]["viewer-scrim"]
     stops = ", ".join(f"{rgba(G['color'], o)} {p * 100:g}%" for p, o in G["stops"])
@@ -669,6 +701,12 @@ def css(t):
                f"  --viewer-scrim-top: linear-gradient(to bottom, {stops});",
                f"  --viewer-scrim-bottom: linear-gradient(to top, {stops});",
                "  --checker-image: repeating-conic-gradient(var(--c-checker-a) 0 25%, var(--c-checker-b) 0 50%);"]
+    B = S["brand"]
+    common += ["  /* brand surfaces (onboarding and paywall hero, empty-state art, about tile, launch screen, export-complete page):\n"
+               "     the app icon's graphite, top-lit like the icon, the same in light and dark; the icon's own accent only there */"]
+    common += [f"  --{g}: linear-gradient(to bottom, var(--c-{a}), var(--c-{b}));" for g, (a, b) in t["gradient"].items() if g.startswith("brand")]
+    common += [f"  --brand-tile-radius: {B['tile-radius'] * 100:g}%;"]
+    common += [f"  --brand-{k}: {v}px;" for k, v in B.items() if k.startswith("mark")]
     common.append("  /* gestures, for your scripts: zoom range from fit, pan momentum per ms, rubber band, viewer dismissal\n"
                   "     (share of the height, pt/s), slider and dial detent (share of the range) */")
     common += [f"  --gesture-{k}: {num(v)};" for k, v in M["gesture"].items()]
@@ -781,14 +819,31 @@ textarea.input { height: auto; min-height: var(--control-h-lg); padding: 6px 10p
     out.append("""/* tabular digits for amounts, times and counts. !important because a font shorthand (the styles above, or your
    own font: var(--td-*)) resets font-variant-numeric, so class="td-caption num" would otherwise lose it */
 .num { font-variant-numeric: tabular-nums !important; }""")
-    out.append("""/* line icons: Lucide, 1.5 px at every size; default text-3, clickable accents primary-text */
-.icon { width: var(--icon-sm); height: var(--icon-sm); flex: none; fill: none; stroke: currentColor;
-  stroke-width: var(--icon-stroke); stroke-linecap: round; stroke-linejoin: round; color: var(--c-text-3); }
-.icon * { vector-effect: non-scaling-stroke; }
-.icon.md { width: var(--icon-md); height: var(--icon-md); }
-.icon.lg { width: var(--icon-lg); height: var(--icon-lg); }
-.icon.xl { width: var(--icon-lg); height: var(--icon-lg); } /* old name (28 px), kept for one version */
-.is-active > .icon, .icon.active { color: var(--c-primary-text); }""")
+    out.append("""/* icons are solid, like the app icon's pieces: Material Symbols Rounded, FILL 1, weight 500, as a ligature
+   (<span class="icon">home</span>; load the font from Google Fonts), or a filled SVG (<svg class="icon">) that takes
+   currentColor; default text-3, clickable accents primary-text */
+.icon { width: var(--icon-sm); height: var(--icon-sm); flex: none; color: var(--c-text-3); display: inline-block;
+  font-family: "Material Symbols Rounded"; font-size: var(--icon-sm); line-height: 1; font-style: normal; font-weight: normal;
+  overflow: hidden; white-space: nowrap; font-feature-settings: "liga";
+  font-variation-settings: "FILL" var(--icon-fill), "wght" var(--icon-weight), "GRAD" 0, "opsz" 20; }
+svg.icon { fill: currentColor; stroke: none; }
+.icon.md { width: var(--icon-md); height: var(--icon-md); font-size: var(--icon-md); }
+.icon.lg { width: var(--icon-lg); height: var(--icon-lg); font-size: var(--icon-lg);
+  font-variation-settings: "FILL" var(--icon-fill), "wght" var(--icon-weight), "GRAD" 0, "opsz" 24; }
+.icon.xl { width: var(--icon-lg); height: var(--icon-lg); font-size: var(--icon-lg); } /* old name (28 px), kept for one version */
+.is-active > .icon, .icon.active { color: var(--c-primary-text); }
+/* old Lucide line icons, kept for one version: rename class="icon" to "icon-line" until they are replaced */
+.icon-line { width: var(--icon-sm); height: var(--icon-sm); flex: none; fill: none; stroke: currentColor; stroke-width: 1.5;
+  stroke-linecap: round; stroke-linejoin: round; color: var(--c-text-3); }
+.icon-line * { vector-effect: non-scaling-stroke; }""")
+    out.append("""/* brand surfaces: the icon's graphite with its top light. A panel is a dark island in a light page: write
+   <div class="brand-panel" data-theme="dark"> so the text and controls inside take the dark tokens (on-brand is the
+   dark text). A brand tile (about page, launch screen, the icon's mark on a square) has the iOS icon corner, 22.37 %
+   of its side. The brand accent fills only the art (the icon's accent piece, a category dot), never a control. */
+.brand-panel { background: var(--brand-surface); color: var(--c-on-brand); border-radius: var(--r-xl); }
+.brand-tile { aspect-ratio: 1; background: var(--brand-surface); border-radius: var(--brand-tile-radius); }
+.brand-mark { display: block; height: var(--brand-mark-hero); width: auto; }
+.brand-mark.empty { height: var(--brand-mark-empty); }""")
     out.append("@media (prefers-reduced-motion: reduce) {\n  /* no movement or scaling: every duration goes to 0 */\n  :root {\n"
                + "\n".join(f"    --m-{k}: 0ms;" for k in M["duration"]) + "\n"
                + "\n".join(f"    --m-{k}-exit: 0ms;" for k in M["exit"]) + "\n  }\n}")
@@ -851,6 +906,9 @@ extension Color {
 /// transparency checkerboard, onMedia the white controls on viewerScrim, mediaEdge the dark edge under white handles,
 /// mediaGuide the white guides (thirds grid, waveform), mediaTrack the video scrubber's track (its played part is
 /// onMedia, not the primary: the primary falls short over a bright frame), mediaSelected the outline of a selected picture.
+/// Brand surfaces carry the app icon's material, the same in every scheme: brandSurfaceTop / Bottom its graphite base,
+/// brandBodyTop / Bottom its light pieces, brandAccentLight / brandAccent its own accent (only in brand art, never on a
+/// control); onBrand / onBrand2 are the text on them. Use them through Brand below.
 enum Palette {
 @@palette@@
 
@@ -936,12 +994,41 @@ enum Haptic {
     }
 }
 
-/// Icons: SF Symbols at .regular weight; default colour Palette.text3, clickable accents Palette.primaryText.
+/// Icons are solid, like the app icon's pieces: SF Symbols' .fill variant at .semibold. Put .symbolVariant(Icon.variant)
+/// on the root view once, and size single icons with .appIcon(); default colour Palette.text3, clickable accents
+/// Palette.primaryText.
 enum Icon {
     static let sm: CGFloat = @@icon_sm@@
     static let md: CGFloat = @@icon_md@@
     static let lg: CGFloat = @@icon_lg@@
-    static let weight: Font.Weight = .regular
+    static let weight: Font.Weight = .semibold
+    static let variant: SymbolVariants = .fill
+}
+
+/// Brand surfaces: the onboarding and paywall hero, empty-state art, the about tile, the launch screen and the
+/// export-complete page carry the app icon's material in light and dark mode alike: its graphite base lit from the top,
+/// its light body and its own accent. The working screens stay as they are. A panel is a dark island: .brandPanel()
+/// sets the dark colour scheme inside it. A tile (about page, launch screen) has the icon's corner, 22.37 % of its side.
+enum Brand {
+    static let surface = LinearGradient(colors: [Palette.brandSurfaceTop, Palette.brandSurfaceBottom], startPoint: .top, endPoint: .bottom)
+    static let body = LinearGradient(colors: [Palette.brandBodyTop, Palette.brandBodyBottom], startPoint: .top, endPoint: .bottom)
+    static let accent = LinearGradient(colors: [Palette.brandAccentLight, Palette.brandAccent], startPoint: .top, endPoint: .bottom)
+    static let tileRadius: CGFloat = @@tile_radius@@
+    /// the icon mark's height: hero art (onboarding, paywall, consent), empty states; below markMin show the app icon
+    static let markHero: CGFloat = @@mark_hero@@
+    static let markEmpty: CGFloat = @@mark_empty@@
+    static let markMin: CGFloat = @@mark_min@@
+}
+
+struct BrandPanel: ViewModifier {
+    var radius: CGFloat
+
+    func body(content: Content) -> some View {
+        content
+            .foregroundStyle(Palette.onBrand)
+            .environment(\\.colorScheme, .dark)
+            .background(Brand.surface, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+    }
 }
 
 /// elev-2 (menus, popovers, toasts, floating bars) and elev-3 (sheets, dialogs, the command menu), as in theme.css:
@@ -1160,6 +1247,16 @@ extension View {
     func kbd() -> some View { modifier(Kbd()) }
     func keyboardLayer() -> some View { modifier(KeyboardLayer()) }
     func mediaSelected(_ selected: Bool) -> some View { modifier(MediaSelected(selected: selected)) }
+    /// a brand panel: the icon's graphite, top-lit, dark inside; radius 0 for a full-bleed header
+    func brandPanel(radius: CGFloat = Radius.xl) -> some View { modifier(BrandPanel(radius: radius)) }
+    /// a square brand tile of `side` with the app icon's corner (continuous, 22.37 % of the side)
+    func brandTile(_ side: CGFloat) -> some View {
+        frame(width: side, height: side)
+            .background(Brand.surface, in: RoundedRectangle(cornerRadius: side * Brand.tileRadius, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: side * Brand.tileRadius, style: .continuous))
+    }
+    /// a solid SF Symbol at the icon weight
+    func appIcon(_ size: CGFloat = Icon.md) -> some View { symbolVariant(Icon.variant).font(.system(size: size, weight: Icon.weight)) }
     /// Long text (notes, descriptions, Chinese paragraphs): the body style with @@long_spacing@@ pt between lines.
     func longText() -> some View { font(.longText).lineSpacing(@@long_spacing@@) }
     /// Put it on a background shape, never on a view with text in it.
@@ -1221,6 +1318,8 @@ def swift(t):
         spring_response=num(M["ios"]["spring"]["response"]), spring_damping=num(M["ios"]["spring"]["dampingFraction"]),
         motion="\n".join(mot),
         icon_sm=t["icon"]["size"]["sm"], icon_md=t["icon"]["size"]["md"], icon_lg=t["icon"]["size"]["lg"],
+        tile_radius=num(S["brand"]["tile-radius"]), mark_hero=S["brand"]["mark-hero"], mark_empty=S["brand"]["mark-empty"],
+        mark_min=S["brand"]["mark-min"],
         shadows="\n".join(shadows),
         frost_pct=round(t["blur"]["opacity"]["standard"] * 100), frost_hc_pct=round(t["blur"]["opacity"]["high"] * 100),
         kbd=S["kbd"],
@@ -1263,7 +1362,9 @@ EXTENDED = ["canvas", "surface", "surface-2", "surface-3", "elevated", "menu-act
             "info", "on-info", "info-container", "in-progress", "hover", "pressed", "disabled-fg", "disabled-bg",
             "scrim", "scrim-menu", "frost", "frost-border", "frost-highlight",
             "media-black", "media-dark", "media-mid", "media-white", "checker-a", "checker-b",
-            "on-media", "viewer-scrim", "media-edge", "media-guide", "media-track", "media-selected"]
+            "on-media", "viewer-scrim", "media-edge", "media-guide", "media-track", "media-selected",
+            "brand-surface-top", "brand-surface-bottom", "on-brand", "on-brand-2", "brand-body-top", "brand-body-bottom",
+            "brand-accent-light", "brand-accent"]
 KT_NAME = {"primary": "primaryFill", "on-primary": "onPrimaryFill", "primary-hover": "primaryFillHover",
            "primary-pressed": "primaryFillPressed"}
 
@@ -1282,6 +1383,7 @@ import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -1296,6 +1398,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -1310,12 +1413,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalConfiguration
@@ -1431,7 +1536,9 @@ object IconSize {
     val sm = @@icon_sm@@.dp
     val md = @@icon_md@@.dp
     val lg = @@icon_lg@@.dp
-    const val WEIGHT = 300
+    /** solid, like the app icon's pieces: Material Symbols Rounded with FILL 1 and weight 500 */
+    const val WEIGHT = @@icon_weight@@
+    const val FILL = @@icon_fill@@
 }
 
 /** Corner radii; tags and avatars are TagShape (CircleShape). */
@@ -1606,6 +1713,38 @@ fun AppTheme(
     val typography = remember(fontFamily) { appTypography(fontFamily) }
     CompositionLocalProvider(LocalExtendedColors provides extended) {
         MaterialTheme(colorScheme = colors, shapes = AppShapes, typography = typography, content = content)
+    }
+}
+
+/** Brand surfaces: the onboarding and paywall hero, empty-state art, the about tile, the launch screen and the
+ *  export-complete page carry the app icon's material in light and dark mode alike: its graphite base lit from the top
+ *  (brandSurfaceTop -> brandSurfaceBottom), its light body and its own accent (brandAccentLight -> brandAccent: brand
+ *  art only, never a control). The working screens stay as they are. A tile has the iOS icon corner, 22.37 % of its side. */
+object Brand {
+    fun surface(colors: ExtendedColors) = Brush.verticalGradient(listOf(colors.brandSurfaceTop, colors.brandSurfaceBottom))
+    fun body(colors: ExtendedColors) = Brush.verticalGradient(listOf(colors.brandBodyTop, colors.brandBodyBottom))
+    fun accent(colors: ExtendedColors) = Brush.verticalGradient(listOf(colors.brandAccentLight, colors.brandAccent))
+    val TileShape = RoundedCornerShape(CornerSize(@@tile_pct@@f))
+    /** the icon mark's height: hero art (onboarding, paywall, consent), empty states; below markMin show the app icon */
+    val markHero = @@mark_hero@@.dp
+    val markEmpty = @@mark_empty@@.dp
+    val markMin = @@mark_min@@.dp
+}
+
+/** A brand panel: the icon's graphite, a dark island in a light page (text and controls inside take the dark scheme;
+ *  onBrand is its text). Pass RectangleShape for a full-bleed header. */
+@Composable
+fun BrandPanel(
+    modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(Radius.xl),
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val hc = isSystemHighContrast()
+    CompositionLocalProvider(LocalExtendedColors provides if (hc) DarkHighContrastExtendedColors else DarkExtendedColors) {
+        MaterialTheme(colorScheme = if (hc) DarkHighContrastColors else DarkColors, shapes = MaterialTheme.shapes,
+                      typography = MaterialTheme.typography) {
+            Column(modifier.clip(shape).background(Brand.surface(AppTheme.colors)), content = content)
+        }
     }
 }
 
@@ -1874,6 +2013,9 @@ def kotlin(t):
         frost_pct=round(t["blur"]["opacity"]["standard"] * 100), frost_hc_pct=round(t["blur"]["opacity"]["high"] * 100),
         blur=t["blur"]["frost"], saturate=num(t["blur"]["saturate"]),
         icon_sm=t["icon"]["size"]["sm"], icon_md=t["icon"]["size"]["md"], icon_lg=t["icon"]["size"]["lg"],
+        icon_weight=t["icon"]["weight"], icon_fill=t["icon"]["fill"],
+        tile_pct=num(S["brand"]["tile-radius"] * 100), mark_hero=S["brand"]["mark-hero"], mark_empty=S["brand"]["mark-empty"],
+        mark_min=S["brand"]["mark-min"],
         radius="\n".join(f"    val {k} = {v}.dp" for k, v in r.items() if k != "full"),
         space="\n".join(f"    val s{k.replace('.', '_')} = {v}.dp" for k, v in t["space"].items()),
         hit=S["hit-min"]["android"],
@@ -1929,7 +2071,9 @@ def tailwind(t):
 // drawn over the picture (a ring is an inset shadow, which an <img> covers), never a tint; theme.css's .media-selected
 // is the same. text-timecode is the phone timecode size: add tabular-nums. The kbd hints and hover are an optional
 // layer: theme.css hides .kbd on touch screens, and future.hoverOnlyWhenSupported keeps hover: off touch screens (a
-// future block in your own config replaces this one: add the flag there).
+// future block in your own config replaces this one: add the flag there). Brand surfaces: bg-brand-surface with
+// rounded-xl (a panel; add data-theme="dark" so the text inside is the dark set) or aspect-square rounded-brand-tile
+// (the icon's 22.37 % corner); the brand-accent colours are for brand art only, never for a control.
 module.exports = {{
   future: {{ hoverOnlyWhenSupported: true }},
   theme: {{
@@ -1945,7 +2089,8 @@ module.exports = {{
       ringOffsetWidth: {{ DEFAULT: '2px' }},
       ringOffsetColor: {{ DEFAULT: 'var(--c-bg)' }},
       borderRadius: {{
-{radius}
+{radius},
+        'brand-tile': 'var(--brand-tile-radius)'
       }},
       fontSize: {{
 {sizes},
@@ -1960,7 +2105,8 @@ module.exports = {{
       minWidth: {{ hit: 'var(--hit-min)', kbd: 'var(--kbd-h)' }},
       width: {{ {', '.join(widths)} }},
       gap: {{ thumb: 'var(--thumb-gap)' }},
-      backgroundImage: {{ checker: 'var(--checker-image)', 'viewer-scrim-top': 'var(--viewer-scrim-top)', 'viewer-scrim-bottom': 'var(--viewer-scrim-bottom)' }},
+      backgroundImage: {{ checker: 'var(--checker-image)', 'viewer-scrim-top': 'var(--viewer-scrim-top)', 'viewer-scrim-bottom': 'var(--viewer-scrim-bottom)',
+        'brand-surface': 'var(--brand-surface)', 'brand-body': 'var(--brand-body)', 'brand-accent-fill': 'var(--brand-accent)' }},
       backgroundSize: {{ checker: 'calc(2 * var(--checker-size)) calc(2 * var(--checker-size))' }},
     }},
   }},
@@ -1995,6 +2141,9 @@ def main():
     for k, C in t["color"].items():
         print(f"{k:9} primary {C['primary']}  primary-text {C['primary-text']}  text {C['text']}  "
               f"text-2 {C['text-2']}  text-3 {C['text-3']}  placeholder {C['text-placeholder']}")
+    C = t["color"]["dark"]
+    print(f"brand     surface {C['brand-surface-top']} -> {C['brand-surface-bottom']}  accent {t['source']['brand-accent']} "
+          f"{C['brand-accent-light']} -> {C['brand-accent']} (brand art only; controls use primary)")
     print("wrote", ", ".join(files), "to", a.out)
     print(near_summary(near))
     print("contrast: all pass (standard, high)")

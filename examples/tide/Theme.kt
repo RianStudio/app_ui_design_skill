@@ -13,6 +13,7 @@ import androidx.compose.animation.core.SpringSpec
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -27,6 +28,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -41,12 +43,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalConfiguration
@@ -289,6 +293,14 @@ data class ExtendedColors(
     val mediaGuide: Color,
     val mediaTrack: Color,
     val mediaSelected: Color,
+    val brandSurfaceTop: Color,
+    val brandSurfaceBottom: Color,
+    val onBrand: Color,
+    val onBrand2: Color,
+    val brandBodyTop: Color,
+    val brandBodyBottom: Color,
+    val brandAccentLight: Color,
+    val brandAccent: Color,
 )
 
 val LightExtendedColors = ExtendedColors(
@@ -342,6 +354,14 @@ val LightExtendedColors = ExtendedColors(
     mediaGuide = Color(0x80FFFFFF),
     mediaTrack = Color(0x3DFFFFFF),
     mediaSelected = Color(0xFF0064CD),
+    brandSurfaceTop = Color(0xFF26282B),
+    brandSurfaceBottom = Color(0xFF191C1F),
+    onBrand = Color(0xFFF2F4F7),
+    onBrand2 = Color(0xFFBFC1C4),
+    brandBodyTop = Color(0xFFF8F9FB),
+    brandBodyBottom = Color(0xFFC6C8CB),
+    brandAccentLight = Color(0xFFFF9C86),
+    brandAccent = Color(0xFFEC5B45),
 )
 
 val DarkExtendedColors = ExtendedColors(
@@ -395,6 +415,14 @@ val DarkExtendedColors = ExtendedColors(
     mediaGuide = Color(0x80FFFFFF),
     mediaTrack = Color(0x3DFFFFFF),
     mediaSelected = Color(0xFF6E97FF),
+    brandSurfaceTop = Color(0xFF26282B),
+    brandSurfaceBottom = Color(0xFF191C1F),
+    onBrand = Color(0xFFF2F4F7),
+    onBrand2 = Color(0xFFBFC1C4),
+    brandBodyTop = Color(0xFFF8F9FB),
+    brandBodyBottom = Color(0xFFC6C8CB),
+    brandAccentLight = Color(0xFFFF9C86),
+    brandAccent = Color(0xFFEC5B45),
 )
 
 val LightHighContrastExtendedColors = ExtendedColors(
@@ -448,6 +476,14 @@ val LightHighContrastExtendedColors = ExtendedColors(
     mediaGuide = Color(0x80FFFFFF),
     mediaTrack = Color(0x3DFFFFFF),
     mediaSelected = Color(0xFF004CA0),
+    brandSurfaceTop = Color(0xFF26282B),
+    brandSurfaceBottom = Color(0xFF191C1F),
+    onBrand = Color(0xFFFFFFFF),
+    onBrand2 = Color(0xFFE3E5E8),
+    brandBodyTop = Color(0xFFF8F9FB),
+    brandBodyBottom = Color(0xFFC6C8CB),
+    brandAccentLight = Color(0xFFFF9C86),
+    brandAccent = Color(0xFFEC5B45),
 )
 
 val DarkHighContrastExtendedColors = ExtendedColors(
@@ -501,6 +537,14 @@ val DarkHighContrastExtendedColors = ExtendedColors(
     mediaGuide = Color(0x80FFFFFF),
     mediaTrack = Color(0x3DFFFFFF),
     mediaSelected = Color(0xFFADBDFF),
+    brandSurfaceTop = Color(0xFF26282B),
+    brandSurfaceBottom = Color(0xFF191C1F),
+    onBrand = Color(0xFFFFFFFF),
+    onBrand2 = Color(0xFFE3E5E8),
+    brandBodyTop = Color(0xFFF8F9FB),
+    brandBodyBottom = Color(0xFFC6C8CB),
+    brandAccentLight = Color(0xFFFF9C86),
+    brandAccent = Color(0xFFEC5B45),
 )
 
 @Deprecated("Renamed to hover; kept for one version", ReplaceWith("hover"))
@@ -547,7 +591,9 @@ object IconSize {
     val sm = 16.dp
     val md = 20.dp
     val lg = 24.dp
-    const val WEIGHT = 300
+    /** solid, like the app icon's pieces: Material Symbols Rounded with FILL 1 and weight 500 */
+    const val WEIGHT = 500
+    const val FILL = 1
 }
 
 /** Corner radii; tags and avatars are TagShape (CircleShape). */
@@ -790,6 +836,38 @@ fun AppTheme(
     val typography = remember(fontFamily) { appTypography(fontFamily) }
     CompositionLocalProvider(LocalExtendedColors provides extended) {
         MaterialTheme(colorScheme = colors, shapes = AppShapes, typography = typography, content = content)
+    }
+}
+
+/** Brand surfaces: the onboarding and paywall hero, empty-state art, the about tile, the launch screen and the
+ *  export-complete page carry the app icon's material in light and dark mode alike: its graphite base lit from the top
+ *  (brandSurfaceTop -> brandSurfaceBottom), its light body and its own accent (brandAccentLight -> brandAccent: brand
+ *  art only, never a control). The working screens stay as they are. A tile has the iOS icon corner, 22.37 % of its side. */
+object Brand {
+    fun surface(colors: ExtendedColors) = Brush.verticalGradient(listOf(colors.brandSurfaceTop, colors.brandSurfaceBottom))
+    fun body(colors: ExtendedColors) = Brush.verticalGradient(listOf(colors.brandBodyTop, colors.brandBodyBottom))
+    fun accent(colors: ExtendedColors) = Brush.verticalGradient(listOf(colors.brandAccentLight, colors.brandAccent))
+    val TileShape = RoundedCornerShape(CornerSize(22.37f))
+    /** the icon mark's height: hero art (onboarding, paywall, consent), empty states; below markMin show the app icon */
+    val markHero = 120.dp
+    val markEmpty = 88.dp
+    val markMin = 64.dp
+}
+
+/** A brand panel: the icon's graphite, a dark island in a light page (text and controls inside take the dark scheme;
+ *  onBrand is its text). Pass RectangleShape for a full-bleed header. */
+@Composable
+fun BrandPanel(
+    modifier: Modifier = Modifier,
+    shape: Shape = RoundedCornerShape(Radius.xl),
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    val hc = isSystemHighContrast()
+    CompositionLocalProvider(LocalExtendedColors provides if (hc) DarkHighContrastExtendedColors else DarkExtendedColors) {
+        MaterialTheme(colorScheme = if (hc) DarkHighContrastColors else DarkColors, shapes = MaterialTheme.shapes,
+                      typography = MaterialTheme.typography) {
+            Column(modifier.clip(shape).background(Brand.surface(AppTheme.colors)), content = content)
+        }
     }
 }
 

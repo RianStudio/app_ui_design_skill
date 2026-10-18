@@ -46,6 +46,9 @@ extension Color {
 /// transparency checkerboard, onMedia the white controls on viewerScrim, mediaEdge the dark edge under white handles,
 /// mediaGuide the white guides (thirds grid, waveform), mediaTrack the video scrubber's track (its played part is
 /// onMedia, not the primary: the primary falls short over a bright frame), mediaSelected the outline of a selected picture.
+/// Brand surfaces carry the app icon's material, the same in every scheme: brandSurfaceTop / Bottom its graphite base,
+/// brandBodyTop / Bottom its light pieces, brandAccentLight / brandAccent its own accent (only in brand art, never on a
+/// control); onBrand / onBrand2 are the text on them. Use them through Brand below.
 enum Palette {
     static let canvas = Color(light: 0xF6F8FA, dark: 0x111215, lightHC: 0xF6F8FA, darkHC: 0x111215)
     static let bg = Color(light: 0xFFFFFF, dark: 0x16181A, lightHC: 0xFFFFFF, darkHC: 0x16181A)
@@ -107,6 +110,14 @@ enum Palette {
     static let mediaGuide = Color(light: 0xFFFFFF, dark: 0xFFFFFF, lightHC: 0xFFFFFF, darkHC: 0xFFFFFF, alpha: (0.5, 0.5, 0.5, 0.5))
     static let mediaTrack = Color(light: 0xFFFFFF, dark: 0xFFFFFF, lightHC: 0xFFFFFF, darkHC: 0xFFFFFF, alpha: (0.24, 0.24, 0.24, 0.24))
     static let mediaSelected = Color(light: 0x00764A, dark: 0x34AF76, lightHC: 0x005B38, darkHC: 0x5FD599)
+    static let brandSurfaceTop = Color(light: 0x26282B, dark: 0x26282B, lightHC: 0x26282B, darkHC: 0x26282B)
+    static let brandSurfaceBottom = Color(light: 0x191C1F, dark: 0x191C1F, lightHC: 0x191C1F, darkHC: 0x191C1F)
+    static let onBrand = Color(light: 0xF2F4F7, dark: 0xF2F4F7, lightHC: 0xFFFFFF, darkHC: 0xFFFFFF)
+    static let onBrand2 = Color(light: 0xBFC1C4, dark: 0xBFC1C4, lightHC: 0xE3E5E8, darkHC: 0xE3E5E8)
+    static let brandBodyTop = Color(light: 0xF8F9FB, dark: 0xF8F9FB, lightHC: 0xF8F9FB, darkHC: 0xF8F9FB)
+    static let brandBodyBottom = Color(light: 0xC6C8CB, dark: 0xC6C8CB, lightHC: 0xC6C8CB, darkHC: 0xC6C8CB)
+    static let brandAccentLight = Color(light: 0x6FD3A6, dark: 0x6FD3A6, lightHC: 0x6FD3A6, darkHC: 0x6FD3A6)
+    static let brandAccent = Color(light: 0x23A36B, dark: 0x23A36B, lightHC: 0x23A36B, darkHC: 0x23A36B)
 
     // old names, kept for one version
     @available(*, deprecated, renamed: "hover") static var stateHover: Color { hover }
@@ -256,12 +267,41 @@ enum Haptic {
     }
 }
 
-/// Icons: SF Symbols at .regular weight; default colour Palette.text3, clickable accents Palette.primaryText.
+/// Icons are solid, like the app icon's pieces: SF Symbols' .fill variant at .semibold. Put .symbolVariant(Icon.variant)
+/// on the root view once, and size single icons with .appIcon(); default colour Palette.text3, clickable accents
+/// Palette.primaryText.
 enum Icon {
     static let sm: CGFloat = 16
     static let md: CGFloat = 20
     static let lg: CGFloat = 24
-    static let weight: Font.Weight = .regular
+    static let weight: Font.Weight = .semibold
+    static let variant: SymbolVariants = .fill
+}
+
+/// Brand surfaces: the onboarding and paywall hero, empty-state art, the about tile, the launch screen and the
+/// export-complete page carry the app icon's material in light and dark mode alike: its graphite base lit from the top,
+/// its light body and its own accent. The working screens stay as they are. A panel is a dark island: .brandPanel()
+/// sets the dark colour scheme inside it. A tile (about page, launch screen) has the icon's corner, 22.37 % of its side.
+enum Brand {
+    static let surface = LinearGradient(colors: [Palette.brandSurfaceTop, Palette.brandSurfaceBottom], startPoint: .top, endPoint: .bottom)
+    static let body = LinearGradient(colors: [Palette.brandBodyTop, Palette.brandBodyBottom], startPoint: .top, endPoint: .bottom)
+    static let accent = LinearGradient(colors: [Palette.brandAccentLight, Palette.brandAccent], startPoint: .top, endPoint: .bottom)
+    static let tileRadius: CGFloat = 0.2237
+    /// the icon mark's height: hero art (onboarding, paywall, consent), empty states; below markMin show the app icon
+    static let markHero: CGFloat = 120
+    static let markEmpty: CGFloat = 88
+    static let markMin: CGFloat = 64
+}
+
+struct BrandPanel: ViewModifier {
+    var radius: CGFloat
+
+    func body(content: Content) -> some View {
+        content
+            .foregroundStyle(Palette.onBrand)
+            .environment(\.colorScheme, .dark)
+            .background(Brand.surface, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+    }
 }
 
 /// elev-2 (menus, popovers, toasts, floating bars) and elev-3 (sheets, dialogs, the command menu), as in theme.css:
@@ -485,6 +525,16 @@ extension View {
     func kbd() -> some View { modifier(Kbd()) }
     func keyboardLayer() -> some View { modifier(KeyboardLayer()) }
     func mediaSelected(_ selected: Bool) -> some View { modifier(MediaSelected(selected: selected)) }
+    /// a brand panel: the icon's graphite, top-lit, dark inside; radius 0 for a full-bleed header
+    func brandPanel(radius: CGFloat = Radius.xl) -> some View { modifier(BrandPanel(radius: radius)) }
+    /// a square brand tile of `side` with the app icon's corner (continuous, 22.37 % of the side)
+    func brandTile(_ side: CGFloat) -> some View {
+        frame(width: side, height: side)
+            .background(Brand.surface, in: RoundedRectangle(cornerRadius: side * Brand.tileRadius, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: side * Brand.tileRadius, style: .continuous))
+    }
+    /// a solid SF Symbol at the icon weight
+    func appIcon(_ size: CGFloat = Icon.md) -> some View { symbolVariant(Icon.variant).font(.system(size: size, weight: Icon.weight)) }
     /// Long text (notes, descriptions, Chinese paragraphs): the body style with 6 pt between lines.
     func longText() -> some View { font(.longText).lineSpacing(6) }
     /// Put it on a background shape, never on a view with text in it.
