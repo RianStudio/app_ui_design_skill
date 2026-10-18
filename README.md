@@ -81,13 +81,20 @@ python3 scripts/build.py --name Ask --category AI -o /tmp/ask && python3 scripts
 ```
 SKILL.md                    工作流程（Claude 读这个）
 references/rules.md         主题规则：颜色和对比度、媒体色组、token、组件用法、编辑和查看、视频、AI、长任务、转化界面、共用外壳和术语表、
-                            命令菜单和键盘层、UX 模式、图标、平台适配、接入方式
+                            命令菜单和键盘层、UX 模式、文案、图标、平台适配、看图自评、接入方式
+references/tells.md         套路登记表：一眼就是「生成的」界面的样子，写日期，只给做法（参考 Taste-Skill）
 assets/palette.json         强调色（与 rian-app-icon 相同）、类别、石墨中性色的 LCh 输入（base、ladder、text、alpha）、媒体色组
 scripts/build.py            强调色 → tokens.json / theme.css / Theme.swift / Theme.kt / tailwind.preset.js（四套颜色，断言对比度）
 scripts/preview.py          对照图：六部手机（样例界面和共用外壳，或编辑器、AI 页面）、组件条、手机字号表、四套色板和媒体色组，
                             可选的桌面窗口；量 frost、查看器遮罩和主色面积
-examples/                   三套示例主题
+scripts/lint.py             查界面代码里的套路和主题禁令：写死的颜色、渐变、投影、emoji、套话、占位字、字重 700、
+                            大写小标签、装饰用的等宽字和编号、编出来的证据；有 FAIL 时退出码 1
+examples/                   三套示例主题；examples/lint/ 是 lint 的对照样例（同一张付费墙的套路版和主题版）
 ```
+
+## 致谢
+
+`references/tells.md`、`scripts/lint.py`、`rules.md` 的「文案」和「看图自评」借鉴了 [Leonxlnx/taste-skill](https://github.com/Leonxlnx/taste-skill)（MIT）的做法：写日期、只给做法的套路登记表，用脚本把规则查出来而不是指望记住，只看截图的评审、带封顶的打分、每轮只修前三个问题。没有复制它的文件；它管网站落地页，这里按 app 界面改写，石墨风格和平台规则不变。
 
 ## License
 

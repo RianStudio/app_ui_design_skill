@@ -1,6 +1,6 @@
 ---
 name: rian-app-theme
-description: Design an app's UI theme in Rian's house style, the graphite style after Linear, with iOS following Apple HIG (iOS 26) and Android following Material 3 Expressive - graphite and paper-white neutral ladders in LCh, hairlines instead of card shadows, one accent from the app icon, thin line icons and brand surfaces that reuse the icon's graphite and line mark, a high-contrast set alongside. Phone first. Exports colour, type, spacing, radii, elevation, motion, haptics, media tokens and a frost material as CSS, SwiftUI, Jetpack Compose and Tailwind, asserts WCAG contrast, and renders a phone preview (list, photo editor or AI chat screens; a desktop window is optional). Also covers editors and viewers, AI chat and generation, long tasks, paywalls, onboarding, settings and an optional keyboard layer. Use when asked for an app theme, design tokens, colour scheme, dark mode or UI style, and when building screens of an app that uses this theme. Not for chart palettes, slides or marketing sites. 用于按 Rian 的石墨风格生成 app UI 主题、配色、深色和高对比模式、设计 token，以及用这套主题写界面。
+description: Design an app's UI theme in Rian's house style, the graphite style after Linear, with iOS following Apple HIG (iOS 26) and Android following Material 3 Expressive - graphite and paper-white neutral ladders in LCh, hairlines instead of card shadows, one accent from the app icon, thin line icons and brand surfaces that reuse the icon's graphite and line mark, a high-contrast set alongside. Phone first. Exports colour, type, spacing, radii, elevation, motion, haptics, media tokens and a frost material as CSS, SwiftUI, Jetpack Compose and Tailwind, asserts WCAG contrast, and renders a phone preview (list, photo editor or AI chat screens; a desktop window is optional). Also covers editors and viewers, AI chat and generation, long tasks, paywalls, onboarding, settings and an optional keyboard layer; when writing screens it lints the code for generated-UI tells (hard-coded colours, gradients, shadows, emoji, stock copy, placeholders, invented proof) and critiques screenshots with capped scores, after Taste-Skill. Use when asked for an app theme, design tokens, colour scheme, dark mode or UI style, and when building screens of an app that uses this theme. Not for chart palettes, slides or marketing sites. 用于按 Rian 的石墨风格生成 app UI 主题、配色、深色和高对比模式、设计 token，以及用这套主题写界面。
 ---
 
 # Rian App Theme
@@ -158,5 +158,12 @@ python3 scripts/preview.py themes/tide --screen timer \
 | 对话型（AI） | 加「AI」「长任务」 |
 | 有引导、付费墙、权限请求 | 加「转化界面」 |
 | 有 iPad、Mac 或 Web 版 | 加「命令菜单和键盘层」 |
+| 所有 app，写字时 | 加「文案」和 `references/tells.md` |
 
-颜色、圆角、尺寸、动效、触感都用 token，不写死数值；写完按「写界面时自查」过一遍。
+颜色、圆角、尺寸、动效、触感都用 token，不写死数值；先把这一屏的字和示例内容写全（「文案」），再排版。写完：
+
+1. **lint**：`python3 scripts/lint.py <界面代码目录>`。修掉每个 FAIL；每个 WARN 要么改掉，要么能用一句话向设计师说清为什么留着（在那一行写 `lint-allow: <规则>` 和理由）。`examples/lint/` 是同一张付费墙的套路版和主题版，可以对照。
+2. **看图自评**：截图（浅色、深色，手机尺寸），按 `rules.md`「看图自评」写下评审，修前三个问题，重新截图再评，最多三轮。
+3. 按「写界面时自查」过一遍。
+
+交付写界面时，说明里给：最后一轮自评的分数和封顶、剩下的问题（不到 7.5 直说）、lint 的结果和留下的 WARN 及理由、要换掉的示例内容。只写真的跑过的检查。
