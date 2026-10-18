@@ -1,0 +1,60 @@
+<!doctype html>
+<!-- The same Tide paywall written with the theme (rules.md「转化界面」): tokens only, the icon's own mark on the
+     brand panel, the benefits in words, the price and renewal spelled out. python3 scripts/lint.py examples/lint/after.html
+     reports nothing. -->
+<html lang="zh-Hans" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=390">
+<link rel="stylesheet" href="../tide/theme.css">
+<style>
+  body { margin: 0; width: 390px; height: 844px; background: var(--c-bg); color: var(--c-text); font-family: var(--font); }
+  .bar { height: 112px; display: flex; align-items: flex-end; padding: 0 16px 12px; box-sizing: border-box; }
+  .close { width: 44px; height: 44px; border-radius: var(--r-full); background: var(--c-surface-2); display: grid; place-items: center; }
+  .close .icon { color: var(--c-text-2); }
+  .wrap { padding: 0 20px; }
+  .brand-panel { height: 140px; display: grid; place-items: center; }
+  .brand-panel svg { height: var(--brand-mark-empty); }
+  .title { margin: 20px 0 4px; }
+  .sub { color: var(--c-text-2); }
+  .feats { margin: 16px 0 18px; display: grid; gap: 10px; }
+  .feat { display: flex; gap: 10px; align-items: center; }
+  .feat .icon { color: var(--c-text-2); }
+  .plans { display: grid; gap: 10px; }
+  .plan { height: 60px; border-radius: var(--r-lg); border: 1px solid var(--c-border); display: flex; align-items: center;
+          gap: 12px; padding: 0 14px; box-sizing: border-box; }
+  .plan.on { border: 2px solid var(--c-primary-text); }
+  .plan .pt { flex: 1; display: grid; }
+  .plan .pt span { color: var(--c-text-2); }
+  .dot { width: 20px; height: 20px; border-radius: var(--r-full); border: 1.5px solid var(--c-text-3); box-sizing: border-box; }
+  .plan.on .dot { border: 6px solid var(--c-primary-text); }
+  .save { font: var(--t-tag-label); color: var(--c-success); background: var(--c-success-container); border-radius: var(--r-full); padding: 2px 8px; }
+  .cta { margin-top: 16px; height: var(--control-h-mobile-lg); border-radius: var(--r-full); background: var(--c-primary);
+         color: var(--c-on-primary); display: grid; place-items: center; font: var(--t-card-title); }
+  .fine { margin: 10px 0 0; color: var(--c-text-3); text-align: center; }
+  .links { margin-top: 8px; display: flex; justify-content: center; gap: 16px; color: var(--c-text-2); }
+</style></head><body>
+  <div class="bar"><div class="close"><svg class="icon md" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></div></div>
+  <div class="wrap">
+    <div class="brand-panel">
+      <!-- Tide's flat mark (render.py --variants, tide-mark.svg), drawn here with the brand tokens -->
+      <svg viewBox="200 100 624 760" fill="none">
+        <g stroke="var(--c-brand-line)" stroke-width="60" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="512" cy="530" r="250"/><path d="M 452 146 H 572 M 512 146 V 280"/>
+        </g>
+        <path fill="var(--c-brand-accent)" d="M 512.0 523.6 L 512.0 398.2 A 24 24 0 0 1 540.3 374.6 A 158 158 0 0 1 614.2 650.5 A 24 24 0 0 1 577.9 644.2 L 515.2 535.6 A 24 24 0 0 1 512.0 523.6 Z"/>
+      </svg>
+    </div>
+    <div class="title t-title-1">专注统计和白噪音全部打开</div>
+    <div class="sub t-row-meta">Tide 会员 · 随时可以取消</div>
+    <div class="feats">
+      <div class="feat"><svg class="icon md" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg><span class="t-row-title">不限项目和任务</span></div>
+      <div class="feat"><svg class="icon md" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg><span class="t-row-title">每周回顾：哪天专注最久</span></div>
+      <div class="feat"><svg class="icon md" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></svg><span class="t-row-title">雨声、咖啡馆、海浪三种白噪音</span></div>
+    </div>
+    <div class="plans">
+      <div class="plan on"><i class="dot"></i><span class="pt"><b class="t-row-title">年付</b><span class="t-row-meta">折合 <span class="num">¥8.17</span> / 月</span></span><span class="save">省 33 %</span><b class="t-amount num">¥98</b></div>
+      <div class="plan"><i class="dot"></i><span class="pt"><b class="t-row-title">月付</b></span><b class="t-amount num">¥12</b></div>
+    </div>
+    <div class="cta">免费试用 7 天</div>
+    <p class="fine t-footnote">试用结束后按 <span class="num">¥98</span> / 年自动续费。到期前至少 24 小时在 设置 › Apple 账户 › 订阅 里取消，就不会续费。</p>
+    <div class="links t-row-meta"><span>恢复购买</span><span>使用条款</span><span>隐私政策</span></div>
+  </div>
+</body></html>
