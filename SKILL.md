@@ -1,13 +1,13 @@
 ---
 name: rian-app-theme
-description: Design an app's UI theme in Rian's house style, the graphite style after Linear with Apple and Google platform specs - graphite and paper-white neutral ladders in LCh, hairlines instead of card shadows, one accent from the app icon, thin line icons and brand surfaces that reuse the icon's graphite and line mark, a high-contrast set alongside. Phone first. Exports colour, type, spacing, radii, elevation, motion, haptics, media tokens and a frost material as CSS, SwiftUI, Jetpack Compose and Tailwind, asserts WCAG contrast, and renders a phone preview (list, photo editor or AI chat screens; a desktop window is optional). Also covers editors and viewers, AI chat and generation, long tasks, paywalls, onboarding, settings and an optional keyboard layer. Use when asked for an app theme, design tokens, colour scheme, dark mode or UI style, and when building screens of an app that uses this theme. Not for chart palettes, slides or marketing sites. 用于按 Rian 的石墨风格生成 app UI 主题、配色、深色和高对比模式、设计 token，以及用这套主题写界面。
+description: Design an app's UI theme in Rian's house style, the graphite style after Linear, with iOS following Apple HIG (iOS 26) and Android following Material 3 Expressive - graphite and paper-white neutral ladders in LCh, hairlines instead of card shadows, one accent from the app icon, thin line icons and brand surfaces that reuse the icon's graphite and line mark, a high-contrast set alongside. Phone first. Exports colour, type, spacing, radii, elevation, motion, haptics, media tokens and a frost material as CSS, SwiftUI, Jetpack Compose and Tailwind, asserts WCAG contrast, and renders a phone preview (list, photo editor or AI chat screens; a desktop window is optional). Also covers editors and viewers, AI chat and generation, long tasks, paywalls, onboarding, settings and an optional keyboard layer. Use when asked for an app theme, design tokens, colour scheme, dark mode or UI style, and when building screens of an app that uses this theme. Not for chart palettes, slides or marketing sites. 用于按 Rian 的石墨风格生成 app UI 主题、配色、深色和高对比模式、设计 token，以及用这套主题写界面。
 ---
 
 # Rian App Theme
 
 把 app 图标的强调色变成一整套 UI 主题：深浅两种模式 × 标准和高对比两档，共四套颜色 token；手机和桌面两套字号，加上间距、圆角、阴影、尺寸、动效、触感、媒体色组（编辑器和查看器用）、品牌色组（图标的石墨底、主体和强调色，给品牌位用）、界面图标规范和 frost 材质。导出成 CSS、SwiftUI、Compose 和 Tailwind，并渲染一张以手机为主的对照图：样例界面的 iPhone 浅色和深色、Android，再加三部共用外壳或媒体、AI 页面；桌面窗口可选。
 
-风格和图标 skill（`rian-app-icon`）是同一种：**石墨**。深石墨和纸白两套 LCh 中性色阶梯（色相 265，和图标的底是同一种石墨），用 1 px 发丝线和明度差分层，单一强调色，排得密但不挤；照片和生成结果放在彩度 0 的中性画布上。只有这一种风格，键盘层和桌面窗口是可选的附加层。线条、密度和克制来自 Linear；材质、字体和图标规格来自 Apple；无障碍硬指标和动效参数来自 Google。
+风格和图标 skill（`rian-app-icon`）是同一种：**石墨**。深石墨和纸白两套 LCh 中性色阶梯（色相 265，和图标的底是同一种石墨），用 1 px 发丝线和明度差分层，单一强调色，排得密但不挤；照片和生成结果放在彩度 0 的中性画布上。只有这一种风格，键盘层和桌面窗口是可选的附加层。线条、密度和克制来自 Linear；颜色和品牌两端共用，控件按平台各说各的方言：iOS 照 Apple HIG（iOS 26 Liquid Glass：胶囊按钮、inset grouped 列表、SF 字号、SwiftUI 弹簧），Android 照 Material 3 Expressive（`MaterialExpressiveTheme`、形状阶梯、按下变形的按钮、分段列表、大标题栏、`MotionScheme.expressive()`、强调字重）。
 
 **生成主题不需要先读 `references/rules.md`**：颜色、对比度、尺寸都由脚本决定。之后写界面代码时，按 app 的类型读其中几节（见最后的「之后写界面」）。
 
@@ -90,13 +90,13 @@ python3 scripts/preview.py themes/tide --screen timer \
 预览图是 1960 宽的画板，按 2x 截图（3920 px 宽），从上到下：
 
 1. 标题行：app 名；类别、图标色 → 界面主色；`primary` 和按下、深浅两种 `primary-text`；中性色色相；样例界面；字体；生成时间。
-2. 第一行：样例界面的三部手机（iPhone 390 × 844 pt，Android 是 M3 的 Pixel 412 × 915 dp）；浅色和深色两列手机尺寸的组件条（按钮、分段控件和步进器、滑块、输入框、标签和状态徽章、长任务进度、开关和单选、长按菜单，最后一行是键盘层）。
+2. 第一行：样例界面的三部手机（iPhone 390 × 844 pt，Android 是 M3 的 Pixel 412 × 915 dp）；两列手机尺寸的组件条，左列是 iOS（Apple HIG，浅色），右列是 Android（M3 Expressive，深色：连接按钮组、M3 滑块、波浪进度、M3 开关）（按钮、分段控件和步进器、滑块、输入框、标签和状态徽章、长任务进度、开关和单选、长按菜单，最后一行是键盘层）。
 3. 第二行：三部共用外壳或媒体、AI 页面；右边一列是手机字号表，下面一格，图标是珊瑚、黄、灰时是「图标 × 界面」（图标配上回落到蓝的界面小窗口，深浅各一），否则是这个界面的底部弹窗。
 4. 加 `--desktop` 时：桌面窗口这一行。
 5. 品牌位：启动页、关于、空状态、导出完成（浅色），空状态、导出完成（深色）六张小屏。浅色是浅石墨面板加深线主体，深色是石墨面板加亮线主体（主体上下各留 18 %，不被别的东西压住）；关于页的 app 图标深浅都是石墨，有类别时带类别徽章；按钮仍是 `primary`；下面一行写品牌色组的值。
 6. 色板：`light`、`dark`、`light-hc`、`dark-hc` 四列，每列有中性色阶梯、各档文字在最差背景上的对比度、主色一族、状态色和 frost 条；下面是媒体色组和触感、手势参数。
 
-脚本先打印一行 `sizes:`，是实测的控件尺寸，只列这张图上有的控件：每种界面都有 iOS 玻璃按钮 44 × 44、M3 TopAppBar 64、手机按钮高 50、分段控件 32、步进器 32、滑块圆钮 24；`timer`、`notes`、`list` 另有筛选 pill 高 36、iOS 行高 60、设置行 44、M3 列表项 72、FAB 56、付费墙方案 60；`editor` 另有工具托盘 64、工具项 64、裁剪手柄 20、选中勾 22；`chat` 另有提示词框最小高 48、发送键 40、回复操作 44；加 `--desktop` 时还有桌面行 36、侧栏项 28、命令项 36、kbd 18。和 `references/rules.md` 对不上就是哪里改坏了。最后打印断言，每行 PASS 或 FAIL；有 FAIL 时退出码是 1，`preview.png` 照样写出：
+脚本先打印一行 `sizes:`，是实测的控件尺寸，只列这张图上有的控件：每种界面都有 iOS 玻璃按钮 44 × 44、M3 大标题栏 120、M3 导航栏 88（含手势区）、手机按钮高 50、分段控件 32、步进器 32、滑块圆钮 24；`timer`、`notes`、`list` 另有筛选 pill 高 36、iOS 行高 60、设置行 44、M3 分段列表项 72、FAB 56、付费墙方案 60；`editor` 另有工具托盘 64、工具项 64、裁剪手柄 20、选中勾 22；`chat` 另有提示词框最小高 48、发送键 40、回复操作 44；加 `--desktop` 时还有桌面行 36、侧栏项 28、命令项 36、kbd 18。和 `references/rules.md` 对不上就是哪里改坏了。最后打印断言，每行 PASS 或 FAIL；有 FAIL 时退出码是 1，`preview.png` 照样写出：
 
 - `frost light`、`frost dark`：栏上文字和图标对滚到下面的列表的最低对比度 ≥ 3:1；`frost photo light`、`frost photo dark`：同样的玻璃对滚到下面的照片网格（有亮天空和高饱和的照片）≥ 3:1。只量玻璃本身：量的时候隐藏 iOS 的滚动边缘渐隐。这四部手机在画板外另外渲染（不在图里）。
 - `viewer scrim`：查看器的白色控件透过遮罩、叠在亮照片上 ≥ 4.5:1。

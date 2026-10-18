@@ -52,7 +52,7 @@ The iPhone screens use Inter in place of SF Pro.
 
 Needs Playwright + Chromium, numpy and Pillow (set CHROMIUM_PATH to use an existing Chromium).
 """
-import argparse, base64, datetime, glob, hashlib, io, json, os, re, sys, urllib.parse, urllib.request
+import argparse, base64, datetime, glob, hashlib, io, json, math, os, re, sys, urllib.parse, urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.dont_write_bytecode = True  # importing build.py must not leave a __pycache__ in the skill
@@ -979,7 +979,7 @@ def ios_phone(name, scr, mode, icon, scrolled=False, toast=False, pid="", captio
   {toast_html}
   <nav class="tabbar frost floating">{tabs}</nav>
   <span class="stab frost floating">{ic("search", 24, bar="搜索图标")}</span>'''
-    return ios_frame(inner, mode, label or f"iPhone {MODE_NAME[mode]}", caption, pid)
+    return ios_frame(inner, mode, label or f"iPhone {MODE_NAME[mode]}", caption, pid, cls="glist")
 
 
 def hero_android(name):
@@ -1001,24 +1001,25 @@ def android(name, scr, mode, caption=""):
                     for i, p in enumerate(scr["pills"]))
     body = ""
     for head, total, rows in scr["groups"]:
-        body += f'<div class="ash m3-titleSmall"><span>{head}</span><span class="num">{total}</span></div>'
+        body += f'<div class="ash m3-titleSmall"><span>{head}</span><span class="num">{total}</span></div><div class="agroup">'
         for r in rows:
             cls = " in" if r["right"].startswith("+") else ""
             trail = ("m3-labelSmall t3" if scr.get("trail") == "meta" else "m3-bodyLarge") + " num" + cls
             body += (f'<div class="arow{" void" if r["void"] else ""}">{Glyphs.ms(r["ms"], "lead")}<span class="at"><b class="m3-bodyLarge">{r["title"]}</b>'
                      f'<span class="m3-bodyMedium">{r["meta"]}</span></span><span class="aa"><b class="{trail}">{r["right"]}</b>'
                      f'<span class="m3-labelSmall num">{r["sub"]}</span></span></div>')
+        body += "</div>"
     nav = "".join(f'<span class="anv{" on" if i == 0 else ""}"><span class="aind">{Glyphs.ms(ms, "fill" if i == 0 else "")}</span>'
                   f'<b class="m3-labelMedium">{lab}</b></span>' for i, (_lu, ms, lab) in enumerate(scr["tabs"]))
     fab = (f'<span class="afab ext m3-labelLarge">{Glyphs.ms("play_arrow")}开始专注</span>' if name == "timer"
            else f'<span class="afab">{Glyphs.ms("add")}</span>')
     inner = f'''
-  <div class="acontent" data-scroll="achips">{hero_android(name)}<div class="achips">{chips}</div>{body}</div>
-  <header class="atop"><span class="atitle m3-titleLarge">{scr["title"]}</span><span class="grow"></span>
-    <span class="aib">{Glyphs.ms("search")}</span><span class="aib">{Glyphs.ms("more_vert")}</span></header>
+  <div class="acontent lg" data-scroll="achips">{hero_android(name)}<div class="achips">{chips}</div>{body}</div>
+  <header class="atop lg"><div class="atop-r"><span class="aib">{Glyphs.ms("search")}</span><span class="aib">{Glyphs.ms("more_vert")}</span></div>
+    <div class="atitle-lg m3-headlineMediumEmphasized">{scr["title"]}</div></header>
   {fab}
   <nav class="anav">{nav}</nav>'''
-    return android_frame(inner, mode, f"Android {MODE_NAME[mode]}", caption)
+    return android_frame(inner, mode, f"Android {MODE_NAME[mode]}", caption, cls="glist")
 
 
 # ---------- the shared shell: settings, paywall, onboarding ----------
@@ -1054,7 +1055,7 @@ def paywall_ios(scr, mode, icon, app, caption="", credits=False):
     credits, a trial; restore purchases, terms and privacy, the price and auto-renewal in words (App Store 3.1.2);
     StoreKit 2 on iOS"""
     feats = "".join(f'<div class="feat">{ic("check", 18)}<span class="t-row-title">{f}</span></div>'
-                    for f in scr["shell"]["features"][:3 if credits else 4])
+                    for f in scr["shell"]["features"][:2 if credits else 4])
 
     def plan(i, n, p, m):
         return (f'<div class="plan{" on" if i == 0 else ""}">{radio(i == 0)}<span class="pt"><b class="t-row-title">{n}</b>'
@@ -1067,7 +1068,7 @@ def paywall_ios(scr, mode, icon, app, caption="", credits=False):
     low = (f'<div class="low t-row-meta">{ic("coins", 16)}<span>点数不够这次生成（还差 <b class="num">1</b> 点）</span></div>'
            if credits else "")
     inner = f'''<div class="pw{" credits" if credits else ""}">
-    {brand_art(350, 100 if credits else 140, PALETTE["brand"]["mark"]["min" if credits else "empty"])}
+    {brand_art(350, 100 if credits else 120, PALETTE["brand"]["mark"]["min" if credits else "empty"])}
     <div class="pw-title t-title-1">{scr["shell"]["pitch"]}</div><div class="pw-sub t-row-meta">{app} 会员 · 随时可以取消</div>
     {low}<div class="feats">{feats}</div>
     <div class="plans">{plans}</div>
@@ -1447,8 +1448,33 @@ def desktop_type_scale(t, mode, scr):
 
 
 # ---------- component strip, type scale, bottom sheet, icon x UI (phone sizes) ----------
-def strip(mode, scr):
-    """the components at phone sizes, one column per mode, labelled with the screen's own words"""
+def wavy(pct, w=228):
+    """Material 3 Expressive's wavy linear progress: the done part a wave (amplitude 3, wavelength 40) in primary, a
+    4 gap, the rest a flat track in primary-container ending in a stop dot"""
+    x_end = w * pct / 100
+    pts = " ".join(f"{x:.1f},{7 + 3 * math.sin(x / 40 * 2 * math.pi):.2f}" for x in range(0, int(x_end) + 1, 2))
+    return (f'<svg class="wavy" width="{w}" height="14" viewBox="0 0 {w} 14"><polyline points="{pts}" fill="none" '
+            f'stroke="var(--c-primary)" stroke-width="4" stroke-linecap="round"/><line x1="{x_end + 8:.1f}" y1="7" x2="{w - 2}" y2="7" '
+            f'stroke="var(--c-primary-container)" stroke-width="4" stroke-linecap="round"/>'
+            f'<circle cx="{w - 2}" cy="7" r="2" fill="var(--c-primary)"/></svg>')
+
+
+def m3_slider(pct):
+    """Material 3 Expressive slider: a 16 tall track, the active part primary, the rest primary-container, a 4 x 44 bar
+    handle with a gap either side"""
+    return (f'<div class="msl"><i class="a" style="width:calc({pct}% - 8px)"></i><i class="r" style="width:calc({100 - pct}% - 8px)"></i>'
+            f'<i class="h" style="left:{pct}%"></i></div>')
+
+
+def m3_switch(on=True):
+    tick = ('<b><svg width="16" height="16" viewBox="0 0 16 16"><path d="M3.5 8.2l3 3 6-6.4" stroke="currentColor" stroke-width="2" '
+            'fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></b>') if on else ""
+    return f'<span class="msw{" on" if on else ""}">{tick}</span>'
+
+
+def strip(mode, scr, plat="ios"):
+    """the components at phone sizes, one column per platform (iOS: Apple HIG; Android: Material 3 Expressive),
+    labelled with the screen's own words"""
     s = scr["strip"]
     tags = "".join(f'<span class="tagp">{t}</span>' if isinstance(t, str) else
                    f'<span class="tagp"><i class="pdot" style="background:var(--c-{t[0]})"></i>{t[1]}</span>' for t in s["tags"])
@@ -1459,25 +1485,30 @@ def strip(mode, scr):
     title, pct, left = s["task"]
     first = s["menu"][0]
     menu = "".join(f'<div class="cm t-long-text">{label}<span class="grow"></span>{ic(icon, 20)}</div>' for icon, label, _k in s["menu"][:2])
+    android = plat == "android"
+    seg_row = ((f'<span class="cbg">' + "".join(f'<b class="{"on" if i == 0 else ""}">{Glyphs.ms("check", size=18) if i == 0 else ""}{o}</b>'
+                                                for i, o in enumerate(s["seg"])) + "</span>") if android
+               else segmented(s["seg"], 0, "full"))
     rows = [
-        ("按钮 · 主 / 按下 / 次", pbtn(s["ok"]) + pbtn("按下", "prs") + pbtn("取消", "second")),
-        ("分段控件 · 步进器", segmented(s["seg"], 0, "full")
+        ("按钮 · 主 / 按下 / 次" + (" · S 40" if android else " · 胶囊"), pbtn(s["ok"]) + pbtn("按下", "prs") + pbtn("取消", "second")),
+        ("连接按钮组 · 步进器" if android else "分段控件 · 步进器", seg_row
          + f'<span class="stp-row"><span class="t-row-meta t2">{s["step"][0]} <b class="num">{s["step"][1]}</b></span>{stepper()}</span>'),
         ("滑块 · 0 点吸附" if detent else "滑块",
          f'<div class="slw"><div class="sl-head"><b class="t-row-title">{sl_label}</b><span class="t-timecode num t2">{sl_value}</span></div>'
-         f'{slider(sl_pct, detent)}</div>'),
+         f'{m3_slider(sl_pct if not detent else 50 + sl_pct / 2) if android else slider(sl_pct, detent)}</div>'),
         ("输入框 · 聚焦", f'<span class="fin2 t-long-text">{s["field"][0]}</span><span class="fin2 focus t-long-text">{s["field"][1]}<span class="icaret"></span></span>'),
         ("标签 · 状态徽章（进行中是 info）", f'<div class="wrap">{tags}</div><div class="wrap">{badges}</div>'),
-        ("长任务 · 确定进度",
+        ("长任务 · 波浪进度" if android else "长任务 · 确定进度",
          f'<div class="task"><div class="task-h">{status_icon("progress")}<b class="t-row-title">{title}</b><span class="grow"></span>'
-         f'<b class="t-amount num">{pct} %</b></div>{progress(pct)}<div class="task-f"><span class="t-row-meta t2">{left}</span>'
+         f'<b class="t-amount num">{pct} %</b></div>{wavy(pct) if android else progress(pct)}<div class="task-f"><span class="t-row-meta t2">{left}</span>'
          f'<span class="grow"></span><span class="tbtn t-row-title">取消</span></div></div>'),
-        ("开关 · 单选", switch(True) + switch(False) + radio(True) + radio(False)),
+        ("开关 · 单选", ((m3_switch(True) + m3_switch(False)) if android else (switch(True) + switch(False))) + radio(True) + radio(False)),
         ("长按菜单", f'<div class="cmenu">{menu}<div class="cm danger t-long-text">{s["danger"]}<span class="grow"></span>{ic("trash", 20)}</div></div>'),
         ("可选层 · iPad / Mac 接键盘时", kbd("⌘", "K") + seq("G", "I")
          + (f'<span class="tip">{first[1]} {kbd(*first[2])}</span>' if first[2] else "")),
     ]
-    return (f'<div class="ps" data-theme="{mode}"><div class="cs-h">{MODE_NAME[mode]}</div>'
+    head = ("Android · M3 Expressive" if android else "iOS · Apple HIG") + f" · {MODE_NAME[mode]}"
+    return (f'<div class="ps {"plat-a" if android else "plat-i"}" data-theme="{mode}"><div class="cs-h">{head}</div>'
             + "".join(f'<div class="crow"><span class="clab">{k}</span><span class="cval">{v}</span></div>' for k, v in rows)
             + "</div>")
 
@@ -2098,8 +2129,8 @@ mark { background: var(--c-selection); color: inherit; padding: 1px 2px; border-
 .feat .ic { color: var(--c-primary-text); }
 .plans { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
 .plan-h { color: var(--c-text-3); margin: 2px 0 -2px 4px; }
-.pw.credits .feats { margin: 12px 0 12px 12px; }
-.pw.credits .plans { margin-bottom: 12px; }
+.pw.credits .feats { margin: 10px 0 10px 12px; }
+.pw.credits .plans { margin-bottom: 10px; gap: 6px; }
 .plan { height: 60px; padding: 0 16px; border-radius: var(--r-lg); border: 1px solid var(--c-border); background: var(--c-surface);
   display: flex; align-items: center; gap: 12px; }
 .plan.on { border: 2px solid var(--c-primary-text); padding: 0 15px; }
@@ -2299,7 +2330,7 @@ mark { background: var(--c-selection); color: inherit; padding: 1px 2px; border-
 .slw, .task { width: 100%; }
 .task-h, .task-f { display: flex; align-items: center; gap: 8px; }
 .task .xbar { margin: 8px 0 2px; }
-.tbtn { height: 44px; display: grid; place-items: center; padding: 0 4px; margin: -10px 0 -12px; color: var(--c-text); }
+.tbtn { height: 44px; display: grid; place-items: center; padding: 0 4px; margin: -10px 0 -12px; color: var(--c-text); white-space: nowrap; flex: none; }
 .fin2 { flex: 1; min-width: 0; height: var(--control-h-mobile-md); padding: 0 12px; border-radius: 10px; background: var(--c-surface);
   border: 1px solid var(--c-border-strong); display: flex; align-items: center; color: var(--c-text-placeholder); white-space: nowrap; }
 .fin2.focus { border-color: var(--c-focus); box-shadow: 0 0 0 1px var(--c-focus); color: var(--c-text); }
@@ -2349,13 +2380,86 @@ mark { background: var(--c-selection); color: inherit; padding: 1px 2px; border-
   margin-left: calc(var(--playhead-knob) / -2); border-radius: 50%; background: var(--c-primary); }
 .msw b { font: 510 11px/14px var(--font); color: #1B1C1D; }
 .msw span { font: 400 10.5px/14px var(--font); color: #55575A; font-variant-numeric: tabular-nums; }
+/* ---------- platform dialects: iOS follows Apple's HIG (iOS 26), Android Material 3 Expressive ---------- */
+/* iOS (.screen, and the iOS column of the component strip .pi): capsule buttons, segmented controls and steppers;
+   insetGrouped groups (--r-group) on the grouped colours; the soft scroll edge fades into the grouped page */
+.screen .pbtn, .plat-i .pbtn, .psheet .pbtn, .screen .mbtn { border-radius: var(--r-full); }
+.screen .pbtn.second, .plat-i .pbtn.second, .psheet .pbtn.second { background: var(--c-surface-3); border: 0; }
+.screen .segc, .plat-i .segc, .psheet .segc, .screen .seg, .plat-i .seg, .psheet .seg, .screen .stp, .plat-i .stp { border-radius: var(--r-full); }
+.screen .search { border-radius: var(--r-full); }
+.screen.glist { background: var(--c-grouped-bg); --c-bg-rgb: var(--c-grouped-bg-rgb); }
+.screen.glist .mcard, .screen.glist .ncard { background: var(--c-grouped-cell); border: 0; border-radius: var(--r-group); }
+.screen.glist .plist { margin: 0 16px; padding-left: 16px; background: var(--c-grouped-cell); border-radius: var(--r-group); }
+.screen.glist .psh { padding: 18px 32px 6px; }
+.screen.glist .ppill { background: var(--c-grouped-cell); border-color: transparent; }
+.screen.glist .ppill.on { background: var(--c-text); color: var(--c-grouped-cell); }
+.screen.grouped { background: var(--c-grouped-bg); }
+.screen .sg { background: var(--c-grouped-cell); border-radius: var(--r-group); }
+.screen .plan { border-radius: 20px; }
+/* Android (.ascreen, and the Android column .pa): round buttons that square off while pressed, tonal containers,
+   segmented list items on the grouped page, the short navigation bar, a large flexible top app bar */
+.ascreen .pbtn, .plat-a .pbtn { height: 56px; padding: 0 24px; border-radius: var(--r-full); font: 500 16px/24px "Roboto Flex", "Noto Sans SC", sans-serif; }
+.plat-a .pbtn { height: 40px; padding: 0 16px; font-size: 14px; line-height: 20px; }
+.ascreen .pbtn.prs, .plat-a .pbtn.prs { border-radius: 8px; }
+.ascreen .pbtn.second, .plat-a .pbtn.second { background: var(--c-surface-3); border: 0; }
+.ascreen.glist { background: var(--c-grouped-bg); }
+.ascreen.glist .asb { background: var(--c-grouped-bg); }
+.atop.lg { height: 120px; display: block; padding: 0; background: var(--c-grouped-bg); border-bottom: 0; }
+.atop.lg .atop-r { height: 64px; display: flex; align-items: center; justify-content: flex-end; padding: 0 4px; }
+.atop.lg .atitle-lg { padding: 0 16px; }
+.acontent.lg { top: 164px; padding-top: 0; }
+.ascreen.glist .acard { background: var(--c-grouped-cell); border: 0; border-radius: 20px; }
+.ascreen.glist .asearch { background: var(--c-grouped-cell); }
+.ascreen .achip { border-radius: 8px; }
+.ascreen .achip.on { background: var(--c-primary-container); color: var(--c-text); }
+.ascreen.media .achip.on { background: var(--c-surface-3); } /* media pages stay neutral: nothing tinted next to a photo */
+.agroup { margin: 0 16px; display: flex; flex-direction: column; gap: 2px; }
+.agroup .arow { background: var(--c-grouped-cell); border-radius: 4px; }
+.agroup .arow:first-child { border-top-left-radius: 16px; border-top-right-radius: 16px; }
+.agroup .arow:last-child { border-bottom-left-radius: 16px; border-bottom-right-radius: 16px; }
+.ascreen.glist .ash { height: 44px; padding: 0 32px 8px; color: var(--c-primary-text); }
+.ascreen .afab { bottom: 104px; border-radius: 16px; background: var(--c-primary-container); color: var(--c-on-primary-container); }
+.ascreen .afab.ext { padding: 0 20px 0 16px; }
+.ascreen .anav { height: 88px; background: var(--c-surface-2); border-top: 0; }
+.ascreen .anv { padding-top: 6px; }
+.ascreen .aind { width: 56px; height: 32px; border-radius: 16px; }
+.ascreen .anv.on { color: var(--c-text); }
+.ascreen .anv.on .aind { background: var(--c-primary-container); }
+/* the Android strip: connected button group, M3 Expressive slider, outlined field, switch with its icon, wavy progress */
+.cbg { display: flex; gap: 2px; flex: 1; }
+.cbg b { flex: 1; height: 40px; display: inline-flex; align-items: center; justify-content: center; gap: 4px; background: var(--c-surface-3);
+  color: var(--c-text); border-radius: 8px; font: 500 14px/20px "Roboto Flex", "Noto Sans SC", sans-serif; }
+.cbg b:first-child { border-radius: 20px 8px 8px 20px; }
+.cbg b:last-child { border-radius: 8px 20px 20px 8px; }
+.cbg b.on { background: var(--c-primary-container); border-radius: 20px; }
+.msl { position: relative; height: 44px; }
+.msl i { position: absolute; top: 14px; height: 16px; }
+.msl .a { left: 0; border-radius: 8px 2px 2px 8px; background: var(--c-primary); }
+.msl .r { right: 0; border-radius: 2px 8px 8px 2px; background: var(--c-primary-container); }
+.msl .h { top: 0; width: 4px; height: 44px; margin-left: -2px; border-radius: 2px; background: var(--c-primary); }
+.msl .tk { top: 20px; width: 4px; height: 4px; margin-left: -2px; border-radius: 2px; background: var(--c-on-primary); }
+.plat-a .fin2 { height: 56px; border-radius: 4px; }
+.msw { position: relative; width: 52px; height: 32px; border-radius: 16px; flex: none; background: var(--c-surface-3);
+  box-shadow: inset 0 0 0 2px var(--c-border-strong); }
+.msw::after { content: ""; position: absolute; left: 8px; top: 8px; width: 16px; height: 16px; border-radius: 50%; background: var(--c-border-strong); }
+.msw.on { background: var(--c-primary-text); box-shadow: none; }
+.msw.on::after { left: 24px; top: 4px; width: 24px; height: 24px; background: #FFFFFF; }
+[data-theme="dark"] .msw.on::after { background: var(--c-bg); }
+.msw.on b { position: absolute; left: 28px; top: 8px; width: 16px; height: 16px; z-index: 1; color: var(--c-primary-text); }
+.wavy { display: block; margin: 8px 0 6px; }
+.task-f > span:first-child { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.screen .bpanel { border-radius: var(--r-group); }
+.ascreen .bpanel { border-radius: 28px; }
+.psheet { border-radius: 38px 38px 0 0; }
+.plat-a .cmenu { border-radius: 16px; border: 0; }
+.plat-a .cm { height: 48px; }
 """
 
 
 def m3_css(t):
     """Material 3 type scale from tokens.json (sp = px here)"""
     out = ""
-    for k, v in t["font"]["android"]["scale"].items():
+    for k, v in {**t["font"]["android"]["scale"], **t["font"]["android"]["emphasized"]}.items():
         out += (f'.m3-{k} {{ font-size: {v["size"]}px; line-height: {v["line"]}px; font-weight: {v["weight"]}; '
                 f'letter-spacing: {v["tracking"]:g}px; }}\n')
     return out
@@ -2368,13 +2472,13 @@ LIST_SCREENS = ("timer", "notes", "list")
 def rows_for(screen, scr, icon, app):
     """the six phones of the sheet: the sample screen (row 1) and the shell or media screens (row 2)"""
     if screen in LIST_SCREENS:
-        return ([ios_phone(screen, scr, "light", icon, caption="<b>iPhone · 浅色</b> · 静止态；筛选 pill 视觉高 36，点击区补到 44"),
+        return ([ios_phone(screen, scr, "light", icon, caption="<b>iPhone · 浅色</b> · Apple HIG：分组底上的 insetGrouped 卡片（圆角 26），正文 17、副标题 15；筛选 pill 视觉高 36，点击区补到 44"),
                  ios_phone(screen, scr, "dark", icon, scrolled=True, toast=True, pid="ios-dark",
                            caption="<b>iPhone · 深色</b> · 滚动态：内容在玻璃栏下面，toast 是自定义浮层"),
-                 android(screen, scr, "light", caption="<b>Android · 浅色</b> · M3：TopAppBar 不透明，滚动后只加 1 px border")],
+                 android(screen, scr, "light", caption="<b>Android · 浅色</b> · M3 Expressive：大号可折叠标题栏，分段列表（外角 16、行间 4、间隙 2），浅色调 FAB 和导航指示器，导航栏 64")],
                 [settings_ios(scr, "light", app, caption="<b>iPhone · 浅色 · 设置</b> · 固定顺序：通用、外观、语言、会员、支持、关于"),
                  paywall_ios(scr, "dark", icon, app, caption="<b>iPhone · 深色 · 付费墙</b> · 恢复购买、条款、隐私、价格和自动续费写清楚"),
-                 onboarding_android(scr, "light", caption="<b>Android · 浅色 · 引导</b> · 最多 3 屏，第一屏就演示核心功能")])
+                 onboarding_android(scr, "light", caption="<b>Android · 浅色 · 引导</b> · 最多 3 屏，第一屏就演示核心功能；主按钮是 M3E 的 M 号圆按钮（56）")])
     if screen == "editor":
         return ([editor_adjust_ios(scr, caption="<b>iPhone · 编辑</b> · 系统浅色也强制深色；画布 media-dark（L 18，彩度 0）；前后对比；滑块 0 点吸附"),
                  editor_cutout_ios(scr, caption="<b>iPhone · 抠图和导出</b> · 棋盘格；长任务：确定进度、剩余时间、取消、后台继续"),
@@ -2417,8 +2521,9 @@ def page(t, theme_css, screen, icon, desk_mode, with_desktop=False, fonts_css=""
             f'样例界面 {scr["label"]}（--screen {screen}）· {font_note} · 生成于 {now}'
             + ("" if icon.given else " · <b>未传 --icon，图标处是占位图</b>") + "</p></div></div>")
     row1, row2 = rows_for(screen, scr, icon, app)
-    comp = (f'<div class="panel comp"><h3>组件条 · 手机尺寸</h3><div class="comp-cols">{strip("light", scr)}{strip("dark", scr)}</div>'
-            f'<div class="note2">按钮高 50、圆角 12；分段 32；开关 51 × 31；点击区 44（Android 48）。最后一行是可选层，只在 iPad / Mac 接键盘时出现</div></div>')
+    comp = (f'<div class="panel comp"><h3>组件条 · 手机尺寸 · 按平台</h3><div class="comp-cols">{strip("light", scr, "ios")}{strip("dark", scr, "android")}</div>'
+            f'<div class="note2">iOS：胶囊按钮高 50，分段控件 32，开关 51 × 31，点击区 44。Android：圆按钮按下变方（S 40，主按钮 M 56），'
+            f'选中用浅色调容器，开关 52 × 32，点击区 48。最后一行是可选层，只在 iPad / Mac 接键盘时出现</div></div>')
     if warm:
         extra = (f'<div class="panel"><h3>图标 × 界面</h3><div class="iu-head">{icon(72, "light")}'
                  f'<p><b>{s["icon-accent"]}只留在图标和品牌插图里，界面主色回落到{s["accent"]}。</b>primary {Dk["primary"]} · primary-text 深 '
@@ -2426,7 +2531,7 @@ def page(t, theme_css, screen, icon, desk_mode, with_desktop=False, fonts_css=""
                  f'<div class="pminis">{phone_mini(screen, scr, "light", icon, app)}{phone_mini(screen, scr, "dark", icon, app)}</div></div>')
     else:
         extra = (f'<div class="panel"><h3>底部弹窗 · 深色</h3>{sheet(scr, "dark")}'
-                 f'<div class="note2">elevated、顶部圆角 16、elev-3、遮罩 scrim；主按钮一屏一个</div></div>')
+                 f'<div class="note2">elevated、顶部跟系统的同心圆角、elev-3、遮罩 scrim；主按钮一屏一个，胶囊</div></div>')
     rcol = (f'<div class="rcol"><div class="panel"><h3>手机字号 · Inter 代替 SF Pro（浅色）</h3>{phone_type_scale(t, "light", scr)}</div>'
             f'{extra}</div>')
     desk = ""

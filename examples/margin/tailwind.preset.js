@@ -24,6 +24,8 @@ module.exports = {
         'surface-3': 'rgb(var(--c-surface-3-rgb) / <alpha-value>)',
         'elevated': 'rgb(var(--c-elevated-rgb) / <alpha-value>)',
         'menu-active': 'rgb(var(--c-menu-active-rgb) / <alpha-value>)',
+        'grouped-bg': 'rgb(var(--c-grouped-bg-rgb) / <alpha-value>)',
+        'grouped-cell': 'rgb(var(--c-grouped-cell-rgb) / <alpha-value>)',
         'border': 'var(--c-border)',
         'border-strong': 'rgb(var(--c-border-strong-rgb) / <alpha-value>)',
         'text': 'rgb(var(--c-text-rgb) / <alpha-value>)',
@@ -104,7 +106,8 @@ module.exports = {
         'lg': 'var(--r-lg)',
         'xl': 'var(--r-xl)',
         'full': 'var(--r-full)',
-        'brand-tile': 'var(--brand-tile-radius)'
+        'brand-tile': 'var(--brand-tile-radius)',
+        'group': 'var(--r-group)' /* phone cards and list groups (iOS insetGrouped); buttons are rounded-full */
       },
       fontSize: {
         'display': ['32px', { lineHeight: '38px', letterSpacing: '-0.022em', fontWeight: '590' }],

@@ -10,6 +10,7 @@
   --r-lg: 12px;
   --r-xl: 16px;
   --r-full: 9999px;
+  --r-group: 26px; /* mobile web follows iOS: cards and list groups; buttons are capsules (--r-full) */
   --s-0_5: 2px;
   --s-1: 4px;
   --s-2: 8px;
@@ -85,16 +86,16 @@
   --tr-card-title: -0.0128em;
   --t-long-text: 400 17px/28px var(--font);
   --tr-long-text: -0.0128em;
-  --t-row-title: 510 15px/20px var(--font);
-  --tr-row-title: -0.0088em;
-  --t-row-meta: 400 13px/18px var(--font);
-  --tr-row-meta: -0.0032em;
+  --t-row-title: 400 17px/22px var(--font);
+  --tr-row-title: -0.0128em;
+  --t-row-meta: 400 15px/20px var(--font);
+  --tr-row-meta: -0.0088em;
   --t-section-header: 510 13px/18px var(--font);
   --tr-section-header: -0.0032em;
   --t-tag-label: 510 12px/16px var(--font);
   --tr-tag-label: 0.0005em;
-  --t-amount: 510 15px/20px var(--font);
-  --tr-amount: -0.0088em;
+  --t-amount: 400 17px/22px var(--font);
+  --tr-amount: -0.0128em;
   --t-timecode: 510 13px/18px var(--font);
   --tr-timecode: -0.0032em;
   /* old phone text names, kept for one version: same size and line height as before, in Inter */
@@ -108,16 +109,16 @@
   --tr-title-3: -0.0167em;
   --t-headline: var(--t-card-title);
   --tr-headline: var(--tr-card-title);
-  --t-body: 400 17px/22px var(--font);
-  --tr-body: -0.0128em;
+  --t-body: var(--t-row-title);
+  --tr-body: var(--tr-row-title);
   --t-body-long: var(--t-long-text);
   --tr-body-long: var(--tr-long-text);
   --t-callout: 400 16px/21px var(--font);
   --tr-callout: -0.011em;
-  --t-subhead: 400 15px/20px var(--font);
-  --tr-subhead: -0.0088em;
-  --t-footnote: var(--t-row-meta);
-  --tr-footnote: var(--tr-row-meta);
+  --t-subhead: var(--t-row-meta);
+  --tr-subhead: var(--tr-row-meta);
+  --t-footnote: 400 13px/18px var(--font);
+  --tr-footnote: -0.0032em;
   --t-caption: var(--t-tag-label);
   --tr-caption: var(--tr-tag-label);
   /* motion: durations, plus the enter and exit curves; exits take 2/3 of the entry */
@@ -178,6 +179,8 @@
   --c-surface-3: #ECEEF0;
   --c-elevated: #FFFFFF;
   --c-menu-active: #ECEEF0;
+  --c-grouped-bg: #F4F5F7;
+  --c-grouped-cell: #FFFFFF;
   --c-border: rgba(0, 0, 0, 0.08);
   --c-border-strong: #8D8E90;
   --c-text: #1B1C1D;
@@ -247,6 +250,8 @@
   --c-surface-3-rgb: 236 238 240;
   --c-elevated-rgb: 255 255 255;
   --c-menu-active-rgb: 236 238 240;
+  --c-grouped-bg-rgb: 244 245 247;
+  --c-grouped-cell-rgb: 255 255 255;
   --c-border-strong-rgb: 141 142 144;
   --c-text-rgb: 27 28 29;
   --c-text-2-rgb: 72 73 75;
@@ -321,6 +326,8 @@
     --c-surface-3: #26282A;
     --c-elevated: #1E2022;
     --c-menu-active: #303234;
+    --c-grouped-bg: #111215;
+    --c-grouped-cell: #202224;
     --c-border: rgba(255, 255, 255, 0.07);
     --c-border-strong: #6B6D70;
     --c-text: #F2F4F7;
@@ -390,6 +397,8 @@
     --c-surface-3-rgb: 38 40 42;
     --c-elevated-rgb: 30 32 34;
     --c-menu-active-rgb: 48 50 52;
+    --c-grouped-bg-rgb: 17 18 21;
+    --c-grouped-cell-rgb: 32 34 36;
     --c-border-strong-rgb: 107 109 112;
     --c-text-rgb: 242 244 247;
     --c-text-2-rgb: 191 193 196;
@@ -464,6 +473,8 @@
   --c-surface-3: #26282A;
   --c-elevated: #1E2022;
   --c-menu-active: #303234;
+  --c-grouped-bg: #111215;
+  --c-grouped-cell: #202224;
   --c-border: rgba(255, 255, 255, 0.07);
   --c-border-strong: #6B6D70;
   --c-text: #F2F4F7;
@@ -533,6 +544,8 @@
   --c-surface-3-rgb: 38 40 42;
   --c-elevated-rgb: 30 32 34;
   --c-menu-active-rgb: 48 50 52;
+  --c-grouped-bg-rgb: 17 18 21;
+  --c-grouped-cell-rgb: 32 34 36;
   --c-border-strong-rgb: 107 109 112;
   --c-text-rgb: 242 244 247;
   --c-text-2-rgb: 191 193 196;
@@ -610,6 +623,8 @@
     --c-surface-3: #ECEEF0;
     --c-elevated: #FFFFFF;
     --c-menu-active: #ECEEF0;
+    --c-grouped-bg: #F4F5F7;
+    --c-grouped-cell: #FFFFFF;
     --c-border: #8D8E90;
     --c-border-strong: #8D8E90;
     --c-text: #121315;
@@ -679,6 +694,8 @@
     --c-surface-3-rgb: 236 238 240;
     --c-elevated-rgb: 255 255 255;
     --c-menu-active-rgb: 236 238 240;
+    --c-grouped-bg-rgb: 244 245 247;
+    --c-grouped-cell-rgb: 255 255 255;
     --c-border-strong-rgb: 141 142 144;
     --c-text-rgb: 18 19 21;
     --c-text-2-rgb: 49 51 52;
@@ -754,6 +771,8 @@
     --c-surface-3: #26282A;
     --c-elevated: #1E2022;
     --c-menu-active: #303234;
+    --c-grouped-bg: #111215;
+    --c-grouped-cell: #202224;
     --c-border: #6B6D70;
     --c-border-strong: #6B6D70;
     --c-text: #FFFFFF;
@@ -823,6 +842,8 @@
     --c-surface-3-rgb: 38 40 42;
     --c-elevated-rgb: 30 32 34;
     --c-menu-active-rgb: 48 50 52;
+    --c-grouped-bg-rgb: 17 18 21;
+    --c-grouped-cell-rgb: 32 34 36;
     --c-border-strong-rgb: 107 109 112;
     --c-text-rgb: 255 255 255;
     --c-text-2-rgb: 227 229 232;
@@ -898,6 +919,8 @@
     --c-surface-3: #26282A;
     --c-elevated: #1E2022;
     --c-menu-active: #303234;
+    --c-grouped-bg: #111215;
+    --c-grouped-cell: #202224;
     --c-border: #6B6D70;
     --c-border-strong: #6B6D70;
     --c-text: #FFFFFF;
@@ -967,6 +990,8 @@
     --c-surface-3-rgb: 38 40 42;
     --c-elevated-rgb: 30 32 34;
     --c-menu-active-rgb: 48 50 52;
+    --c-grouped-bg-rgb: 17 18 21;
+    --c-grouped-cell-rgb: 32 34 36;
     --c-border-strong-rgb: 107 109 112;
     --c-text-rgb: 255 255 255;
     --c-text-2-rgb: 227 229 232;

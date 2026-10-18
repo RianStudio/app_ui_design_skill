@@ -57,7 +57,7 @@ NEED = {
              "accent": (7, 7)},
 }
 
-ORDER = ["canvas", "bg", "surface", "surface-2", "surface-3", "elevated", "menu-active",
+ORDER = ["canvas", "bg", "surface", "surface-2", "surface-3", "elevated", "menu-active", "grouped-bg", "grouped-cell",
          "border", "border-strong", "text", "text-2", "text-3", "text-placeholder",
          "primary", "on-primary", "primary-hover", "primary-pressed", "primary-text",
          "primary-container", "on-primary-container", "selected", "focus", "selection",
@@ -252,6 +252,10 @@ def scheme(mode, level, ui_accent, prim, start):
     # current item in menus: in dark mode surface-3 on elevated is only 4 L apart, so white 8 % over elevated
     ma = P["alpha"]["menu_active"].get(mode)
     C["menu-active"] = over(rgba(W, ma), C["elevated"]) if ma else C["surface-3"]
+    # grouped pages on phones (iOS insetGrouped lists, Android M3 Expressive list groups and settings): the page sits a
+    # step below its cells, like systemGroupedBackground and its cells; both are rungs of the ladder, so their text is
+    # already checked
+    C["grouped-bg"], C["grouped-cell"] = (C["canvas"], C["surface-2"]) if dark else (C["surface-2"], C["surface"])
 
     p, pL, pC, pH = prim
     pr = P["primary"]
@@ -385,6 +389,7 @@ def derive(name, accent=None, category=None):
             "prompt": {"min": 48, "max-lines": 6},
             "brand": {"tile-radius": BRAND["tile_radius"], **{f"mark-{k}": v for k, v in BRAND["mark"].items()}},
         },
+        "platform": {"ios": IOS, "android": M3E},
         "font": FONT,
         "elevation": ELEVATION,
         "motion": MOTION,
@@ -415,17 +420,18 @@ WEB_TYPE = {
     "title-3": (15, 20, 590, -0.0088), "body": (14, 20, 400, -0.0062), "body-medium": (14, 20, 510, -0.0062),
     "small": (13, 18, 400, -0.0032), "caption": (12, 16, 510, 0.0005), "micro": (11, 14, 510, 0.0048),
 }
-# phones (C3): semantic name -> SwiftUI text style, weight, and its size and line height at the default
+# phones (C3), Apple HIG defaults: list rows are Body 17 over Subheadline 15 as in Mail and Settings, not a size
+# smaller. Semantic name -> SwiftUI text style, weight, and its size and line height at the default
 # Dynamic Type size (the mobile web --t-* variables use the same numbers in Inter)
 PHONE_TYPE = {
     "page-title": ("largeTitle", "bold", 34, 41),
     "card-title": ("headline", "semibold", 17, 22),
     "long-text": ("body", "regular", 17, 22),
-    "row-title": ("subheadline", "medium", 15, 20),
-    "row-meta": ("footnote", "regular", 13, 18),
+    "row-title": ("body", "regular", 17, 22),
+    "row-meta": ("subheadline", "regular", 15, 20),
     "section-header": ("footnote", "medium", 13, 18),
     "tag-label": ("caption", "medium", 12, 16),
-    "amount": ("subheadline", "medium", 15, 20),
+    "amount": ("body", "regular", 17, 22),
     "timecode": ("footnote", "medium", 13, 18),
 }
 TABULAR = {"amount", "timecode"}  # digits keep one width, so a running time or a changing amount never jitters
@@ -448,6 +454,12 @@ ANDROID_TYPE = {
     "bodyLarge": (16, 24, 400, 0.5), "bodyMedium": (14, 20, 400, 0.25), "bodySmall": (12, 16, 400, 0.4),
     "labelLarge": (14, 20, 500, 0.1), "labelMedium": (12, 16, 500, 0.5), "labelSmall": (11, 16, 500, 0.5),
 }
+# Material 3 Expressive's emphasized styles change only the weight: 400 -> 500; Material's 500 -> 700 is capped at 600
+# here (the style never uses 700). Page titles, onboarding and paywall headlines and the call to action's label use them
+def ANDROID_EMPHASIZED(w):
+    return 500 if w == 400 else 600
+
+
 ANDROID_TIMECODE = "labelLarge"  # 14 sp, 500; tabular in Theme.kt (Typography.timecode)
 FONT = {
     "web": {
@@ -471,6 +483,8 @@ FONT = {
         "family": "Roboto Flex",
         "scale": {k: {"size": s, "line": lh, "weight": w, "tracking": tr} for k, (s, lh, w, tr) in ANDROID_TYPE.items()},
         "timecode": {"style": ANDROID_TIMECODE, "tabular": True},
+        "emphasized": {k + "Emphasized": {"size": s, "line": lh, "weight": ANDROID_EMPHASIZED(w), "tracking": tr}
+                       for k, (s, lh, w, tr) in ANDROID_TYPE.items()},
     },
 }
 # box-shadow layers per mode: [x, y, blur, spread, opacity of black]. elev-0 is none (cards and lists
@@ -485,9 +499,21 @@ MOTION = {
     "duration": DURATION,
     "exit": {k: round(DURATION[k] * 2 / 3) for k in ("fast", "standard", "slow", "zoom")},  # exits take 2/3 of the entry
     "ease": {"enter": [0.2, 0, 0, 1], "exit": [0.3, 0, 1, 1]},
-    "ios": {"spring": {"response": 0.3, "dampingFraction": 0.9}},
-    "android": {"scheme": "MotionScheme.standard()",
-                "spatial": {"dampingRatio": 0.9, "stiffness": 700}, "effects": {"dampingRatio": 1.0, "stiffness": 1600}},
+    # iOS (Apple HIG): the system springs. smooth (bounce 0) for things that move, snappy (bounce .15) for a control's
+    # own state (a toggle, a segment, a selection); never bouncy. Liquid Glass keeps its own morphing
+    "ios": {"spring": {"response": 0.35, "dampingFraction": 1.0},
+            "smooth": {"duration": 0.35, "bounce": 0}, "snappy": {"duration": 0.3, "bounce": 0.15}},
+    # Android (M3 Expressive): MotionScheme.expressive() for the app: spatial springs bounce a little (sheets, the FAB
+    # menu, shape morphs, navigation), effects (colour, opacity) do not. Precise manipulation (crop, sliders, trim
+    # handles, the viewer's pan) uses standard()'s fast spatial spring instead, so nothing overshoots under a finger
+    "android": {"scheme": "MotionScheme.expressive()",
+                "spatial": {"dampingRatio": 0.8, "stiffness": 380},
+                "spatial-fast": {"dampingRatio": 0.6, "stiffness": 800},
+                "spatial-slow": {"dampingRatio": 0.8, "stiffness": 200},
+                "effects": {"dampingRatio": 1.0, "stiffness": 1600},
+                "effects-fast": {"dampingRatio": 1.0, "stiffness": 3800},
+                "effects-slow": {"dampingRatio": 1.0, "stiffness": 800},
+                "precise": {"dampingRatio": 0.9, "stiffness": 1400}},
     "reduced": "durations go to 0 ms: no movement or scaling, at most a fade",
     # photos and video: pinch from fit (1) to zoom-max, a double tap toggles fit and zoom-double-tap; pans keep their
     # momentum (deceleration per ms, iOS UIScrollView .normal; Android uses its own fling decay) and rubber-band at the
@@ -514,6 +540,45 @@ HAPTIC = {
              "android": "GESTURE_THRESHOLD_ACTIVATE", "web": [16]},
     "success": {"ios": "success", "compose": "Confirm", "android": "CONFIRM", "web": [12, 80, 24]},
     "failure": {"ios": "error", "compose": "Reject", "android": "REJECT", "web": [32, 60, 32]},
+}
+
+
+# ---------- platform layers ----------
+# One style, two native phone dialects. iOS follows Apple's HIG (iOS 26, Liquid Glass): capsule buttons, insetGrouped
+# lists, the system text styles and springs. Android follows Material 3 Expressive: its shape scale, round buttons that
+# morph on press, connected button groups, segmented list items, the short navigation bar, flexible app bars and the
+# expressive motion scheme. The graphite neutrals, the one accent and the line icons are shared by both.
+IOS = {
+    "guideline": "Apple Human Interface Guidelines, iOS 26 (Liquid Glass)",
+    # custom containers follow the system's concentric corners: a card or group 16 in from the screen edge is 26 (as the
+    # system insetGrouped list draws it); sheets, alerts and system bars take the system's own corners
+    "radius": {"group": 26, "card": 26, "control": 12, "capsule": 9999},
+    "button": {"height": 50, "height-small": 36, "shape": "capsule",
+               "primary": ".borderedProminent + .buttonBorderShape(.capsule) + .controlSize(.large)",
+               "secondary": ".bordered (grey fill, no outline) + .buttonBorderShape(.capsule) + .controlSize(.large)",
+               "toolbar-primary": ".glassProminent", "toolbar": ".glass"},
+    "segmented": {"height": 32, "shape": "capsule"},
+    "list": {"grouped": ".insetGrouped (settings, forms, details)", "feed": ".plain (long feeds, photos, chat)",
+             "row": 60, "row-single": 44, "separator": "inset to the text, hairline"},
+}
+M3E = {
+    "guideline": "Material 3 Expressive (Compose Material 3 1.5)",
+    "shape": {"extraSmall": 4, "small": 8, "medium": 12, "large": 16, "largeIncreased": 20, "extraLarge": 28,
+              "extraLargeIncreased": 32, "extraExtraLarge": 48, "full": 9999},
+    # height, corner when square, corner while pressed (round buttons are full and also morph to the pressed corner)
+    "button": {"xs": [32, 12, 8], "sm": [40, 12, 8], "md": [56, 16, 12], "lg": [96, 28, 16], "xl": [136, 28, 16],
+               "default": "sm", "cta": "md", "shape": "round"},
+    "button-group": {"standard-gap": 12, "connected-gap": 2, "connected-inner": 8, "connected-inner-pressed": 4},
+    "fab": {"size": 56, "radius": 16, "medium": [80, 20], "large": [96, 28], "container": "primary-container"},
+    "navigation-bar": {"height": 64, "indicator": [56, 32], "container": "grouped-bg", "indicator-color": "primary-container"},
+    "top-app-bar": {"small": 64, "large-flexible": 120, "medium-flexible": 112, "search": 56},
+    "list": {"outer": 16, "inner": 4, "gap": 2, "row": [56, 72, 88], "container": "grouped-cell", "page": "grouped-bg"},
+    "toolbar": {"floating": 64, "docked": 64},
+    "progress": {"wavy-amplitude": 3, "wavy-wavelength": 40, "track": 4, "loading-indicator": 48},
+    # emphasized styles change only the weight: display, headline, body and titleLarge 400 -> 500 (label and the smaller
+    # titles go to 700, which this style does not use)
+    "emphasized": ["displayLarge", "displayMedium", "displaySmall", "headlineLarge", "headlineMedium", "headlineSmall",
+                   "titleLarge"],
 }
 
 
@@ -554,6 +619,8 @@ def audit(t):
             pairs += [("primary", b, NON_TEXT) for b in ("bg", "surface")]
             pairs += [(f, b, NON_TEXT) for f in ("border-strong", "focus") for b in ("bg", "surface", "surface-2", "elevated")]
             pairs += [("primary-text", "primary-container", acc)] + [(s, s + "-container", acc) for s in STATUS]
+            # Android's tonal containers (selected chips and toggles, the navigation indicator) carry text-coloured labels
+            pairs += [("text", "primary-container", N["text-2"][0])]
             pairs += [("on-" + s, s, TEXT) for s in STATUS]
             pairs += [("text", "selection", N["text"][0]), ("text-2", "selection", N["text-2"][0])]
             pairs += [("on-inverse", "inverse-surface", TEXT), ("inverse-primary", "inverse-surface", TEXT)]
@@ -669,6 +736,7 @@ def css(t):
    data-theme="light" / "dark" on any element; prefers-contrast: more switches to the high-contrast set. */"""]
     S, F, M = t["size"], t["font"]["web"], t["motion"]
     common = [f"  --r-{k}: {v}px;" for k, v in t["radius"].items()]
+    common.append(f"  --r-group: {t['platform']['ios']['radius']['group']}px; /* mobile web follows iOS: cards and list groups; buttons are capsules (--r-full) */")
     common += [f"  --s-{k.replace('.', '_')}: {v}px;" for k, v in t["space"].items()]
     common.append(f"  --hit-min: {S['hit-min']['ios']}px; /* 48 on Android */")
     common += [f"  --control-h-{k}: {v}px;" for k, v in S["control-h"]["desktop"].items()]
@@ -872,7 +940,9 @@ UIKIT_HAPTIC = {"selection": "UISelectionFeedbackGenerator().selectionChanged()"
                 "error": "UINotificationFeedbackGenerator().notificationOccurred(.error)"}
 
 SWIFT = """// @@title@@
-// iOS 15 or later. On iOS 26 and later .frost() is Liquid Glass; earlier versions get a material fallback.
+// iOS 15 or later, following Apple's Human Interface Guidelines (iOS 26, Liquid Glass): capsule buttons, insetGrouped
+// lists on the grouped colours, the system text styles and springs. On iOS 26 and later .frost() is Liquid Glass;
+// earlier versions get a material fallback.
 import GameController
 import SwiftUI
 import UIKit
@@ -932,8 +1002,12 @@ enum Palette {
     @available(*, deprecated, renamed: "pressed") static var statePressed: Color { pressed }
 }
 
+/// Corners. group (@@ios_group@@) is the card and list group on a phone, concentric with the screen at a 16 pt inset as the
+/// system insetGrouped list draws it; buttons and segmented controls are capsules (.buttonBorderShape(.capsule)); sheets,
+/// alerts and bars keep the system's own corners. sm–xl are the desktop and iPad sizes.
 enum Radius {
 @@radius@@
+    static let group: CGFloat = @@ios_group@@
 }
 
 enum Space {
@@ -963,11 +1037,15 @@ extension Font {
 @@fonts@@
 }
 
-/// Motion: a near-critically damped spring for things that move, short ease-outs for colour and opacity;
+/// Motion (Apple HIG: the system springs): spring is .smooth (no bounce) for things that move, snappy is .snappy (bounce
+/// @@snappy_bounce@@) for a control's own state change (a toggle, a segment, a selection); never .bouncy. Short ease-outs for colour and opacity;
 /// exits take two thirds of the entry; zoom is the grid-to-viewer transition and a double-tap zoom. With Reduce Motion on (@Environment(\\.accessibilityReduceMotion)),
 /// drop movement and scaling and keep at most a fade. Liquid Glass keeps its own morphing.
 enum Motion {
+    /// .smooth(duration: @@smooth_d@@) on iOS 17 and later; the same spring for iOS 15–16
     static let spring = Animation.spring(response: @@spring_response@@, dampingFraction: @@spring_damping@@)
+    /// .snappy(duration: @@snappy_d@@) on iOS 17 and later (bounce @@snappy_bounce@@ is a damping fraction of @@snappy_damping@@)
+    static let snappy = Animation.spring(response: @@snappy_d@@, dampingFraction: @@snappy_damping@@)
 @@motion@@
 }
 
@@ -1068,14 +1146,42 @@ struct Elevation: ViewModifier {
 }
 
 /// Card: solid surface and a 1 pt hairline; no shadow.
+/// A card: Radius.group corners. On a grouped page (Palette.groupedBg) it is a groupedCell block with no outline, like an
+/// insetGrouped section; on the plain page it is surface with the 1 pt hairline.
 struct Card: ViewModifier {
-    var radius: CGFloat = Radius.lg
+    var radius: CGFloat = Radius.group
+    var grouped = false
     private var shape: RoundedRectangle { RoundedRectangle(cornerRadius: radius, style: .continuous) }
 
     func body(content: Content) -> some View {
         content
-            .background { shape.fill(Palette.surface) }
-            .overlay { shape.strokeBorder(Palette.border, lineWidth: 1) }
+            .background { shape.fill(grouped ? Palette.groupedCell : Palette.surface) }
+            .overlay { if !grouped { shape.strokeBorder(Palette.border, lineWidth: 1) } }
+    }
+}
+
+/// Buttons (Apple HIG, iOS 26): capsules at .large size (@@ios_btn@@ pt). primaryButton() is the screen's one prominent action,
+/// a flat primary fill (not glass: glass belongs to bars and floating controls, .glassProminent in a toolbar);
+/// secondaryButton() is .bordered, a grey capsule with no outline. A destructive action is secondaryButton() with
+/// .foregroundStyle(Palette.danger), never a red fill.
+extension View {
+    func primaryButton() -> some View {
+        buttonStyle(.borderedProminent).buttonBorderShape(.capsule).controlSize(.large).tint(Palette.primary)
+    }
+
+    func secondaryButton() -> some View {
+        buttonStyle(.bordered).buttonBorderShape(.capsule).controlSize(.large).tint(Palette.text2)
+    }
+
+    /// An insetGrouped list on the grouped colours: settings, forms and detail pages (long feeds and chat stay .plain).
+    /// Give each row .listRowBackground(Palette.groupedCell).
+    /// (iOS 15 keeps the system grouped background: scrollContentBackground is iOS 16 and later.)
+    @ViewBuilder func groupedList() -> some View {
+        if #available(iOS 16.0, *) {
+            listStyle(.insetGrouped).scrollContentBackground(.hidden).background(Palette.groupedBg)
+        } else {
+            listStyle(.insetGrouped)
+        }
     }
 }
 
@@ -1254,7 +1360,7 @@ struct Kbd: ViewModifier {
 }
 
 extension View {
-    func card(radius: CGFloat = Radius.lg) -> some View { modifier(Card(radius: radius)) }
+    func card(radius: CGFloat = Radius.group, grouped: Bool = false) -> some View { modifier(Card(radius: radius, grouped: grouped)) }
     func frost(radius: CGFloat? = nil, edges: Edge.Set = .all, floating: Bool = false, interactive: Bool = false) -> some View {
         modifier(Frost(radius: radius, edges: edges, floating: floating, interactive: interactive))
     }
@@ -1329,6 +1435,9 @@ def swift(t):
         row=S["row"]["mobile"], row_single=S["row"]["mobile-single"],
         fonts="\n".join(fonts),
         spring_response=num(M["ios"]["spring"]["response"]), spring_damping=num(M["ios"]["spring"]["dampingFraction"]),
+        smooth_d=num(M["ios"]["smooth"]["duration"]), snappy_d=num(M["ios"]["snappy"]["duration"]),
+        snappy_bounce=num(M["ios"]["snappy"]["bounce"]), snappy_damping=num(1 - M["ios"]["snappy"]["bounce"]),
+        ios_group=t["platform"]["ios"]["radius"]["group"], ios_btn=t["platform"]["ios"]["button"]["height"],
         motion="\n".join(mot),
         icon_sm=t["icon"]["size"]["sm"], icon_md=t["icon"]["size"]["md"], icon_lg=t["icon"]["size"]["lg"],
         tile_radius=num(S["brand"]["tile-radius"]), mark_hero=S["brand"]["mark-hero"], mark_empty=S["brand"]["mark-empty"],
@@ -1354,7 +1463,7 @@ COMPOSE_ROLES = [
     ("primary", "primary-text"), ("onPrimary", "@on-primary-text"), ("primaryContainer", "primary-container"),
     ("onPrimaryContainer", "on-primary-container"), ("inversePrimary", "inverse-primary"),
     ("secondary", "text-2"), ("onSecondary", "bg"),
-    ("secondaryContainer", "surface-3"), ("onSecondaryContainer", "text"),
+    ("secondaryContainer", "primary-container"), ("onSecondaryContainer", "text"),
     ("tertiary", "info"), ("onTertiary", "on-info"), ("tertiaryContainer", "info-container"),
     ("onTertiaryContainer", "info"),
     ("background", "bg"), ("onBackground", "text"), ("surface", "bg"), ("onSurface", "text"),
@@ -1368,7 +1477,8 @@ COMPOSE_ROLES = [
     ("surfaceContainerHigh", "surface-2"), ("surfaceContainerHighest", "surface-3"),
 ]
 # colours read through AppTheme.colors; the filled primary is primaryFill there, since colorScheme.primary is primary-text
-EXTENDED = ["canvas", "surface", "surface-2", "surface-3", "elevated", "menu-active", "border", "border-strong",
+EXTENDED = ["canvas", "surface", "surface-2", "surface-3", "elevated", "menu-active", "grouped-bg", "grouped-cell",
+            "border", "border-strong",
             "text", "text-2", "text-3", "text-placeholder",
             "primary", "on-primary", "primary-hover", "primary-pressed", "primary-text", "selected", "focus",
             "success", "on-success", "success-container", "warning", "on-warning", "warning-container",
@@ -1382,9 +1492,10 @@ KT_NAME = {"primary": "primaryFill", "on-primary": "onPrimaryFill", "primary-hov
            "primary-pressed": "primaryFillPressed"}
 
 KOTLIN = """// @@title@@
-// Android, Compose UI 1.8 or later (Compose BOM 2025.04.01, Material 3 1.3.2; Haptic uses 1.8's feedback types).
-// Material 3 1.4 stable (BOM 2025.09.01) is the baseline.
-// A fixed brand scheme: no dynamic colour.
+// Android, Material 3 Expressive: Compose Material 3 1.5.0-beta01 or later (MaterialExpressiveTheme, the expressive
+// shape scale, Button(shapes = …), ShortNavigationBar, LargeFlexibleTopAppBar, SegmentedListItem), Compose UI 1.8 or later
+// (Haptic uses 1.8's feedback types). Material 3 1.4 stable has none of these: stay on 1.5 until it is stable.
+// A fixed brand scheme: no dynamic colour (the app icon and its UI stay one family).
 package theme
 
 import android.app.UiModeManager
@@ -1455,8 +1566,8 @@ import kotlin.math.abs
  *  primary is primary-text (links, the selected tab, focus, checkbox and switch fills), so TextButton and every
  *  component that draws text in primary passes @@acc@@:1; the filled button uses AppTheme.colors.primaryFill (AppButton).
  *  surface = bg, so TopAppBar, ListItem and Scaffold sit on the page colour; surfaceContainerLowest…Highest are
- *  canvas, bg, surface, surface-2 and surface-3; secondaryContainer is surface-3, so the NavigationBar indicator
- *  and the selected FilterChip are neutral. outline (inputs, checkboxes) = border-strong; outlineVariant (cards,
+ *  canvas, bg, surface, surface-2 and surface-3; secondaryContainer is primary-container, a pale tone of the primary
+ *  (Material 3 Expressive's tonal indicator, selected chips and toggles), with text-coloured content on it. outline (inputs, checkboxes) = border-strong; outlineVariant (cards,
  *  dividers) = border. Every role up to Material 3 1.3 is set; the 1.4 fixed roles are unused here.
  *  Checkbox and Switch fill with primary (primary-text); the check mark and thumb are onPrimary: white in light mode,
  *  the dark bg colour in dark mode (@@onp_dark@@:1). Keep it: white on the dark primary-text is only @@white_dark@@:1. */
@@ -1569,9 +1680,12 @@ object AppSize {
     val hitMin = @@hit@@.dp
 @@controls@@
     val row = @@row@@.dp
-    val rowSingle = @@hit@@.dp
-    val navigationBar = 80.dp
-    val fab = 56.dp
+    val rowSingle = @@row_single@@.dp
+    val rowThree = @@row_three@@.dp
+    /** Material 3 Expressive button heights: buttonS is the default, buttonM the screen's call to action */
+@@buttons@@
+    val navigationBar = @@nav_h@@.dp
+    val fab = @@fab@@.dp
 
     /** Media and AI components: the editor's tool tray and slider, crop handles, the video timeline and its waveform,
      *  the thumbnail grid and its selection, checkerboard squares and the viewer scrim's height; the prompt field grows
@@ -1581,21 +1695,28 @@ object AppSize {
     const val PROMPT_MAX_LINES = @@prompt_lines@@
 }
 
-/** Motion: tween(Motion.STANDARD_MS, easing = Motion.Enter) to appear, tween(Motion.STANDARD_EXIT_MS, easing = Motion.Exit)
- *  to leave. The springs are MotionScheme.standard()'s: spatial (position, size) damping @@sp_damp@@ / stiffness @@sp_stiff@@;
- *  effects (colour, opacity) damping @@ef_damp@@ / stiffness @@ef_stiff@@. Not the expressive scheme: it bounces.
- *  With Remove animations on, drop movement and scaling and keep at most a fade. */
+/** Motion: AppTheme installs MotionScheme.expressive(), so Material's own components (sheets, the FAB menu, button shape
+ *  morphs, navigation) spring with a little bounce; prefer MaterialTheme.motionScheme.defaultSpatialSpec() in your own
+ *  code. The same springs are here: spatial (position, size) damping @@sp_damp@@ / stiffness @@sp_stiff@@ (fast @@spf@@,
+ *  slow @@sps@@); effects (colour, opacity) damping @@ef_damp@@ / stiffness @@ef_stiff@@, never bouncing. Under a finger
+ *  (crop, sliders, trim handles, the viewer's pan and its spring back) use precise(): MotionScheme.standard()'s fast
+ *  spatial spring, @@pr_damp@@ / @@pr_stiff@@, so nothing overshoots what the finger set. tween(Motion.STANDARD_MS, easing =
+ *  Motion.Enter) / tween(Motion.STANDARD_EXIT_MS, easing = Motion.Exit) stay for fades. With Remove animations on, drop
+ *  movement and scaling and keep at most a fade. */
 object Motion {
 @@motion@@
     val Enter = CubicBezierEasing(@@enter@@)
     val Exit = CubicBezierEasing(@@exit@@)
     fun <T> spatial(): SpringSpec<T> = spring(dampingRatio = @@sp_damp@@f, stiffness = @@sp_stiff@@f)
+    fun <T> spatialFast(): SpringSpec<T> = spring(dampingRatio = @@spf_damp@@f, stiffness = @@spf_stiff@@f)
+    fun <T> spatialSlow(): SpringSpec<T> = spring(dampingRatio = @@sps_damp@@f, stiffness = @@sps_stiff@@f)
     fun <T> effects(): SpringSpec<T> = spring(dampingRatio = @@ef_damp@@f, stiffness = @@ef_stiff@@f)
+    fun <T> precise(): SpringSpec<T> = spring(dampingRatio = @@pr_damp@@f, stiffness = @@pr_stiff@@f)
 }
 
 /** Gestures on photos and video. Pinch from fit (1) to ZOOM_MAX; a double tap toggles fit and ZOOM_DOUBLE_TAP at the
  *  tap point. Pans fling with the platform decay (rememberSplineBasedDecay(), as lists do) and spring back from the
- *  edges with Motion.spatial(). A swipe down closes the viewer past DISMISS_DISTANCE of the height or dismissVelocity
+ *  edges with Motion.precise(). A swipe down closes the viewer past DISMISS_DISTANCE of the height or dismissVelocity
  *  per second, the background fading with the drag. The grid opens the viewer with a shared element
  *  (SharedTransitionLayout, Motion.ZOOM_MS). Sliders and dials snap to their detent within DETENT_ZONE of the range:
  *  snapped(value, range) plus Haptic.snap when the value lands on it. */
@@ -1665,13 +1786,15 @@ fun hasHardwareKeyboard(): Boolean {
         config.keyboard == Configuration.KEYBOARD_QWERTY && config.hardKeyboardHidden == Configuration.HARDKEYBOARDHIDDEN_NO
 }
 
-/** Material 3 picks corners by size key: text fields extraSmall, chips small, cards medium, sheets extraLarge. */
+/** The Material 3 Expressive shape scale, Material's own values: text fields extraSmall, chips small, cards and the
+ *  FAB large, list groups large outside and extraSmall between rows, sheets and dialogs extraLarge. */
 val AppShapes = Shapes(
 @@shapes@@
 )
 
-/** Buttons are @@button_r@@ dp (not Material's pill); tags and avatars are full pills. */
-val ButtonShape = RoundedCornerShape(@@button_r@@.dp)
+/** Buttons are round (full) and morph to a squarer corner while pressed (ButtonDefaults.shapesFor(height)); tags and
+ *  avatars are full pills. ButtonShape stays for code that needs a plain Shape. */
+val ButtonShape: Shape = CircleShape
 val TagShape = CircleShape
 
 @Deprecated("Renamed to TagShape; kept for one version", ReplaceWith("TagShape"))
@@ -1686,7 +1809,8 @@ fun robotoFlex(resId: Int): FontFamily = FontFamily(listOf(400, 500, 600, 700).m
 private val CentredLine = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None)
 
 /** The Material 3 type scale in Roboto Flex. List row titles bodyLarge, metadata bodyMedium in text-2,
- *  labels and tags labelMedium; body text never below 12 sp. */
+ *  labels and tags labelMedium; body text never below 12 sp. The emphasized styles (Material 3 Expressive) change
+ *  only the weight, 400 to 500 and 500 to 600: page titles headlineMediumEmphasized, the call to action labelLargeEmphasized. */
 fun appTypography(family: FontFamily = FontFamily.Default) = Typography(
 @@type@@
 )
@@ -1700,10 +1824,9 @@ val TextStyle.tabular: TextStyle get() = copy(fontFeatureSettings = "tnum")
  *  Text("0:12 / 1:04", style = MaterialTheme.typography.timecode) */
 val Typography.timecode: TextStyle get() = @@timecode@@.tabular
 
-/** The theme. dark and highContrast follow the system; the colour scheme is always this one (no dynamic colour).
- *  On Material 3 1.5.0-beta01 and later you may use, with the same arguments,
- *  MaterialExpressiveTheme(colorScheme = colors, motionScheme = MotionScheme.standard(), shapes = AppShapes,
- *  typography = typography, content = content), passing the colour scheme explicitly; never MotionScheme.expressive(). */
+/** The theme: Material 3 Expressive (MaterialExpressiveTheme, MotionScheme.expressive(), the expressive shape scale).
+ *  dark and highContrast follow the system; the colour scheme is always this one (no dynamic colour), passed
+ *  explicitly so the expressive default scheme never shows. */
 @Composable
 fun AppTheme(
     dark: Boolean = isSystemInDarkTheme(),
@@ -1725,7 +1848,13 @@ fun AppTheme(
     }
     val typography = remember(fontFamily) { appTypography(fontFamily) }
     CompositionLocalProvider(LocalExtendedColors provides extended) {
-        MaterialTheme(colorScheme = colors, shapes = AppShapes, typography = typography, content = content)
+        MaterialExpressiveTheme(
+            colorScheme = colors,
+            motionScheme = MotionScheme.expressive(),
+            shapes = AppShapes,
+            typography = typography,
+            content = content,
+        )
     }
 }
 
@@ -1763,45 +1892,65 @@ fun BrandPanel(
     Column(modifier.clip(shape).background(Brand.surface(colors)).border(1.dp, colors.brandEdge, shape), content = content)
 }
 
-/** TopAppBar: opaque bg, and the same when content scrolls under it (no tonal lift); once scrolled, a 1 dp
- *  outlineVariant line under it, which you draw yourself, e.g. in a Column:
- *  TopAppBar(title = { Text("明细") }, colors = appTopBarColors(), scrollBehavior = scrollBehavior)
- *  if (scrollBehavior.state.contentOffset < 0f) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
- *  with scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior() and Modifier.nestedScroll(scrollBehavior.nestedScrollConnection) on the Scaffold. */
+/** Top app bars (Material 3 Expressive): a top-level screen uses LargeFlexibleTopAppBar (@@large_bar@@ dp, the title in
+ *  headlineMediumEmphasized) that collapses to @@small_bar@@ dp as the list scrolls; a pushed screen uses TopAppBar. The bar
+ *  sits on the page (groupedBg on list pages) and takes surface-3 once content scrolls under it: no tonal lift, no line.
+ *  LargeFlexibleTopAppBar(title = { Text("明细") }, colors = appTopBarColors(), scrollBehavior = scrollBehavior)
+ *  with scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior() and
+ *  Modifier.nestedScroll(scrollBehavior.nestedScrollConnection) on the Scaffold (containerColor = AppTheme.colors.groupedBg). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun appTopBarColors(): TopAppBarColors = TopAppBarDefaults.topAppBarColors(
-    containerColor = MaterialTheme.colorScheme.background,
-    scrolledContainerColor = MaterialTheme.colorScheme.background,
+fun appTopBarColors(container: Color = AppTheme.colors.groupedBg): TopAppBarColors = TopAppBarDefaults.topAppBarColors(
+    containerColor = container,
+    scrolledContainerColor = AppTheme.colors.surface3,
 )
 
-/** NavigationBar items: the indicator pill is surface-3 (neutral); the selected icon (fill 1) and label are primary-text. */
+/** Navigation bar items: the indicator is the tonal pill (secondaryContainer = primary-container, 56 x 32), the
+ *  selected icon (Material Symbols fill 1) and label are text; unselected ones text-2. */
 @Composable
-fun appNavigationItemColors(): NavigationBarItemColors = NavigationBarItemDefaults.colors(
-    selectedIconColor = MaterialTheme.colorScheme.primary,
-    selectedTextColor = MaterialTheme.colorScheme.primary,
-    indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+fun appNavigationItemColors(): NavigationItemColors = ShortNavigationBarItemDefaults.colors(
+    selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+    selectedTextColor = MaterialTheme.colorScheme.onSurface,
+    selectedIndicatorColor = MaterialTheme.colorScheme.secondaryContainer,
     unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
     unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
 )
 
-/** Navigation bar: surface fill, a 1 dp outlineVariant line along the top, no tonal elevation; 80 dp plus the system
- *  gesture inset. Use it instead of NavigationBar, with NavigationBarItem(colors = appNavigationItemColors()) inside. */
+/** Navigation bar: Material 3 Expressive's ShortNavigationBar, @@nav_h@@ dp plus the system gesture inset, on surface-2 with no
+ *  line and no tonal elevation. Use it instead of NavigationBar (80 dp, the old baseline), with
+ *  ShortNavigationBarItem(colors = appNavigationItemColors(), …) inside. */
 @Composable
 fun AppNavigationBar(
     modifier: Modifier = Modifier,
-    content: @Composable RowScope.() -> Unit,
-) = Column(modifier) {
-    HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
-    NavigationBar(containerColor = AppTheme.colors.surface, tonalElevation = 0.dp, content = content)
-}
+    content: @Composable () -> Unit,
+) = ShortNavigationBar(modifier = modifier, containerColor = AppTheme.colors.surface2, content = content)
 
-/** Primary button: primaryFill, white label, @@button_r@@ dp corners, @@button_h@@ dp tall, no shadow; darker on hover and press
- *  (at once on the way in, fading over Motion.HOVER_OUT_MS on the way out). One per screen. Use it instead of Button. */
+/** A list group (Material 3 Expressive segmented list): rows are separate tiles on the grouped page, groupedCell fill,
+ *  @@list_outer@@ dp outer corners, @@list_inner@@ dp between rows, a @@list_gap@@ dp gap and no dividers; a pressed or selected row morphs
+ *  to the outer corner. Rows are @@row_single@@ / @@row@@ / @@row_three@@ dp for one, two and three lines.
+ *  Column(verticalArrangement = Arrangement.spacedBy(ListGap)) { items.forEachIndexed { i, item ->
+ *      SegmentedListItem(onClick = { … }, shapes = ListItemDefaults.segmentedShapes(i, items.size),
+ *          colors = appSegmentedColors(), supportingContent = { Text(item.meta) }) { Text(item.title) } } } */
+val ListGap = @@list_gap@@.dp
+
+@Composable
+fun appSegmentedColors(): ListItemColors = ListItemDefaults.segmentedColors(
+    containerColor = AppTheme.colors.groupedCell,
+    contentColor = MaterialTheme.colorScheme.onSurface,
+    leadingContentColor = AppTheme.colors.text3,
+    trailingContentColor = MaterialTheme.colorScheme.onSurface,
+    supportingContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+)
+
+/** Primary button (Material 3 Expressive): primaryFill, white label, round, morphing to a squarer corner while pressed
+ *  (ButtonDefaults.shapesFor(height)), no shadow; darker on hover and press (at once on the way in, fading over
+ *  Motion.HOVER_OUT_MS on the way out). height AppSize.buttonM (@@btn_m@@ dp) for the screen's call to action, AppSize.buttonS
+ *  (@@btn_s@@ dp) in rows, dialogs and button groups. One per screen. Use it instead of Button. */
 @Composable
 fun AppButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    height: Dp = AppSize.buttonM,
     enabled: Boolean = true,
     interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit,
@@ -1821,9 +1970,9 @@ fun AppButton(
     )
     Button(
         onClick = onClick,
-        modifier = modifier.heightIn(min = AppSize.controlLg),
+        shapes = ButtonDefaults.shapesFor(height),
+        modifier = modifier.heightIn(min = height),
         enabled = enabled,
-        shape = ButtonShape,
         colors = ButtonDefaults.buttonColors(
             containerColor = fill,
             contentColor = c.onPrimaryFill,
@@ -1831,52 +1980,52 @@ fun AppButton(
             disabledContentColor = c.disabledFg,
         ),
         elevation = null,
+        contentPadding = ButtonDefaults.contentPaddingFor(height),
         interactionSource = source,
         content = content,
     )
 }
 
-/** Secondary button: surface-2 fill, 1 dp border, text-coloured label, same shape and height as AppButton.
- *  A destructive action is this button with contentColor MaterialTheme.colorScheme.error, never a red fill. */
+/** Secondary button: Material 3 Expressive's tonal shape (round, morphing on press) in a neutral fill: surface-3, no
+ *  outline, text-coloured label, the same heights as AppButton. A destructive action is this button with contentColor
+ *  MaterialTheme.colorScheme.error, never a red fill. */
 @Composable
 fun AppOutlinedButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    height: Dp = AppSize.buttonM,
     enabled: Boolean = true,
     contentColor: Color = MaterialTheme.colorScheme.onSurface,
     interactionSource: MutableInteractionSource? = null,
     content: @Composable RowScope.() -> Unit,
-) {
-    val source = interactionSource ?: remember { MutableInteractionSource() }
-    OutlinedButton(
-        onClick = onClick,
-        modifier = modifier.heightIn(min = AppSize.controlLg),
-        enabled = enabled,
-        shape = ButtonShape,
-        colors = ButtonDefaults.outlinedButtonColors(
-            containerColor = AppTheme.colors.surface2,
-            contentColor = contentColor,
-            disabledContainerColor = AppTheme.colors.surface2,
-            disabledContentColor = AppTheme.colors.disabledFg,
-        ),
-        border = BorderStroke(1.dp, if (enabled) MaterialTheme.colorScheme.outlineVariant else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f)),
-        interactionSource = source,
-        content = content,
-    )
-}
+) = Button(
+    onClick = onClick,
+    shapes = ButtonDefaults.shapesFor(height),
+    modifier = modifier.heightIn(min = height),
+    enabled = enabled,
+    colors = ButtonDefaults.buttonColors(
+        containerColor = AppTheme.colors.surface3,
+        contentColor = contentColor,
+        disabledContainerColor = AppTheme.colors.disabledBg,
+        disabledContentColor = AppTheme.colors.disabledFg,
+    ),
+    elevation = null,
+    contentPadding = ButtonDefaults.contentPaddingFor(height),
+    interactionSource = interactionSource,
+    content = content,
+)
 
-/** Card: surface fill (AppTheme.colors.surface), a 1 dp outlineVariant border, no shadow, Shapes.large corners.
- *  Use it instead of Card (Material's Card is surfaceContainerHighest, i.e. surface-3, with no border) and of a bare
- *  OutlinedCard (colorScheme.surface, the page colour). */
+/** Card (Material 3 Expressive, filled): groupedCell on the grouped page, no border and no shadow, Shapes.large (16 dp).
+ *  Use it instead of Card (Material's Card is surfaceContainerHighest, i.e. surface-3). */
 @Composable
 fun AppCard(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit,
-) = OutlinedCard(
+) = Card(
     modifier = modifier,
     shape = MaterialTheme.shapes.large,
-    colors = CardDefaults.outlinedCardColors(containerColor = AppTheme.colors.surface),
-    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    colors = CardDefaults.cardColors(containerColor = AppTheme.colors.groupedCell),
+    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     content = content,
 )
 
@@ -1894,8 +2043,8 @@ fun appSliderColors(): SliderColors = SliderDefaults.colors(
 )
 
 /** Filter chip: Material's FilterChip, 32 dp tall (48 dp touch target), Shapes.small corners, labelLarge.
- *  Unselected: no fill, 1 dp border, text-2 label. Selected: surface-3 fill (neutral, never the primary), text
- *  label, no border, and the 18 dp check from selectedIcon (shown only while selected). Use it instead of FilterChip, e.g.
+ *  Unselected: no fill, 1 dp border, text-2 label. Selected: the tonal secondaryContainer (primary-container, never the
+ *  primary fill), text label, no border, and the 18 dp check from selectedIcon (shown only while selected). Use it instead of FilterChip, e.g.
  *  AppChip(selected, onClick, "全部", selectedIcon = { Icon(painterResource(R.drawable.check_rounded), null, Modifier.size(18.dp)) }) */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1954,7 +2103,8 @@ fun StatusTag(
     }
 }
 
-/** New-item FAB: 56 dp, primaryFill with a white "+", @@fab_r@@ dp corners, Material's default (elev-2 like) shadow. */
+/** New-item FAB (Material 3 Expressive): 56 dp, tonal (primary-container with the "+" in primary-text), @@fab_r@@ dp corners,
+ *  Material's default shadow. Several create actions: FloatingActionButtonMenu with a ToggleFloatingActionButton. */
 @Composable
 fun AppFab(
     onClick: () -> Unit,
@@ -1964,8 +2114,8 @@ fun AppFab(
     onClick = onClick,
     modifier = modifier,
     shape = RoundedCornerShape(@@fab_r@@.dp),
-    containerColor = AppTheme.colors.primaryFill,
-    contentColor = AppTheme.colors.onPrimaryFill,
+    containerColor = MaterialTheme.colorScheme.primaryContainer,
+    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
     content = content,
 )
 """
@@ -1978,6 +2128,9 @@ def kt_colour(colour):
 
 def kt_sp(x):
     return f"({num(x)}).sp" if x < 0 else f"{num(x)}.sp"
+
+
+BUTTON_NAME = {"xs": "XS", "sm": "S", "md": "M", "lg": "L", "xl": "XL"}
 
 
 def kotlin(t):
@@ -2000,11 +2153,16 @@ def kotlin(t):
     type_rows = [f"    {slot} = TextStyle(fontFamily = family, fontSize = {s}.sp, lineHeight = {lh}.sp, "
                  f"fontWeight = FontWeight.W{w}, letterSpacing = {kt_sp(tr)}, lineHeightStyle = CentredLine),"
                  for slot, (s, lh, w, tr) in ANDROID_TYPE.items()]
+    type_rows += [f"    {slot}Emphasized = TextStyle(fontFamily = family, fontSize = {s}.sp, lineHeight = {lh}.sp, "
+                  f"fontWeight = FontWeight.W{ANDROID_EMPHASIZED(w)}, letterSpacing = {kt_sp(tr)}, lineHeightStyle = CentredLine),"
+                  for slot, (s, lh, w, tr) in ANDROID_TYPE.items()]
 
     M = t["motion"]
     mot = [f"    const val {k.upper().replace('-', '_')}_MS = {v}" for k, v in M["duration"].items()]
     mot += [f"    const val {k.upper()}_EXIT_MS = {v}" for k, v in M["exit"].items()]
-    sp, ef = M["android"]["spatial"], M["android"]["effects"]
+    A = M["android"]
+    sp, ef, spf, sps, pr = A["spatial"], A["effects"], A["spatial-fast"], A["spatial-slow"], A["precise"]
+    P3 = t["platform"]["android"]
 
     r, S = t["radius"], t["size"]
     g, G = M["gesture"], t["gradient"]["viewer-scrim"]
@@ -2012,7 +2170,7 @@ def kotlin(t):
                f"    const val DISMISS_DISTANCE = {num(g['dismiss-distance'])}f", f"    val dismissVelocity = {num(g['dismiss-velocity'])}.dp",
                f"    const val DETENT_ZONE = {num(g['detent'])}f"]
     scrim = lambda stops: "\n".join(f"        {num(pos)}f to {kt_colour(rgba(G['color'], o))}," for pos, o in stops)
-    shapes = {"extraSmall": r["xs"], "small": r["sm"], "medium": r["md"], "large": r["lg"], "extraLarge": r["xl"]}
+    shapes = {k: v for k, v in P3["shape"].items() if k != "full"}
     dk = T["dark"]
     return fill(
         KOTLIN,
@@ -2034,13 +2192,22 @@ def kotlin(t):
         space="\n".join(f"    val s{k.replace('.', '_')} = {v}.dp" for k, v in t["space"].items()),
         hit=S["hit-min"]["android"],
         controls="\n".join(f"    val control{pascal(k)} = {v}.dp" for k, v in S["control-h"]["mobile"].items()),
-        row=S["row"]["android"],
+        row=S["row"]["android"], row_single=P3["list"]["row"][0], row_three=P3["list"]["row"][2],
+        buttons="\n".join(f"    val button{BUTTON_NAME[k]} = {P3['button'][k][0]}.dp" for k in BUTTON_NAME),
+        nav_h=P3["navigation-bar"]["height"], fab=P3["fab"]["size"],
+        large_bar=P3["top-app-bar"]["large-flexible"], small_bar=P3["top-app-bar"]["small"],
+        list_outer=P3["list"]["outer"], list_inner=P3["list"]["inner"], list_gap=P3["list"]["gap"],
+        btn_m=P3["button"]["md"][0], btn_s=P3["button"]["sm"][0],
+        spf=f"{num(spf['dampingRatio'])} / {num(spf['stiffness'])}", sps=f"{num(sps['dampingRatio'])} / {num(sps['stiffness'])}",
+        spf_damp=num(spf["dampingRatio"]), spf_stiff=num(spf["stiffness"]),
+        sps_damp=num(sps["dampingRatio"]), sps_stiff=num(sps["stiffness"]),
+        pr_damp=num(pr["dampingRatio"]), pr_stiff=num(pr["stiffness"]),
         motion="\n".join(mot),
         enter=", ".join(num(x) + "f" for x in M["ease"]["enter"]), exit=", ".join(num(x) + "f" for x in M["ease"]["exit"]),
         sp_damp=num(sp["dampingRatio"]), sp_stiff=num(sp["stiffness"]),
         ef_damp=num(ef["dampingRatio"]), ef_stiff=num(ef["stiffness"]),
         shapes=",\n".join(f"    {k} = RoundedCornerShape({v}.dp)" for k, v in shapes.items()),
-        button_r=r["lg"], button_h=S["control-h"]["mobile"]["lg"], fab_r=r["xl"],
+        fab_r=P3["fab"]["radius"],
         type="\n".join(type_rows),
         media_sizes="\n".join(f"    val {camel(k)} = {v}.dp" for k, v in S["media"].items()),
         prompt_min=S["prompt"]["min"], prompt_lines=S["prompt"]["max-lines"],
@@ -2105,7 +2272,8 @@ module.exports = {{
       ringOffsetColor: {{ DEFAULT: 'var(--c-bg)' }},
       borderRadius: {{
 {radius},
-        'brand-tile': 'var(--brand-tile-radius)'
+        'brand-tile': 'var(--brand-tile-radius)',
+        'group': 'var(--r-group)' /* phone cards and list groups (iOS insetGrouped); buttons are rounded-full */
       }},
       fontSize: {{
 {sizes},

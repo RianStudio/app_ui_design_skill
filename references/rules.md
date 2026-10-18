@@ -2,7 +2,7 @@
 
 一句话：**深石墨和纸白两套 LCh 中性色阶梯，用 1 px 发丝线和明度差分层，单一强调色，排得密但不挤；照片、视频和生成结果放在彩度 0 的中性画布上，界面退到后面。** 中性色和 app 图标的底是同一种石墨（色相 265）。图标的语言也进界面：界面图标和图标一样是统一粗细的圆头细线（图标是 1024 上 60 px 的线，界面是 1.5 px 的 Lucide），启动页、引导、付费墙、空状态这些品牌位用图标的顶光面板（深色是图标的石墨，浅色是浅石墨）、平涂的线稿和强调色，关于页放石墨的 app 图标，图标和界面读起来是一个牌子。只有这一种风格；键盘层、桌面窗口这些是可选的附加层，不是另一种风格。
 
-线条、密度和克制来自 Linear；材质、字体和图标规格来自 Apple；无障碍硬指标和动效参数来自 Google。
+线条、密度和克制来自 Linear。手机上两个平台各说各的方言：**iOS 按 Apple 的 Human Interface Guidelines（iOS 26，Liquid Glass）**，胶囊按钮、分组列表、系统文字样式和系统弹簧；**Android 按 Material 3 Expressive**，它的形状阶梯、按下会变方的圆按钮、连接按钮组、分段列表、短导航栏、可折叠大标题栏和 expressive 动效。石墨中性色、单一主色、细线图标和品牌位两边共用，所以同一个 app 在两个平台上一眼是一家，又各自像原生 app（见「平台适配」）。
 
 ## 原则
 
@@ -12,9 +12,9 @@
 4. **填充和文字分开。** `primary` 是填充（白字 ≥ 4.5:1，深浅同值）；`primary-text` 是链接、选中文字和焦点环（深色更亮、浅色更暗）。不要拿 `primary` 写字，也不要拿 `primary-text` 做按钮底（Compose 的复选框和开关例外，见「用法速查」）。
 5. **密但不挤。** 桌面和 Web 正文 13–14、列表行 36；手机沿用平台字号和 44 / 48 点击区，不套桌面密度。
 6. **一个动作一个名字，键盘是可选层。** 每个动作只有一个名字，都能搜到：桌面是 ⌘K，手机是搜索入口。快捷键提示、tooltip 里的快捷键和悬停效果是键盘层，只在桌面、Web 和接了键盘的 iPad / Mac 上出现；手机上不显示，也不靠它们教用户。
-7. **立即响应，慢的讲清楚。** 瞬时的本地操作乐观更新，不显示 spinner；超过 1 s 的处理（抠图、转码、放大、生成、批量导出）走「长任务」：确定进度、剩余时间、取消、能在后台继续。动效短，几乎不回弹。
+7. **立即响应，慢的讲清楚。** 瞬时的本地操作乐观更新，不显示 spinner；超过 1 s 的处理（抠图、转码、放大、生成、批量导出）走「长任务」：确定进度、剩余时间、取消、能在后台继续。动效按平台：iOS 用系统的 `.smooth` / `.snappy`，不回弹；Android 用 M3 Expressive 的 expressive 弹簧，位移带一点回弹，手指正在拖的东西（裁剪、滑块、剪辑手柄）不回弹。
 8. **可读性是硬指标。** 对比度表（见「颜色」）由 `build.py` 断言，不过就不输出；高对比档一起生成，跟随系统设置。不要手动调回去。
-9. **平台原生。** iOS 用系统栏和 Liquid Glass，Android 用 Material 3 组件和全部颜色角色，Web 和桌面用倒 L 布局。手机优先：先把 iPhone 和 Android 做对。
+9. **平台原生，各按各的规范。** iOS 按 Apple HIG：系统栏和 Liquid Glass、胶囊按钮、`insetGrouped` 分组列表、系统文字样式（列表正文 17）。Android 按 Material 3 Expressive：圆按钮按下变方、浅色调容器（导航指示器、选中的 chip 和切换按钮、FAB）、分段列表、短导航栏、可折叠大标题栏、expressive 动效。Web 和桌面用倒 L 布局。同一个控件在两个平台上可以长得不一样，token 和用途一样。手机优先：先把 iPhone 和 Android 做对。
 10. **品牌位用图标的材质，工作界面不用。** 启动页、引导和付费墙的头图、权限预请求和同意页的插图、空状态、关于页、导出完成页是品牌位：铺一块顶光的品牌面板（深色是图标的石墨，浅色是浅石墨，见「品牌色组」），插图就是图标自己的主体，平涂的线（浅色深线、深色亮线），图标的强调色原色只出现在这里；关于页的 app 图标深浅都是石墨。列表、编辑器、对话这些工作界面照旧。
 11. **看颜色的地方用中性底。** 编辑页、查看页在四套颜色里都是深色，画布用彩度 0 的 `media-*`；正在看、正在调的那张照片上不叠玻璃（会改颜色，查看器用 `viewer-scrim`），任何照片上都不叠主色浅底（会染色）。图库网格、对话列表上浮动的栏和提示词框可以用玻璃（`preview.py` 的 `frost photo` 两行量过）。
 
@@ -49,7 +49,7 @@ L 来自 `assets/palette.json` 的 `ladder` 和 `text`；文字和 `border-stron
 | `bg` | 8 | `#16181A` | 100 | `#FFFFFF` | 主内容区、手机页面 |
 | `surface` | 10.5 | `#1B1D1F` | 100 | `#FFFFFF` | 卡片、列表组、输入框底 |
 | `surface-2` | 13 | `#202224` | 96.5 | `#F4F5F7` | 悬停或键盘光标所在的行、侧栏当前项、次按钮、代码块 |
-| `surface-3` | 16 | `#26282A` | 94 | `#ECEEF0` | 按下、筛选 pill 选中、导航指示器、骨架块、进度条剩余段 |
+| `surface-3` | 16 | `#26282A` | 94 | `#ECEEF0` | 按下、筛选 pill 选中（媒体页）、Android 次按钮、骨架块、进度条剩余段 |
 | `elevated` | 12 | `#1E2022` | 100 | `#FFFFFF` | 弹出菜单、命令菜单、弹窗、toast、tooltip |
 | `menu-active` | `elevated` 叠白 8 % | `#303234` | 同 `surface-3` | `#ECEEF0` | 命令菜单、右键菜单、弹出菜单的当前项（深色下 `surface-3` 叠在 `elevated` 上只差 4 L，看不出来） |
 | `border-strong` | 46 | `#6B6D70` | 59 | `#8D8E90` | 只给控件边界：表单输入框、复选框、关闭态的开关（≥ 3:1） |
@@ -194,7 +194,7 @@ token 名是 `build.py`、`tokens.json` 和各平台输出共用的契约，写�
 
 | 组 | 内容 |
 |---|---|
-| 表面 | `canvas`、`bg`、`surface`、`surface-2`、`surface-3`、`elevated`、`menu-active` |
+| 表面 | `canvas`、`bg`、`surface`、`surface-2`、`surface-3`、`elevated`、`menu-active`；手机分组页 `grouped-bg`、`grouped-cell`（浅色 `surface-2` / `surface`，深色 `canvas` / `surface-2`，相当于 iOS 的 systemGroupedBackground 和它的单元格，Android 分段列表也用这一对） |
 | 线 | `border`、`border-strong` |
 | 文字 | `text`、`text-2`、`text-3`、`text-placeholder` |
 | 主色 | `primary`、`on-primary`、`primary-hover`、`primary-pressed`、`primary-text`、`selected`、`focus`、`primary-container`、`on-primary-container`、`selection` |
@@ -206,14 +206,15 @@ token 名是 `build.py`、`tokens.json` 和各平台输出共用的契约，写�
 | 禁用 | `disabled-fg`（= `text-placeholder`）、`disabled-bg`（= `surface-3`），给填充按钮的禁用态 |
 | 反色 | `inverse-surface`（另一种模式的 `surface-3`）、`on-inverse`、`inverse-primary`：只给 Compose 的 inverse 角色（M3 Snackbar）。自定义 toast 用 `elevated` |
 | 颜色集 | `light`、`dark`、`light-hc`、`dark-hc` |
-| 圆角 | xs 4（kbd、复选框）· sm 6（桌面按钮、输入框、菜单项、侧栏项）· md 8（桌面卡片、列表悬停底、toast）· lg 12（手机卡片和按钮、弹出菜单、命令菜单）· xl 16（弹窗、底部弹窗、品牌面板）· full（标签、头像、筛选 pill、浮动标签栏）。品牌方块和界面里的 app 图标是边长的 22.37 %。iOS 用 continuous 圆角 |
+| 圆角 | 桌面和 Web：xs 4（kbd、复选框）· sm 6（桌面按钮、输入框、菜单项、侧栏项）· md 8（桌面卡片、列表悬停底、toast）· lg 12（弹出菜单、命令菜单）· xl 16（弹窗、品牌面板）· full（标签、头像、筛选 pill、浮动标签栏）。**iOS**（`platform.ios.radius`）：卡片和分组 `group` 26（离屏幕边 16 时和屏幕圆角同心，同系统 `insetGrouped`），按钮、分段控件、步进器、搜索框是胶囊，sheet、alert 和系统栏用系统自己的圆角；continuous 圆角。**Android**（`platform.android.shape`，M3 Expressive 的原值）：extraSmall 4 · small 8 · medium 12 · large 16 · largeIncreased 20 · extraLarge 28 · extraLargeIncreased 32 · extraExtraLarge 48 · full。品牌方块和界面里的 app 图标是边长的 22.37 % |
 | 间距 | 4 栅格加 2，key 是 4 的倍数：0.5 = 2 · 1 = 4 · 2 = 8 · 3 = 12 · 4 = 16 · 5 = 20 · 6 = 24 · 8 = 32 · 10 = 40 · 12 = 48 |
-| 控件高 | 桌面 `control-h.desktop`：xs 20 · sm 24 · md 28（默认按钮）· lg 32（输入框、主按钮）。手机 `control-h.mobile`：md 44 · lg 50（主按钮） |
-| 行和栏 | `row`：desktop 36 · compact 32 · mobile 60（iOS 双行）· mobile-single 44 · android 72（双行）；`sidebar`：width 240（可调 200–320）· item 28；`view-header` 44；`filter-bar` 36；`kbd` 18 |
+| 控件高 | 桌面 `control-h.desktop`：xs 20 · sm 24 · md 28（默认按钮）· lg 32（输入框、主按钮）。手机 `control-h.mobile`：md 44 · lg 50（iOS 主按钮，`.controlSize(.large)` 的胶囊）。Android 按钮按 M3 Expressive 的五档（`platform.android.button`，高 / 方形圆角 / 按下圆角）：XS 32 / 12 / 8 · S 40 / 12 / 8（默认）· M 56 / 16 / 12（一屏的主按钮）· L 96 / 28 / 16 · XL 136 / 28 / 16 |
+| 行和栏 | `row`：desktop 36 · compact 32 · mobile 60（iOS 双行）· mobile-single 44 · android 72（双行；单行 56、三行 88）；`sidebar`：width 240（可调 200–320）· item 28；`view-header` 44；`filter-bar` 36；`kbd` 18 |
 | 点击区 | `hit-min`：iOS 44 pt，Android 48 dp |
 | 媒体尺寸 | `size.media`：工具托盘高 64、工具项宽 64；滑块轨道 4、圆钮 24、0 点刻度 8；裁剪角手柄 20、线宽 3；播放头 2、圆头 10；时间线高 48、剪辑手柄宽 14、音频波形高 24；缩略图间隙 2；选中描边 3、勾 22；棋盘格 8；查看器遮罩高 140 |
 | 提示词框 | `size.prompt`：最小高 48，随文字长到 6 行，再多就在框里滚动；圆角是最小高的一半（24），长高后不变 |
 | 阴影 | `elev-0` · `elev-2` · `elev-3`，见下表 |
+| 平台层 | `platform.ios`（HIG：圆角、按钮、分段控件、列表）、`platform.android`（M3 Expressive：形状阶梯、按钮五档、按钮组、FAB、导航栏、顶栏、分段列表、浮动工具栏、波浪进度、强调字体）。写界面时按平台取，见「平台适配」 |
 | 动效 | `hover-in` · `hover-out` · `fast` · `standard` · `slow` · `zoom`，加进场、退场两条曲线，见下表 |
 | 手势 | `motion.gesture`：放大倍数、惯性、边缘阻尼、下滑关闭、吸附范围，见「动效 → 手势」 |
 | 触感 | `haptic`：`selection`、`snap`、`success`、`failure` 四种，见「动效 → 触感」 |
@@ -246,21 +247,21 @@ token 名是 `build.py`、`tokens.json` 和各平台输出共用的契约，写�
 | `caption` | 12 / 16 / 510 / +0.0005 | 元数据、标签、tooltip |
 | `micro` | 11 / 14 / 510 / +0.0048 | kbd、角标 |
 
-**手机字号**（iOS 用系统文字样式，Dynamic Type 要能放大到 AX5，至少 200 %；括号里是默认大小下的字号 / 行高。手机 Web 用同样的数字和 Inter）：
+**手机字号**（iOS 按 Apple HIG 用系统文字样式，列表行和 Mail、设置一样是 Body 17 配 Subheadline 15，不再缩小一档；Dynamic Type 要能放大到 AX5，至少 200 %；括号里是默认大小下的字号 / 行高。手机 Web 用同样的数字和 Inter）：
 
 | token | iOS | 用在 |
 |---|---|---|
 | `page-title` | `.largeTitle` + bold（34 / 41） | 页面标题；用系统导航栏的大标题时不用自己设 |
 | `card-title` | `.headline`（17 / 22） | 卡片标题、月度卡片 |
 | `long-text` | `.body`（17 / 22），长段中文用 `.longText()`：加 6 pt 行距，合 17 / 28 | 长文、说明。手机 Web 的 `--t-long-text` 直接是 17 / 28 |
-| `row-title` | `.subheadline` + `.medium`（15 / 20） | 列表行标题（比 Apple 默认的 17 紧凑一档） |
-| `row-meta` | `.footnote`（13 / 18） | 元数据，配 `text-2` |
+| `row-title` | `.body`（17 / 22） | 列表行标题（Apple 默认） |
+| `row-meta` | `.subheadline`（15 / 20） | 列表行副标题、元数据，配 `text-2` |
 | `section-header` | `.footnote` + `.medium`（13 / 18） | 分组标题，配 `text-3` |
 | `tag-label` | `.caption` + `.medium`（12 / 16） | 标签、筛选 pill |
-| `amount` | `.subheadline` + `.medium`，等宽数字（15 / 20） | 列表里的金额 |
+| `amount` | `.body`，等宽数字（17 / 22） | 列表里的金额 |
 | `timecode` | `.footnote` + `.medium`，等宽数字（13 / 18） | 视频时间码、滑块数值、生成步数 |
 
-Android 用 M3 type scale（sp）：列表行标题 `bodyLarge` 16；元数据 `bodyMedium` 14、`text-2`；标签 `labelMedium` 12 / 500；FilterChip `labelLarge`；时间码 `labelLarge` 等宽数字（`Typography.timecode`）；正文不小于 12 sp。
+Android 用 M3 type scale（sp）：列表行标题 `bodyLarge` 16；元数据 `bodyMedium` 14、`text-2`；标签 `labelMedium` 12 / 500；FilterChip `labelLarge`；时间码 `labelLarge` 等宽数字（`Typography.timecode`）；正文不小于 12 sp。M3 Expressive 的强调字体（`*Emphasized`）只换字重：400 → 500，500 → 600（Material 原值是 700，这套风格不用 700）。用在页面大标题（`headlineMediumEmphasized`）、引导和付费墙的标题、主按钮的字（`labelLargeEmphasized`），别处用普通版。
 
 ### 阴影
 
@@ -285,8 +286,8 @@ Android 用 M3 type scale（sp）：列表行标题 `bodyLarge` 16；元数据 `
 | `fast-exit` · `standard-exit` · `slow-exit` · `zoom-exit` | 67 · 120 · 167 · 200 ms（进场的 2/3） | 所有退场 |
 
 - 曲线：`enter` 是 `cubic-bezier(.2, 0, 0, 1)`（同 Material emphasized），`exit` 是 `cubic-bezier(.3, 0, 1, 1)`。
-- iOS：`.spring(response: 0.3, dampingFraction: 0.9)`，几乎不回弹；Liquid Glass 自带的形变保留，不另加弹跳。
-- Android：`MotionScheme.standard()`（空间运动 damping 0.9 / stiffness 700，颜色和透明度 damping 1.0 / stiffness 1600）。不用 expressive 方案，它的 fast 档 damping 0.6，回弹太明显。
+- iOS（Apple HIG：用系统弹簧）：会动的东西用 `.smooth`（`Motion.spring`，不回弹，0.35 s），控件自己的状态变化（开关、分段、选中）用 `.snappy`（`Motion.snappy`，回弹 0.15）；不用 `.bouncy`。iOS 15–16 用同参数的 `.spring(response:dampingFraction:)`。Liquid Glass 自带的形变保留，不另加弹跳。
+- Android（M3 Expressive）：整个 app 用 `MotionScheme.expressive()`：空间运动 damping 0.8 / stiffness 380（fast 0.6 / 800，slow 0.8 / 200），带一点回弹，Material 自己的组件（底部弹窗、FAB 菜单、按钮变形、导航）都按它走；颜色和透明度 damping 1.0 / stiffness 1600（fast 3800、slow 800），不回弹。**手指下的精确操作**（裁剪框、滑块、剪辑手柄、查看器的拖动和弹回）用 `Motion.precise()`，即 `standard()` 的 fast 空间弹簧 0.9 / 1400，松手不越过手指定的位置。
 - 「减弱动态效果」打开时，所有位移和缩放改成 0 ms 或纯淡入淡出。
 
 **手势**（照片和视频；`motion.gesture`）：
@@ -318,17 +319,18 @@ Android 用 M3 type scale（sp）：列表行标题 `bodyLarge` 16；元数据 `
 
 **布局**按 app 的类型选一种，先把手机做对：
 
-- **列表型**（记账、待办、笔记）：页面 `bg`，列表组和卡片 `surface`；iOS 用系统栏，Android 见「平台适配」。
+- **列表型**（记账、待办、笔记）：分组页，页面 `grouped-bg`、组和卡片 `grouped-cell`；iOS 是系统栏加 `insetGrouped`，Android 是可折叠大标题栏加分段列表，见「平台适配」。
 - **画布型**（照片和视频编辑、查看、相机）：深色、全屏；画布 `media-dark`（查看器 `media-black`）占满上下两栏之间。顶栏放取消和完成，底部是工具托盘（高 64）和模式切换，参数滑块在托盘上方。见「编辑和查看」「视频」。
 - **对话型**（AI 聊天、生成）：消息在 `bg` 上，提示词框浮在底部，顶栏放模型和点数。见「AI」。
 - **Web / 桌面**（可选）：倒 L：`canvas` 的侧栏和顶栏框住 `bg` 主视图；视图头（高 44）放视图名、筛选和显示选项，下面可以有筛选条（高 36）；属性放右侧面板。
-- **分隔**：先靠明度阶梯，再靠 1 px `border`。桌面列表行之间不画线，组之间用组头分开；手机列表用从文字左边开始的内缩分隔线（Android 双行列表不画线）。卡片里不再套描边。
+- **分隔**：先靠明度阶梯，再靠 1 px `border`。桌面列表行之间不画线，组之间用组头分开；iOS 列表用从文字左边开始的内缩分隔线；Android 分段列表靠 2 的间隙分行，不画线。卡片里不再套描边。
 
 | 组件 | 规格 |
 |---|---|
-| 卡片、列表组 | `surface` 底、1 px `border`、`elev-0`；圆角桌面 md 8、手机 lg 12。Compose 用 `AppCard`，不直接用 `Card`（默认是 `surface-3` 灰底、无描边） |
-| 主按钮 | `primary` 底、`on-primary` 字、`body-medium`；悬停 `primary-hover`、按下 `primary-pressed`。桌面高 28 / 32、圆角 6、左右内边距 12；手机高 50、圆角 12。平的：不加影子、渐变、高光或玻璃，放在品牌面板上也一样。一屏最多一个。桌面列表、看板这类顶层视图的视图头不放主按钮：新建入口是侧栏的编辑图标加 C 键（tooltip 写「记一笔 C」）；主按钮只用在弹窗和表单的确认上 |
-| 次按钮 | `surface-2` 底、1 px `border`、`text` 字 |
+| 卡片、列表组 | 桌面：`surface` 底、1 px `border`、`elev-0`、圆角 md 8。**iOS**：分组页（`grouped-bg`）上的 `grouped-cell` 块，不描边，圆角 26，同 `insetGrouped` 的一组（SwiftUI `.card(grouped: true)`、`.groupedList()`）；放在普通 `bg` 页上时才是 `surface` 加 1 px `border`。**Android**：M3 Expressive 的填充卡片，`grouped-cell` 底、无描边、无阴影、圆角 large 16（头部的大卡片 largeIncreased 20）；Compose 用 `AppCard`，不直接用 `Card`（默认是 `surface-3` 灰底） |
+| 分组页 | 设置、表单、详情、账本这类按组排的页面，iOS 和 Android 都用 `grouped-bg` 做页面底、`grouped-cell` 做组。长信息流、对话、图库、编辑器不分组，页面底仍是 `bg` |
+| 主按钮 | `primary` 底、`on-primary` 字、`body-medium`；悬停 `primary-hover`、按下 `primary-pressed`。桌面高 28 / 32、圆角 6、左右内边距 12。**iOS**：胶囊，高 50（`.borderedProminent` + `.buttonBorderShape(.capsule)` + `.controlSize(.large)`，SwiftUI `.primaryButton()`），字 `card-title`；栏里的主操作（「完成」）用 `.glassProminent`。**Android**：M3 Expressive 的圆按钮（全圆角），按下时变方（M 号按下圆角 12，S 号 8，`ButtonDefaults.shapesFor(height)`）；一屏的主按钮 M 号高 56、字 `labelLargeEmphasized` 16，行内、弹窗、按钮组里用 S 号 40。平的：不加影子、渐变、高光或玻璃，放在品牌面板上也一样。一屏最多一个。桌面列表、看板这类顶层视图的视图头不放主按钮：新建入口是侧栏的编辑图标加 C 键（tooltip 写「记一笔 C」）；主按钮只用在弹窗和表单的确认上 |
+| 次按钮 | 桌面 `surface-2` 底、1 px `border`、`text` 字。iOS `.bordered` 灰胶囊（`surface-3` 底，无描边，`.secondaryButton()`）；Android 同主按钮的形状和高度，`surface-3` 底、无描边（`AppOutlinedButton`） |
 | 幽灵按钮 | 透明底，悬停叠 `hover`、按下叠 `pressed`；图标按钮 28 × 28、圆角 6 |
 | 危险操作 | 次按钮样式，字用 `danger`；不用红底 |
 | 禁用 | 文字和图标换 `disabled-fg`（= `text-placeholder`）；填充按钮换成 `disabled-bg` 底、`disabled-fg` 字；不响应悬停 |
@@ -340,26 +342,27 @@ Android 用 M3 type scale（sp）：列表行标题 `bodyLarge` 16；元数据 `
 | 列表行（桌面） | 高 36（紧凑 32），左右内边距 12。依次是：优先级 16、编号 `caption` 等宽 `text-3`、状态图标 16、标题 `small` 510 `text`、右侧标签、头像 18、日期 `caption` `text-3`。悬停叠 `hover`（0 ms 进、150 ms 出）；键盘光标行 `surface-2`；多选行 `selected` 加复选框 |
 | 记账行（桌面变体） | 分类图标 16 `text-3`、状态图标列（只画例外）、标题 510 `text`、备注 `text-3`、右侧标签、账户、时间 `caption` `text-3`、金额 tabular 右对齐（支出 `text`，收入 `primary-text`） |
 | 组头（桌面） | 高 36，吸顶，13 / 590 `text` 加 `text-3` 计数（比 `title-3` 小一档） |
-| 列表行（iOS） | 双行 60：行首是裸的 20 pt 线性分类图标（`text-3`，不加底块），贴 16 pt 边距；标题 15 / 510，元数据 13 `text-2`；右侧金额 tabular；分隔线从标题左边开始。单行 44 |
-| 列表行（Android） | 双行 72 dp：图标 24、标题 `bodyLarge` 16、元数据 `bodyMedium` 14 `text-2`，不画分隔线。单行 48 |
+| 列表行（iOS） | 放在 `insetGrouped` 的组里（`grouped-cell` 底、圆角 26，离屏幕边 16）。双行 60：行首是裸的 20 pt 线性分类图标（`text-3`，不加底块）；标题 `row-title` 17，副标题 `row-meta` 15 `text-2`；右侧金额 `amount` 17 tabular；分隔线从标题左边开始，发丝线。单行 44。组头 `section-header` `text-3`，和组的内容左对齐 |
+| 列表行（Android） | M3 Expressive 的分段列表（`SegmentedListItem` + `ListItemDefaults.segmentedShapes(i, n)`）：每行是一块 `grouped-cell`，行与行之间隔 2，一组外角 16、行间的角 4，按下或选中的行变成外角 16；不画分隔线。单行 56、双行 72、三行 88；图标 24 `text-3`，标题 `bodyLarge` 16，元数据 `bodyMedium` 14 `text-2`。组头 `titleSmall` `primary-text`，左边对齐行里的文字 |
 | 标签 | 高 20（手机 24），圆角 full，左右内边距 8，`caption` `text-2`，1 px `border`，可选 8 px 状态色圆点 |
-| 筛选 pill | 选中用 `surface-3` 底加 `text`（中性），不用主色。iOS 视觉高 36、左右内边距 14，点击区用 `.contentShape(Capsule())` 加上下 padding 补到 44。Android 用 M3 FilterChip：高 32、点击区 48、圆角 6，选中带 18 dp 的勾 |
-| 进度条 | 高 6（桌面 4），圆角 full；已用段 `primary`，剩余段 `surface-3`，两段之间留 2 px 间隙，不画成连续的条。旁边的状态图标用 `in-progress`；百分比是等宽数字：标题行里用 `amount` `text`，队列行里用 `row-meta`，正在跑的那项 `in-progress` |
-| 分段控件 | 2–4 段，互斥；更多选项用菜单。iOS 用系统 `Picker(.segmented)`；Android 用 `SingleChoiceSegmentedButtonRow`（选中段 `secondaryContainer`，即 `surface-3`，带勾）；手机 Web 高 32、圆角 md 8、`surface-3` 底，选中段圆角 sm 6、`elevated` 加一层细影子，`row-meta` 字。选中是中性色，不用主色 |
-| 步进器 | 小范围的整数（倍率、张数）。iOS 用系统 `Stepper`；自绘时高 32、圆角 md 8、`surface-3` 底，「−」「+」各宽 40，点击区补到 44；当前值写在左边的标签里（「导出倍率 2×」，等宽数字）；到上下限的一边换 `disabled-fg` |
-| 滑块 | 轨道 4 `surface-3`，填充段 `primary`（双向参数从中间往两边填），圆钮 24 白色加细影子；数值写在标题行右边，`timecode` 等宽，带正负号。有中间点（曝光、色温）时画 8 高的 `text-3` 刻度，2 % 内吸附并给 `snap` 触感；双击圆钮回到 0。iOS 用系统 `Slider` 加 `.tint(Palette.primary)`；Compose 用 `Slider(colors = appSliderColors())`，保留 Material 的竖条手柄，颜色是 `primary`（和复选框、开关一样按平台来） |
-| 底部弹窗 | `elevated`、顶部圆角 16、`elev-3`、后面铺 `scrim`；顶部抓手 36 × 5。标题 `card-title`，右上角关闭；一屏一个主按钮，次按钮在左。iOS 用系统 sheet（`.presentationDetents`）；Android 用 `ModalBottomSheet(scrimColor = AppTheme.colors.scrim)` |
+| 筛选 pill | iOS：胶囊，视觉高 36、左右内边距 14，点击区用 `.contentShape(Capsule())` 加上下 padding 补到 44；分组页上未选中是 `grouped-cell` 底，选中反色（`text` 底、`grouped-cell` 字），中性，不用主色。Android 用 M3 FilterChip：高 32、点击区 48、圆角 small 8，选中是浅色调 `secondaryContainer`（= `primary-container`）加 `text` 字和 18 dp 的勾；媒体页上（裁剪比例）选中仍是中性的 `surface-3` |
+| 进度条 | iOS 和 Web：高 6（桌面 4），圆角 full；已用段 `primary`，剩余段 `surface-3`，两段之间留 2 px 间隙，不画成连续的条。Android 的长任务用 M3 Expressive 的波浪进度（`LinearWavyProgressIndicator`：线宽 4、振幅 3、波长 40，已用段 `primary`，剩余段 `primary-container`，末端一个停止点），不知道多久的等待用 `LoadingIndicator`（48，仍是实验 API，要 `@OptIn`），不用转圈。旁边的状态图标用 `in-progress`；百分比是等宽数字：标题行里用 `amount` `text`，队列行里用 `row-meta`，正在跑的那项 `in-progress` |
+| 分段控件 | 2–4 段，互斥；更多选项用菜单。iOS 用系统 `Picker(.segmented)`（iOS 26 是胶囊）；手机 Web 照 iOS 画：高 32、胶囊、`surface-3` 底，选中段 `elevated` 加一层细影子，选中是中性色。Android 用 M3 Expressive 的连接按钮组（`ButtonGroup` 的 connected 写法）：每段 S 号高 40、段间隔 2，两头全圆、中间的角 8（按下 4），选中段变成全圆、`secondaryContainer`（= `primary-container`）底加勾 |
+| 步进器 | 小范围的整数（倍率、张数）。iOS 用系统 `Stepper`；自绘时高 32、胶囊、`surface-3` 底，「−」「+」各宽 40，点击区补到 44；当前值写在左边的标签里（「导出倍率 2×」，等宽数字）；到上下限的一边换 `disabled-fg` |
+| 滑块 | 轨道 4 `surface-3`，填充段 `primary`（双向参数从中间往两边填），圆钮 24 白色加细影子；数值写在标题行右边，`timecode` 等宽，带正负号。有中间点（曝光、色温）时画 8 高的 `text-3` 刻度，2 % 内吸附并给 `snap` 触感；双击圆钮回到 0。iOS 用系统 `Slider` 加 `.tint(Palette.primary)`；Compose 用 `Slider(colors = appSliderColors())`，M3 Expressive 的样子：粗轨道、竖条手柄、手柄两边留缝，已用段和手柄 `primary`（和复选框、开关一样按平台来），拖动用 `Motion.precise()` |
+| 底部弹窗 | `elevated`、`elev-3`、后面铺 `scrim`；顶部抓手 36 × 5。标题 `card-title`，右上角关闭；一屏一个主按钮，次按钮在左。iOS 用系统 sheet（`.presentationDetents([.medium, .large])`，可调高度的带抓手），圆角跟系统（和屏幕同心），不自己设；Android 用 `ModalBottomSheet(scrimColor = AppTheme.colors.scrim)`，顶部圆角 extraLarge 28 |
 | 状态徽章 | `X-container` 底、`X` 字、圆角 full；和主色同源时带图标 |
 | 未读圆点 | 6 px `primary` |
 | 侧边栏 | `canvas` 底，宽 240。顶部是工作区切换（高 44，带 app 图标）和搜索、新建两个图标按钮。项高 28、圆角 6、左右内边距 8；图标 16 `text-3`，文字 `small` 510 `text-2`；当前项 `surface-2` 底、`text` 字；计数 `caption` `text-3` 右对齐。分区标题 `caption` `text-3`，可以折叠。底部放同步状态（6 px 圆点加「已同步」） |
-| 标签栏 | iOS 用系统 TabView（Liquid Glass），选中色 `primary-text`。Android 用 `AppNavigationBar`（M3 NavigationBar 加顶线）：高 80（另加系统手势区 inset），`surface` 底加顶部 1 px `border`，不加色调提升，指示器 pill 64 × 32 用 `surface-3`，选中的图标（FILL 1）和文字 `primary-text`。Web 手机版是浮动玻璃 pill：高 56、左右各留 16、悬在安全区上方 8，未选中 `text-3`，选中 `primary-text` |
-| FAB（Android） | 56 dp，`primary` 底、白色「+」、圆角 16、`elev-2` |
+| 标签栏 | iOS 用系统 TabView（Liquid Glass，浮在内容上），选中色 `primary-text`；搜索是单独的 `Tab(role: .search)`，在尾侧。Android 用 `AppNavigationBar`（M3 Expressive 的 `ShortNavigationBar`）：高 64（另加系统手势区 inset），`surface-2` 底，不画顶线、不加色调提升；指示器是 56 × 32 的全圆 pill，用浅色调 `secondaryContainer`（= `primary-container`），选中的图标（FILL 1）和文字 `text`，未选中 `text-2`。Web 手机版是浮动玻璃 pill：高 56、左右各留 16、悬在安全区上方 8，未选中 `text-3`，选中 `primary-text` |
+| FAB（Android） | M3 Expressive：56 dp、圆角 large 16，浅色调 `primary-container` 底、`on-primary-container`（= `primary-text`）的「+」，`elev-2`；新建有好几种时用 FAB 菜单（`FloatingActionButtonMenu`）。批量操作用浮动工具栏（`FloatingToolbar`，高 64、全圆） |
+| 顶栏（Android） | 一级页面用 M3 Expressive 的 `LargeFlexibleTopAppBar`：展开高 120，标题 `headlineMediumEmphasized`，滚动后收成 64；二级页面用普通 `TopAppBar` 64。底跟页面（分组页是 `grouped-bg`），内容滚到下面后换 `surface-3`；不画线、不加色调提升。搜索用 56 高的全圆搜索框 |
 | 弹窗 | `elevated`、圆角 16、`elev-3`、后面铺 `scrim`。宽 440（确认）或 560（表单），内边距 20；标题 `title-2`，正文 `body` `text-2`；操作按钮右对齐，次按钮在左、主按钮在右。Esc 关闭，⌘↵ 确认。手机用系统 sheet |
 | toast | `elevated`、1 px `border`、`elev-2`、圆角 8、高 40。左边 16 px 状态图标，中间 `small` 510 文字，右边「撤销」用 `primary-text`（接了键盘时后面加 kbd ⌘Z）。桌面在左下（离开右侧属性面板），手机在标签栏上方居中。停 4 s，悬停时暂停，最多叠 3 条。iOS 是自定义浮层：高 44、圆角 full，「撤销」点击区 44。Android 用 M3 Snackbar |
 | kbd | 键盘层（见「命令菜单和键盘层」），只在桌面、Web 和接了键盘的 iPad / Mac 上出现。高 18、最小宽 18、左右内边距 4、圆角 4；`micro` 510 等宽数字，`text-2` 字、`surface-2` 底、1 px `border`；多个键之间隔 4。序列键写成 `G` 然后 `S`，「然后」用 `micro` `text-3`。mac 显示 ⌘ ⌥ ⇧ ⌃ ↵，Windows 和 Linux 显示 Ctrl、Alt、Shift |
 | tooltip | 键盘层：只在有指针悬停时出现，手机上没有，不能是说明的唯一位置。`elevated`、`caption`、圆角 6、延迟 500 ms，带 kbd |
 | 弹出菜单 | `elevated`、圆角 12、1 px `border`、`elev-2`、后面铺 `scrim-menu`；当前项 `menu-active` |
-| 品牌面板 | 品牌位的头图、空状态的插图、导出完成的结果区：`brand-surface` 渐变（上亮下暗）、圆角 xl 16（整屏宽时 0），深色是石墨、浅色是浅石墨，外面一圈 `brand-edge`；里面是图标主体（插图，浅色深线、深色亮线）、`on-brand` 标题和 `on-brand-2` 说明，控件用本页的 token。不加高光和影子 |
+| 品牌面板 | 品牌位的头图、空状态的插图、导出完成的结果区：`brand-surface` 渐变（上亮下暗）、圆角桌面 xl 16、iOS 26、Android extraLarge 28（整屏宽时 0），深色是石墨、浅色是浅石墨，外面一圈 `brand-edge`；里面是图标主体（插图，浅色深线、深色亮线）、`on-brand` 标题和 `on-brand-2` 说明，控件用本页的 token。不加高光和影子 |
 | 品牌方块 | 正方形的 `brand-tile`（深浅都是石墨），圆角 22.37 %，外面一圈 `brand-edge`：关于页的 app 图标。只放在普通页面上，不放进品牌面板 |
 | 类别徽章 | 关于页和「更多 Rian Studio 的 app」里，名字下面一枚：高 24、圆角 full、1 px `border` 边，8 px 的 `brand-accent` 圆点加「图片 app」（`tag-label`、`text-2`）。放在深色品牌面板上时边是白 14 %、字是 `on-brand-2`。只给有类别（工具、图片、视频、AI、健康、财务）的 app |
 | 玻璃（frost） | 只给浮在内容上的栏和按钮：Web 手机版的浮动标签栏、自定义浮动按钮。toast 不用玻璃，用 `elevated`（见上面 toast 行）。`frost` + 1 px `frost-border` + 顶部 1 px `frost-highlight`，浮动的再加 `elev-2`。iOS 系统栏自带 Liquid Glass，不另加；卡片、列表、弹窗不用玻璃 |
@@ -484,7 +487,7 @@ Android 用 M3 type scale（sp）：列表行标题 `bodyLarge` 16；元数据 `
 | 支持 | 「给我们评分」「发送反馈」「帮助」 |
 | 关于 | 版本号、「A Rian Studio app」、「更多 Rian Studio 的 app」、隐私政策、使用条款、开源许可 |
 
-iOS 用 `.insetGrouped` 列表，导航标题 inline；Android 用单行列表，分组标题 `labelLarge` `text-3`（不用 M3 默认的主色）。
+iOS 用 `.insetGrouped` 列表放在 `grouped-bg` 上，行底 `grouped-cell`，导航标题 inline；Android 用 M3 Expressive 的分段列表（`ListItemDefaults.segmentedShapes`，外圆角 16、内圆角 4、行间 2 dp）放在 `grouped-bg` 上，分组标题 `labelLarge` 用 `primary-text`，跟 M3 默认一致。
 
 | 项 | 规格 |
 |---|---|
@@ -590,23 +593,35 @@ iOS 用 `.insetGrouped` 列表，导航标题 inline；Android 用单行列表�
 
 ## 平台适配
 
-**iOS 26 / 27（Liquid Glass）**：
+两个平台共用 token（颜色、字体角色、间距、触感、品牌位）和用途规则（主色的用途、面积预算、中性的媒体页），控件的样子、形状和动效各按自己的规范。拿不准时：iOS 问「系统控件默认长什么样」，Android 问「M3 Expressive 的组件默认长什么样」，然后只换成这套主题的颜色。
 
-- 用系统的 NavigationStack、toolbar 和 TabView，栏不设任何自定义背景；栏和内容的分隔交给 `scrollEdgeEffectStyle(.soft)`。查看器例外：它的控件画在 `ViewerScrim` 上，不进系统栏（见「编辑和查看 → 查看器」）。
-- 工具栏最多 3 组，文字按钮和图标按钮之间用 `ToolbarSpacer(.fixed)` 隔开。全屏只有一个主操作时用 `.buttonStyle(.glassProminent)` 加 `.tint(primary)`，放在尾侧。
-- 自定义的浮动控件用 `.glassEffect(.regular.interactive(), in: .capsule)`，多个放进同一个 `GlassEffectContainer`。内容层（列表、卡片）不用玻璃。
+**iOS（Apple HIG，iOS 26 / 27，Liquid Glass）**：
+
+- 用系统的 NavigationStack、toolbar 和 TabView，栏不设任何自定义背景；栏和内容的分隔交给 `scrollEdgeEffectStyle(.soft)`。查看器例外：它的控件画在 `ViewerScrim` 上，不进系统栏（见「编辑和查看 → 查看器」）。一级页面用导航栏的大标题。
+- 层次：Liquid Glass 只在导航层（栏、标签栏、浮动控件、sheet），内容层（列表、卡片、正文）不用玻璃。`Glass.regular` 是默认；`.clear` 只用在画面丰富的媒体上面。
+- 按钮是胶囊：内容里一屏的主操作 `.primaryButton()`（`.borderedProminent` + 胶囊 + `.controlSize(.large)`，平的 `primary` 填充），次操作 `.secondaryButton()`（`.bordered` 灰胶囊）；工具栏里的主操作（「完成」）用 `.buttonStyle(.glassProminent)` 加 `.tint(primary)`，放在尾侧，其余栏按钮是 `.glass` 或系统默认。用样式分主次，不用大小分。
+- 工具栏分前、中、后三组，最多 3 组，文字按钮和图标按钮之间用 `ToolbarSpacer(.fixed)` 隔开；栏里优先用 SF Symbols，不加描边框。
+- 自定义的浮动控件用 `.glassEffect(.regular.interactive(), in: .capsule)`，多个放进同一个 `GlassEffectContainer`。自定义容器的圆角和外层同心（iOS 26 起可以用 `ConcentricRectangle`）；离屏幕边 16 的卡片和组是 26。
+- 列表：设置、表单、详情和按组排的列表用 `.insetGrouped`（`.groupedList()`：`grouped-bg` 页面、`grouped-cell` 行，iOS 15 保留系统分组底）；长信息流、图库、对话用 `.plain`。行用系统文字样式：标题 `.body` 17、副标题 `.subheadline` 15，单行 44、双行 60，分隔线从文字左边开始。
 - 部署目标低于 26 时，`.frost()` 回落到 `.ultraThinMaterial` 加发丝线和顶部内高光。
-- 列表用 `.plain` 样式加自定义行。
-- iOS 27 可选：`.tabBarMinimizeBehavior(.onScrollDown)`；把「新建」做成 `Tab(role: .prominent)`。
+- 标签栏：iOS 26 起 `.tabBarMinimizeBehavior(.onScrollDown)`（有底部附件时滚动会收小）；搜索做成 `Tab(role: .search)`，单独放在尾侧。iOS 27 可选：把「新建」做成 `Tab(role: .prominent)`。
+- sheet 用 `.presentationDetents`，可调高度的带抓手，圆角和背景交给系统。
+- 动效用系统弹簧：`Motion.spring`（`.smooth`）和 `Motion.snappy`（`.snappy`），不用 `.bouncy`。
 - 每个颜色都有浅色、深色、增强对比度的值：`Theme.swift` 用动态 `UIColor`，按 `userInterfaceStyle` × `accessibilityContrast` 四选一。
 - 系统栏和控件跟随系统的同心圆角，不强改成小圆角。
 
-**Android（Material 3）**：
+**Android（Material 3 Expressive）**：
 
-- 基线是 Compose Material3 1.4（stable）。用固定品牌色方案，关掉动态取色；M3 颜色角色都已填好（1.4 新增的 fixed 系列除外），组件直接取 `MaterialTheme.colorScheme`；Shapes extraSmall 4 / small 6 / medium 8 / large 12 / extraLarge 16；Typography 用 Roboto Flex（字体文件自己放进 `res/font`，见「接入」）。
-- TopAppBar 用不透明的 `bg` 底、高 64，滚动后只加一条 `border`，不加色调提升。
-- 必须做到：edge-to-edge（用 WindowInsets）、预测性返回、自定义控件用 `minimumInteractiveComponentSize()`。
-- **M3 Expressive**（接受 1.5.0-beta01 时）：用 `MaterialExpressiveTheme(colorScheme = 显式传入, motionScheme = MotionScheme.standard())`；批量操作用 FloatingToolbar；相关按钮用 ButtonGroup。不用 MaterialShapes、LoadingIndicator（仍是实验 API）、expressive 动效、Wavy 进度条。
+- 基线是 Compose Material 3 **1.5**（现在是 1.5.0-beta01；1.4 稳定版没有 Expressive 的组件，要等 1.5 稳定后再改依赖到稳定版）。`AppTheme` 是 `MaterialExpressiveTheme(colorScheme = 显式传入, motionScheme = MotionScheme.expressive(), shapes = AppShapes, typography = …)`。固定品牌色方案，关掉动态取色：图标和界面是一家，比跟随壁纸更重要。M3 颜色角色都已填好（1.4 新增的 fixed 系列除外），组件直接取 `MaterialTheme.colorScheme`。
+- 形状用 M3 Expressive 的原值：extraSmall 4 / small 8 / medium 12 / large 16 / largeIncreased 20 / extraLarge 28 / extraLargeIncreased 32 / extraExtraLarge 48（`AppShapes`）。文本框 extraSmall，chip small，卡片和 FAB large，底部弹窗和对话框 extraLarge。
+- 颜色的说法：浅色调容器（`secondaryContainer` = `primary-container`）是 Android 的选中语言：导航指示器、选中的 chip、连接按钮组的选中段、切换按钮、FAB。它们彩度很低，不算进主色面积（`preview.py` 只在 INFO 行里报）。`primary` 填充仍然只给一屏一个的主按钮。媒体页上不用浅色调，选中保持中性。
+- 按钮：圆形（全圆角），按下变方（`Button(shapes = ButtonDefaults.shapesFor(height))`）；选中的切换按钮在圆和方之间换。默认 S 号 40，一屏的主按钮 M 号 56，L、XL 只给引导页这种一屏一个大动作的地方。相关的几个按钮放进 `ButtonGroup`（间隔 12），互斥的选项用连接按钮组（间隔 2）。
+- 列表和分组页：`SegmentedListItem` 分段列表（外角 16、行间 4、间隙 2，`grouped-cell` 行、`grouped-bg` 页面），不画分隔线。
+- 栏：一级页面 `LargeFlexibleTopAppBar`（120 收成 64），二级页面 `TopAppBar` 64；底跟页面，滚动后换 `surface-3`，不加色调提升，不画线。底部是 `ShortNavigationBar`（64，56 × 32 的全圆指示器）。批量操作用 `FloatingToolbar`，多个新建入口用 `FloatingActionButtonMenu`。
+- 进度：长任务用波浪进度（`LinearWavyProgressIndicator`），不知道多久的等待用 `LoadingIndicator`（还是实验 API，加 `@OptIn(ExperimentalMaterial3ExpressiveApi::class)`），不用 `CircularProgressIndicator`。`MaterialShapes` 的 35 个形状只用在头像裁切和 `LoadingIndicator` 里，不做图标、不做品牌插图（品牌插图是 app 图标自己的线稿）。
+- 动效 `MotionScheme.expressive()`：位移有一点回弹；手指下的精确操作用 `Motion.precise()`。
+- 字体：Roboto Flex（放进 `res/font`，见「接入」）；页面大标题、引导和付费墙标题、主按钮的字用 `*Emphasized`（字重最多 600）。
+- 必须做到：edge-to-edge（用 WindowInsets）、预测性返回、自定义控件用 `minimumInteractiveComponentSize()`（48 dp）。
 - Compose 没有系统级背景模糊，栏用不透明底；需要玻璃时用 Haze 这类库，参数同 `frost`。
 - 高对比：API 34 以上读 `UiModeManager.getContrast()`，≥ 0.5 时换成 hc 颜色方案。
 
@@ -631,7 +646,8 @@ iOS 用 `.insetGrouped` 列表，导航标题 inline；Android 用单行列表�
 - 卡片投影；渐变按钮、霓虹描边、彩色投影、内阴影
 - 卡片里再套一层描边；桌面列表行之间画分隔线
 - 用 `text-placeholder` 写要读的文字
-- 卡片和列表用玻璃；玻璃带颜色；Android 栏用色调提升
+- 卡片和列表用玻璃；玻璃带颜色；Android 栏用色调提升或画底线
+- 把一个平台的控件搬到另一个平台：Android 上画 iOS 的胶囊分段控件和玻璃栏，iOS 上画 M3 的浅色调指示器、FAB、波浪进度；iOS 列表行缩到 15 pt
 - 在正在看、正在调的照片上叠玻璃（查看器用 `viewer-scrim`）；任何照片上叠主色浅底（选中用描边加勾）；编辑页、查看页跟着系统变浅色；画布用带色相的 `bg` 或 `surface`；字直接写在画布上
 - 写死的颜色、圆角、尺寸和时长；手写色值代替 LCh 推导
 - 弹窗以外用 `scrim`；命令菜单后面铺 `scrim`（用 `scrim-menu`）
@@ -648,7 +664,8 @@ iOS 用 `.insetGrouped` 列表，导航标题 inline；Android 用单行列表�
 - 没说清楚就把照片或文字发给第三方 AI；没有举报入口的 AI 内容
 - 字重 700；中日韩文字加字距
 - 小于 `hit-min` 的点击区；手机套用桌面密度
-- 回弹明显的动效（Compose expressive 方案、大弹簧）
+- iOS 上用 `.bouncy` 或自己调的大弹簧；Android 上手指正在拖的东西用 expressive 弹簧（裁剪、滑块、剪辑手柄用 `Motion.precise()`）
+- Android 主按钮用 M3 的 `primary` 以外的颜色填（主按钮仍是 `primary` 填充；浅色调只给选中和 FAB）；媒体页上用浅色调
 
 ## 写界面时自查
 
@@ -663,7 +680,8 @@ iOS 用 `.insetGrouped` 列表，导航标题 inline；Android 用单行列表�
 - [ ] 桌面行高 36、正文 13–14；手机点击区 ≥ 44 / 48，字号跟平台
 - [ ] 图标只用一套库：Lucide 1.5 px 不缩放 / SF Symbols regular / Material Symbols Rounded 300；默认 `text-3`
 - [ ] 启动页、引导、付费墙、权限预请求、同意页、空状态、关于页、导出完成页用品牌面板或品牌方块，插图是图标自己的平涂主体；浅色是浅面板加深线、深色是石墨加亮线，app 图标深浅都是石墨；`brand-accent` 没有出现在控件上
-- [ ] iOS 用系统栏和 Liquid Glass，栏没有自定义背景；Android TopAppBar 不透明、无色调提升
+- [ ] iOS 按 HIG：系统栏和 Liquid Glass、栏没有自定义背景，按钮是胶囊，分组页是 `insetGrouped`（`grouped-bg` / `grouped-cell`），列表行 17 / 15
+- [ ] Android 按 M3 Expressive：`MaterialExpressiveTheme` + `MotionScheme.expressive()`，圆按钮按下变方，分段列表，`ShortNavigationBar`，一级页面是可折叠大标题栏，选中用浅色调容器；顶栏不加色调提升
 - [ ] 金额带符号和货币、tabular 数字；日期、数量按「文案格式」
 - [ ] 编辑页、查看页在浅色系统下也是深色，画布是 `media-*`；查看器、编辑器的照片上没有玻璃，任何照片上没有主色浅底；照片选中是描边加勾
 - [ ] 超过 1 s 的处理有确定进度、剩余时间和取消；能在后台继续的接上了，不能的没有承诺；进行中用 `in-progress`
@@ -693,6 +711,12 @@ API 名称以 `build.py` 的实际输出为准（下面按当前版本写）；�
 | 引导、付费墙、空状态的几何切片插图（`slices()`） | 品牌插图：图标主体放在品牌面板上（`--brand-surface`、`.brand-panel`、`.brand-tile`；Swift `Brand`、`.brandPanel()`、`.brandTile()`；Compose `Brand`、`BrandPanel`） | 手动改；主体用 `rian-app-icon` 的 `render.py --variants` 写出的 `<name>-mark-light.svg`（浅色）和 `<name>-mark.svg`（深色） |
 | `brand-body-top / -bottom`、`brand-accent-light`，渐变 `--brand-body`、`--brand-accent`（Tailwind `bg-brand-body`、`bg-brand-accent-fill`；Swift、Kotlin `Brand.body`、`Brand.accent`） | `brand-line`、`brand-accent`，都是平涂 | 已删除；Swift、Kotlin 编译报错，CSS 和 Tailwind 不报错，必须搜出来改 |
 | 浅色模式里品牌面板也是石墨：Web 面板写 `data-theme="dark"`，`.brand-tile` 和 `Brand.surface` 共用一个底 | 面板跟着页面（浅色是浅石墨），方块用 `--brand-tile` / `Brand.tile`（石墨）；主体浅色用 `<name>-mark-light` | 去掉面板上的 `data-theme="dark"`；自己用 `brand-surface` 画的图标方块改成 `brand-tile`；重出 mark 并按模式接两份文件 |
+| （上一版）iOS 列表行 15 / 13（`row-title` subheadline medium、`row-meta` footnote、`amount` subheadline） | 17 / 15（`.body`、`.subheadline`，Apple 默认） | 不报错，行里的字会变大：60 的双行放得下，自己写死高度的行要检查 |
+| （上一版）iOS 和手机 Web 的按钮、分段控件圆角 12 / 8 | 胶囊；SwiftUI 用 `.primaryButton()` / `.secondaryButton()`；手机卡片和组 `Radius.group` 26 | 手动改；`.card()` 默认圆角从 12 变成 26 |
+| （上一版）Compose 基线 Material 3 1.4，`MaterialTheme` + `MotionScheme.standard()` | Material 3 1.5.0-beta01 以上，`MaterialExpressiveTheme` + `MotionScheme.expressive()` | 改依赖，否则编译报错 |
+| （上一版）`ButtonShape` 圆角 12，`AppShapes` 4 / 6 / 8 / 12 / 16 | `ButtonShape` 全圆，按钮用 `ButtonDefaults.shapesFor(height)`；`AppShapes` 是 M3 Expressive 原值 | 不报错，按钮、chip、卡片的圆角会变；`AppButton` 默认高从 50 变成 56（`height` 参数可改） |
+| （上一版）`AppNavigationBar`（80，`RowScope` 内容）、`appNavigationItemColors(): NavigationBarItemColors` | `ShortNavigationBar`（64），里面用 `ShortNavigationBarItem`；`appNavigationItemColors(): NavigationItemColors` | 编译报错，按报错把 `NavigationBarItem` 换成 `ShortNavigationBarItem` |
+| （上一版）`secondaryContainer` = `surface-3`，`AppCard` 是 `surface` 加描边，`AppFab` 是 `primaryFill` | `secondaryContainer` = `primary-container`（浅色调），`AppCard` 是 `groupedCell` 无描边，`AppFab` 是浅色调 | 不报错，颜色会变；媒体页上的选中自己换回 `surface3` |
 | kbd 一直显示 | kbd 是键盘层：Web 触屏上自动隐藏；Swift 的 `.kbd()` 要根视图加了 `.keyboardLayer()` 才画 | 不加 `.keyboardLayer()` 时 iPad 上的 kbd 也不画了，必须手动加 |
 
 - **Web**：
@@ -736,28 +760,29 @@ API 名称以 `build.py` 的实际输出为准（下面按当前版本写）；�
   - 品牌位：`bg-brand-surface rounded-xl`（面板，跟着页面的方案）、`aspect-square bg-brand-tile rounded-brand-tile`（app 图标方块，石墨），主体同 CSS 的 `.brand-mark.for-light` / `.for-dark`，字 `text-on-brand`、`text-on-brand-2`，`bg-brand-accent` 只给插图。
 - **SwiftUI**：把 `Theme.swift` 加进项目，需要 iOS 15 以上；用 Xcode 26 编译、跑在 iOS 26 以上时 `.frost()` 是 Liquid Glass。
   - 颜色 `Palette.*`（token 名转小驼峰：`Palette.canvas`、`Palette.elevated`、`Palette.menuActive`、`Palette.text3`、`Palette.primaryText`、`Palette.selected`），每个都按深浅和「增强对比度」自动四选一。
-  - 字体 `.font(.rowTitle)`、`.rowMeta`、`.sectionHeader`、`.cardTitle`、`.longText`、`.tagLabel`、`.amount`（等宽数字）、`.pageTitle`，都基于系统文字样式，支持 Dynamic Type。页面标题优先用导航栏的大标题。长段中文用 `Text(…).longText()`（`.longText` 加 6 pt 行距，合 17 / 28）。
-  - 圆角 `Radius.lg`；间距 `Space.s4`（16）；尺寸 `Size.hitMin`、`Size.controlMd`、`Size.controlLg`、`Size.row`（60）、`Size.rowSingle`（44）、`Size.pill`（36）；图标 `Icon.sm / md / lg`、`Icon.weight`。
-  - 动效 `Motion.spring`（`.spring(response: 0.3, dampingFraction: 0.9)`），`Motion.fast`、`.standard`、`.slow` 和对应的 `fastExit`、`standardExit`、`slowExit`。
-  - 卡片 `.card()`（实底加发丝线，无阴影）；浮层阴影 `.elev2()`、`.elev3()`，加在背景形状上，不加在带字的视图上。
+  - 字体 `.font(.rowTitle)`（17）、`.rowMeta`（15）、`.sectionHeader`、`.cardTitle`、`.longText`、`.tagLabel`、`.amount`（等宽数字）、`.pageTitle`，都基于系统文字样式，支持 Dynamic Type。页面标题优先用导航栏的大标题。长段中文用 `Text(…).longText()`（`.longText` 加 6 pt 行距，合 17 / 28）。
+  - 圆角 `Radius.group`（26，手机卡片和分组）、`Radius.lg` 等桌面档；间距 `Space.s4`（16）；尺寸 `Size.hitMin`、`Size.controlMd`、`Size.controlLg`、`Size.row`（60）、`Size.rowSingle`（44）、`Size.pill`（36）；图标 `Icon.sm / md / lg`、`Icon.weight`。
+  - 按钮 `Button("免费试用 7 天") { … }.primaryButton()`（胶囊、`.large`）、`.secondaryButton()`；栏里的主操作 `.buttonStyle(.glassProminent)`。分组列表 `List { … }.groupedList()`，行加 `.listRowBackground(Palette.groupedCell)`。
+  - 动效 `Motion.spring`（相当于 `.smooth`，不回弹）、`Motion.snappy`（相当于 `.snappy`，开关和选中），`Motion.fast`、`.standard`、`.slow` 和对应的 `fastExit`、`standardExit`、`slowExit`。
+  - 卡片 `.card(grouped: true)`（分组页上：`groupedCell` 块、圆角 26、无描边）或 `.card()`（普通页上：`surface` 加发丝线），都没有阴影；浮层阴影 `.elev2()`、`.elev3()`，加在背景形状上，不加在带字的视图上。
   - 自定义浮动控件加 `.frost(radius: 高度的一半, floating: true, interactive: true)`：iOS 26 以上是 `glassEffect(.regular.interactive())`，以下是 `.ultraThinMaterial` + `frost` 色 + 发丝线 + 顶部高光。贴边的栏用 `.frost(edges: .bottom)` 或 `.top`。系统栏、toolbar、TabView 不要加 `.frost()`，也不设背景。几个玻璃控件并排时放进同一个 `GlassEffectContainer`。
   - 媒体：`Palette.mediaBlack / mediaDark / mediaMid / mediaWhite`、`checkerA / checkerB`、`onMedia`、`viewerScrim`、`mediaEdge`、`mediaGuide`、`mediaTrack`、`mediaSelected`、`inProgress`；视图 `Checkerboard()`、`ViewerScrim(edge: .top)`，修饰 `.mediaSelected(isSelected)`（描边加勾）；尺寸 `Size.toolTray`、`Size.sliderThumb`、`Size.cropHandle`、`Size.timeline`、`Size.waveform`、`Size.selectOutline`、`Size.viewerScrim`、`Size.promptMin`、`Size.promptMaxLines` 等；时间码 `.font(.timecode)`。
   - 手势和触感：`MediaGesture.zoomDoubleTap`、`.zoomMax`、`.deceleration`、`.dismissDistance`、`.dismissVelocity`；滑块吸附 `MediaGesture.snapped(value, in: -100...100)`；触感 iOS 17 起 `.sensoryFeedback(Haptic.snap.feedback, trigger: value) { old, new in new == 0 && old != 0 }`（`sensoryFeedback` 在 trigger 每次变化时都会震，滑块要带这个条件，只在落到 0 点时震），更早在落到 0 点的那次 `onChange` 里调 `Haptic.snap.play()`；转场 `Motion.zoom` / `Motion.zoomExit`。
   - 键盘层：根视图加 `.keyboardLayer()`；`Text("⌘K").kbd()` 只在 iPad、Mac 接了硬件键盘时画，iPhone 上不画。
   - 品牌位：`VStack { … }.padding().brandPanel()`（顶光渐变、圆角 xl，跟着系统的深浅；整屏宽头图传 `radius: 0`），插图 `Image("BrandMark")`（一个 image set：Any 放 `<name>-mark-light`，Dark 放 `<name>-mark`）`.resizable().scaledToFit().frame(height: Brand.markEmpty).frame(width: 240, height: 140).brandPanel()`（主体高 ≤ 面板高的 64 %），关于页的图标 `Image("AppIconImage").resizable().brandTile(72)`；渐变 `Brand.surface`（面板）、`Brand.tile`（方块）；字 `Palette.onBrand`、`Palette.onBrand2`。
-- **Jetpack Compose**：把 `Theme.kt` 放进 `theme` 包，用 `AppTheme { … }` 包住界面。需要 Compose UI 1.8 以上（Compose BOM 2025.04.01 起，对应 Material 3 1.3.2；`Haptic` 用到 1.8 新增的触感类型），基线是 Material 3 1.4（BOM 2025.09.01 起）。
+- **Jetpack Compose**：把 `Theme.kt` 放进 `theme` 包，用 `AppTheme { … }` 包住界面。需要 Compose Material 3 **1.5.0-beta01 以上**（Material 3 Expressive：`MaterialExpressiveTheme`、新的形状阶梯、`Button(shapes = …)`、`ShortNavigationBar`、`LargeFlexibleTopAppBar`、`SegmentedListItem`；BOM 里只有稳定版，1.5 稳定前要单独写 `androidx.compose.material3:material3:1.5.0-beta01`）和 Compose UI 1.8 以上（`Haptic` 用到 1.8 新增的触感类型）。
   - `AppTheme(dark, highContrast, fontFamily)`：深浅跟随系统；`highContrast` 默认读 `isSystemHighContrast()`（API 34 以上的系统对比度 ≥ 0.5）；固定品牌色，没有动态取色。
   - 字体：把 Roboto Flex 可变字体放进 `res/font/roboto_flex.ttf`，传 `AppTheme(fontFamily = robotoFlex(R.font.roboto_flex))`；不传时是系统 Roboto。金额用 `MaterialTheme.typography.bodyLarge.tabular`。
-  - 颜色角色：`colorScheme.primary` 是 `primary-text`，所以 TextButton、选中的导航项、复选框和开关这类拿 primary 着色的组件在深色下也过 4.5:1（复选框的勾和开关圆钮是 `onPrimary`，深色下是深色，不要改成白）；`colorScheme.surface` 是 `bg`；`surfaceContainerLowest` … `surfaceContainerHighest` 依次是 `canvas`、`bg`、`surface`、`surface-2`、`surface-3`；`secondaryContainer` 是 `surface-3`（导航指示器和选中的 FilterChip 因此是中性色）；`outline` 是 `border-strong`，`outlineVariant` 是 `border`；`error` / `errorContainer` 是 `danger`。
-  - Material 3 没有的颜色用 `AppTheme.colors`：`primaryFill`（即 `primary`）、`onPrimaryFill`、`primaryFillHover`、`primaryFillPressed`、`primaryText`、`surface`（卡片色）、`surface2`、`surface3`、`canvas`、`elevated`、`menuActive`、`text3`、`textPlaceholder`、`selected`、`success`、`warning`、`info` 及其 container、`hover`、`pressed`、`scrim`、`scrimMenu`、`frost` 等。
-  - 组件：主按钮 `AppButton`（`primaryFill` 底，悬停和按下变暗：进 0 ms、出 150 ms），次按钮 `AppOutlinedButton`（危险操作传 `contentColor = MaterialTheme.colorScheme.error`；两个按钮都能传 `interactionSource`），卡片 `AppCard`（`surface` 底、1 dp `outlineVariant`、无阴影），筛选 `AppChip(selected, onClick, label, selectedIcon = { 18 dp 的勾 })`（勾只在选中时出现），状态 `StatusTag("已入账", AppTheme.colors.success, AppTheme.colors.successContainer, icon = { … })`，新建 `AppFab`，底栏 `AppNavigationBar`。不要直接用 `Button`、`Card`、`FilterChip`、`FloatingActionButton`、`NavigationBar`。
-  - 栏：`TopAppBar(colors = appTopBarColors(), scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior())`：不透明 `bg`，滚动后不变色；滚动后的 1 dp 线自己画，放在同一个 `Column` 里：`if (scrollBehavior.state.contentOffset < 0f) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)`。底栏 `AppNavigationBar { NavigationBarItem(colors = appNavigationItemColors(), …) }`（`surface` 底、顶部 1 dp 线、无色调提升）。ModalBottomSheet、ModalNavigationDrawer 传 `scrimColor = AppTheme.colors.scrim`。
-  - 尺寸：`Radius.lg`、`Space.s4`、`AppSize.hitMin`（48）、`AppSize.controlLg`（50）、`AppSize.row`（72）、`AppSize.rowSingle`（48）、`AppSize.navigationBar`、`AppSize.fab`；`IconSize.sm / md / lg`、`IconSize.WEIGHT`（300）；`ButtonShape`（12）、`TagShape`（全圆）；`AppShapes` 是 4 / 6 / 8 / 12 / 16。
-  - 动效：`tween(Motion.STANDARD_MS, easing = Motion.Enter)` 进场，`tween(Motion.STANDARD_EXIT_MS, easing = Motion.Exit)` 退场；弹簧用 `Motion.spatial()`、`Motion.effects()`（即 `MotionScheme.standard()` 的参数）。
+  - 颜色角色：`colorScheme.primary` 是 `primary-text`，所以 TextButton、选中的导航项、复选框和开关这类拿 primary 着色的组件在深色下也过 4.5:1（复选框的勾和开关圆钮是 `onPrimary`，深色下是深色，不要改成白）；`colorScheme.surface` 是 `bg`；`surfaceContainerLowest` … `surfaceContainerHighest` 依次是 `canvas`、`bg`、`surface`、`surface-2`、`surface-3`；`secondaryContainer` 是 `primary-container`（M3 Expressive 的浅色调：导航指示器、选中的 FilterChip 和切换按钮），上面的字和图标是 `text`；`outline` 是 `border-strong`，`outlineVariant` 是 `border`；`error` / `errorContainer` 是 `danger`。
+  - Material 3 没有的颜色用 `AppTheme.colors`：`primaryFill`（即 `primary`）、`onPrimaryFill`、`primaryFillHover`、`primaryFillPressed`、`primaryText`、`surface`（卡片色）、`surface2`、`surface3`、`canvas`、`elevated`、`menuActive`、`groupedBg`、`groupedCell`、`text3`、`textPlaceholder`、`selected`、`success`、`warning`、`info` 及其 container、`hover`、`pressed`、`scrim`、`scrimMenu`、`frost` 等。
+  - 组件：主按钮 `AppButton(height = AppSize.buttonM)`（`primaryFill` 底，圆形、按下变方，悬停和按下变暗：进 0 ms、出 150 ms；行内和弹窗里传 `AppSize.buttonS`），次按钮 `AppOutlinedButton`（`surface-3` 底，同形状；危险操作传 `contentColor = MaterialTheme.colorScheme.error`；两个按钮都能传 `interactionSource`），卡片 `AppCard`（`groupedCell` 底、无描边、无阴影、large 16），分段列表 `SegmentedListItem(shapes = ListItemDefaults.segmentedShapes(i, n), colors = appSegmentedColors())` 放在 `Column(verticalArrangement = Arrangement.spacedBy(ListGap))` 里，筛选 `AppChip(selected, onClick, label, selectedIcon = { 18 dp 的勾 })`（勾只在选中时出现），状态 `StatusTag("已入账", AppTheme.colors.success, AppTheme.colors.successContainer, icon = { … })`，新建 `AppFab`（浅色调），底栏 `AppNavigationBar`。不要直接用 `Button`、`Card`、`FilterChip`、`FloatingActionButton`、`NavigationBar`。
+  - 栏：一级页面 `LargeFlexibleTopAppBar(title = { Text("明细") }, colors = appTopBarColors(), scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior())`，二级页面 `TopAppBar(colors = appTopBarColors(), …)`：底是页面色（默认 `groupedBg`，普通页传 `appTopBarColors(MaterialTheme.colorScheme.background)`），滚动后 `surface-3`，不画线。`Scaffold(containerColor = AppTheme.colors.groupedBg)`。底栏 `AppNavigationBar { ShortNavigationBarItem(colors = appNavigationItemColors(), …) }`（64、`surface-2` 底、无线、无色调提升）。ModalBottomSheet、ModalNavigationDrawer 传 `scrimColor = AppTheme.colors.scrim`。
+  - 尺寸：`Radius.lg`、`Space.s4`、`AppSize.hitMin`（48）、`AppSize.buttonXS / S / M / L / XL`（32 / 40 / 56 / 96 / 136）、`AppSize.row`（72）、`AppSize.rowSingle`（56）、`AppSize.rowThree`（88）、`AppSize.navigationBar`（64）、`AppSize.fab`；`IconSize.sm / md / lg`、`IconSize.WEIGHT`（300）；`ButtonShape`（全圆）、`TagShape`（全圆）、`ListGap`（2）；`AppShapes` 是 M3 Expressive 的 4 / 8 / 12 / 16 / 20 / 28 / 32 / 48。
+  - 动效：优先用 `MaterialTheme.motionScheme`（`AppTheme` 装的是 `expressive()`）；同样的弹簧在 `Motion.spatial()`、`spatialFast()`、`spatialSlow()`、`effects()`；手指下的精确操作用 `Motion.precise()`。淡入淡出 `tween(Motion.STANDARD_MS, easing = Motion.Enter)` / `tween(Motion.STANDARD_EXIT_MS, easing = Motion.Exit)`。
   - 媒体：`AppTheme.colors.mediaBlack` …、`onMedia`、`mediaTrack`、`mediaSelected`、`inProgress`；`Modifier.checkerboard(AppTheme.colors)`、`Modifier.mediaSelected(selected, AppTheme.colors)`（只画描边，勾按 `AppSize.selectCheck` 自己放）、`ViewerScrim.top` / `ViewerScrim.bottom` 加 `ViewerScrim.height`；尺寸 `AppSize.toolTray`、`AppSize.cropHandle`、`AppSize.timeline`、`AppSize.waveform`、`AppSize.promptMin`、`AppSize.PROMPT_MAX_LINES` 等；时间码 `MaterialTheme.typography.timecode`；滑块 `Slider(colors = appSliderColors())`。
   - 手势和触感：`MediaGesture.ZOOM_DOUBLE_TAP`、`ZOOM_MAX`、`DISMISS_DISTANCE`、`dismissVelocity`，吸附 `MediaGesture.snapped(v, range)`；触感 `LocalHapticFeedback.current.performHapticFeedback(Haptic.snap)`（Compose UI 1.8 起）；转场 `Motion.ZOOM_MS` / `ZOOM_EXIT_MS`。
   - 键盘层：`if (hasHardwareKeyboard())` 才画快捷键提示（只在平板和 Chromebook 接了键盘时为 true）。
   - 品牌位：`BrandPanel { … }`（顶光渐变、圆角 xl，跟着当前方案；整屏宽传 `shape = RectangleShape`），插图 `painterResource(R.drawable.brand_mark)`（`drawable` 放 `<name>-mark-light`，`drawable-night` 放 `<name>-mark`），方块 `Box(Brand.tile(72.dp, AppTheme.colors))`（石墨，`TileShape` 的圆角按边长的 22.37 % 算，带 `brandEdge`）；`Brand.markHero`、`Brand.markEmpty`；字 `AppTheme.colors.onBrand`、`onBrand2`。
   - 玻璃：Compose 没有系统背景模糊，栏默认不透明；要玻璃时用 Haze 这类库，参数取 `Frost.blur`、`Frost.SATURATION` 和 `AppTheme.colors.frost / frostBorder / frostHighlight`。
-  - M3 Expressive（1.5.0-beta01 以上）：把 `AppTheme` 里的 `MaterialTheme` 换成 `MaterialExpressiveTheme(colorScheme = colors, motionScheme = MotionScheme.standard(), shapes = AppShapes, typography = typography, content = content)`，见 `Theme.kt` 的注释；不用 `MotionScheme.expressive()`。
-- **其他框架**（UIKit、Flutter、React Native 等）：按 `tokens.json` 的 key 映射，例如 `color.light.primary`、`color.dark-hc.text-2`、`radius.lg`、`space.4`（16）、`size.control-h.desktop.md`、`size.row.desktop`、`font.web.scale.small`（size、line、weight、tracking、opsz）、`font.ios.styles.row-title`、`font.android.scale.bodyLarge`、`elevation.dark.2`（阴影层数组）、`motion.duration.hover-out`、`motion.ease.enter`、`blur.frost`、`icon.size.sm`；媒体和 AI 的 `color.dark.media-dark`、`size.media.tool-tray`、`size.prompt.min`、`size.prompt.max-lines`、`gradient.viewer-scrim`（颜色和渐变停点）、`gradient.brand-surface`（两个 token 名，上 → 下）、`color.light.brand-accent`、`size.brand.tile-radius`、`size.brand.mark-hero`、`motion.duration.zoom`、`motion.gesture.zoom-max`、`haptic.snap.ios`、`font.ios.styles.timecode`、`font.android.timecode`。四套颜色都要接上，按系统的深浅和对比度设置选一套。
+  - 强调字体：`MaterialTheme.typography.headlineMediumEmphasized`（页面大标题）、`labelLargeEmphasized`（主按钮），字重最多 600。
+- **其他框架**（UIKit、Flutter、React Native 等）：按 `tokens.json` 的 key 映射，例如 `color.light.primary`、`color.dark-hc.text-2`、`radius.lg`、`space.4`（16）、`size.control-h.desktop.md`、`size.row.desktop`、`font.web.scale.small`（size、line、weight、tracking、opsz）、`font.ios.styles.row-title`、`font.android.scale.bodyLarge`、`font.android.emphasized.headlineMediumEmphasized`、`platform.ios.radius.group`、`platform.android.shape.large`、`platform.android.button.md`（高、方形圆角、按下圆角）、`platform.android.list`、`motion.android.precise`、`color.light.grouped-bg`、`elevation.dark.2`（阴影层数组）、`motion.duration.hover-out`、`motion.ease.enter`、`blur.frost`、`icon.size.sm`；媒体和 AI 的 `color.dark.media-dark`、`size.media.tool-tray`、`size.prompt.min`、`size.prompt.max-lines`、`gradient.viewer-scrim`（颜色和渐变停点）、`gradient.brand-surface`（两个 token 名，上 → 下）、`color.light.brand-accent`、`size.brand.tile-radius`、`size.brand.mark-hero`、`motion.duration.zoom`、`motion.gesture.zoom-max`、`haptic.snap.ios`、`font.ios.styles.timecode`、`font.android.timecode`。四套颜色都要接上，按系统的深浅和对比度设置选一套。
