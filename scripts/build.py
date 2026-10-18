@@ -23,7 +23,7 @@ handles and guides, the video scrubber's track and the media selection outline; 
 over a white photo, and the scrubber's white played part on its track there.
 
 Brand surfaces (onboarding and paywall hero, empty-state art, the about tile, launch screen, export-complete page) carry
-the app icon's own material in every scheme: its graphite base gradient, its light body and its own accent (the icon
+the app icon's own material in every scheme: its graphite base gradient, its light line colour and its own accent (the icon
 accent before it is mapped to the UI primary, so a coral icon keeps coral there). on-brand and on-brand-2 are the dark
 scheme's text and text-2 of the same contrast level (a brand panel is a dark island in a light page) and are checked on
 both ends of the gradient, as are the primary fill and the brand accent.
@@ -391,11 +391,10 @@ def derive(name, accent=None, category=None):
                      "brand-accent": ["brand-accent-light", "brand-accent"]},
         "blur": {"frost": 24, "saturate": 1.5,
                  "opacity": {"standard": PALETTE["alpha"]["light"]["frost"][1], "high": PALETTE["alpha"]["frost_high"]}},
-        # solid, like the icon's pieces: filled glyphs at a medium-heavy weight, never thin outlines
-        "icon": {"size": {"sm": 16, "md": 20, "lg": 24}, "style": "filled", "fill": 1, "weight": 500,
-                 "web": "Material Symbols Rounded, FILL 1, wght 500, GRAD 0, opsz 20 (24 px: opsz 24)",
-                 "ios": "SF Symbols, .fill variant, weight .semibold",
-                 "android": "Material Symbols Rounded, FILL 1, weight 500, grade 0, optical size 24"},
+        "icon": {"size": {"sm": 16, "md": 20, "lg": 24}, "stroke": 1.5, "non-scaling": True,
+                 "web": "Lucide, stroke-width 1.5 with vector-effect: non-scaling-stroke",
+                 "ios": "SF Symbols, weight .regular",
+                 "android": "Material Symbols Rounded, weight 300, fill 0, grade 0, optical size 24"},
     }
 
 
@@ -695,7 +694,7 @@ def css(t):
     common += [f"  --m-{k}-exit: {v}ms;" for k, v in M["exit"].items()]
     common += [f"  --ease-{k}: cubic-bezier({', '.join(num(x) for x in v)});" for k, v in M["ease"].items()]
     common += [f"  --icon-{k}: {v}px;" for k, v in t["icon"]["size"].items()]
-    common += [f"  --icon-fill: {t['icon']['fill']};", f"  --icon-weight: {t['icon']['weight']};"]
+    common.append(f"  --icon-stroke: {t['icon']['stroke']};")
     common += [f"  --frost-blur: {t['blur']['frost']}px;", f"  --frost-saturate: {t['blur']['saturate']};"]
     G = t["gradient"]["viewer-scrim"]
     stops = ", ".join(f"{rgba(G['color'], o)} {p * 100:g}%" for p, o in G["stops"])
@@ -821,23 +820,14 @@ textarea.input { height: auto; min-height: var(--control-h-lg); padding: 6px 10p
     out.append("""/* tabular digits for amounts, times and counts. !important because a font shorthand (the styles above, or your
    own font: var(--td-*)) resets font-variant-numeric, so class="td-caption num" would otherwise lose it */
 .num { font-variant-numeric: tabular-nums !important; }""")
-    out.append("""/* icons are solid, like the app icon's pieces: Material Symbols Rounded, FILL 1, weight 500, as a ligature
-   (<span class="icon">home</span>; load the font from Google Fonts), or a filled SVG (<svg class="icon">) that takes
-   currentColor; default text-3, clickable accents primary-text */
-.icon { width: var(--icon-sm); height: var(--icon-sm); flex: none; color: var(--c-text-3); display: inline-block;
-  font-family: "Material Symbols Rounded"; font-size: var(--icon-sm); line-height: 1; font-style: normal; font-weight: normal;
-  overflow: hidden; white-space: nowrap; font-feature-settings: "liga";
-  font-variation-settings: "FILL" var(--icon-fill), "wght" var(--icon-weight), "GRAD" 0, "opsz" 20; }
-svg.icon { fill: currentColor; stroke: none; }
-.icon.md { width: var(--icon-md); height: var(--icon-md); font-size: var(--icon-md); }
-.icon.lg { width: var(--icon-lg); height: var(--icon-lg); font-size: var(--icon-lg);
-  font-variation-settings: "FILL" var(--icon-fill), "wght" var(--icon-weight), "GRAD" 0, "opsz" 24; }
-.icon.xl { width: var(--icon-lg); height: var(--icon-lg); font-size: var(--icon-lg); } /* old name (28 px), kept for one version */
-.is-active > .icon, .icon.active { color: var(--c-primary-text); }
-/* old Lucide line icons, kept for one version: rename class="icon" to "icon-line" until they are replaced */
-.icon-line { width: var(--icon-sm); height: var(--icon-sm); flex: none; fill: none; stroke: currentColor; stroke-width: 1.5;
-  stroke-linecap: round; stroke-linejoin: round; color: var(--c-text-3); }
-.icon-line * { vector-effect: non-scaling-stroke; }""")
+    out.append("""/* line icons: Lucide, 1.5 px at every size; default text-3, clickable accents primary-text */
+.icon { width: var(--icon-sm); height: var(--icon-sm); flex: none; fill: none; stroke: currentColor;
+  stroke-width: var(--icon-stroke); stroke-linecap: round; stroke-linejoin: round; color: var(--c-text-3); }
+.icon * { vector-effect: non-scaling-stroke; }
+.icon.md { width: var(--icon-md); height: var(--icon-md); }
+.icon.lg { width: var(--icon-lg); height: var(--icon-lg); }
+.icon.xl { width: var(--icon-lg); height: var(--icon-lg); } /* old name (28 px), kept for one version */
+.is-active > .icon, .icon.active { color: var(--c-primary-text); }""")
     out.append("""/* brand surfaces: the icon's graphite with its top light. A panel is a dark island in a light page: write
    <div class="brand-panel" data-theme="dark"> so the text and controls inside take the dark tokens (on-brand is the
    dark text). A brand tile (about page, launch screen, the icon's mark on a square) has the iOS icon corner, 22.37 %
@@ -912,7 +902,7 @@ extension Color {
 /// mediaGuide the white guides (thirds grid, waveform), mediaTrack the video scrubber's track (its played part is
 /// onMedia, not the primary: the primary falls short over a bright frame), mediaSelected the outline of a selected picture.
 /// Brand surfaces carry the app icon's material, the same in every scheme: brandSurfaceTop / Bottom its graphite base,
-/// brandBodyTop / Bottom its light pieces, brandAccentLight / brandAccent its own accent (only in brand art, never on a
+/// brandBodyTop / Bottom its light lines, brandAccentLight / brandAccent its own accent (only in brand art, never on a
 /// control); onBrand / onBrand2 are the text on them; brandEdge is a white hairline round a panel or tile in dark mode
 /// (clear in light mode), so the graphite does not sink into a dark page. Use them through Brand below.
 enum Palette {
@@ -1000,20 +990,17 @@ enum Haptic {
     }
 }
 
-/// Icons are solid, like the app icon's pieces: SF Symbols' .fill variant at .semibold. Put .symbolVariant(Icon.variant)
-/// on the root view once, and size single icons with .appIcon(); default colour Palette.text3, clickable accents
-/// Palette.primaryText.
+/// Icons: SF Symbols at .regular weight; default colour Palette.text3, clickable accents Palette.primaryText.
 enum Icon {
     static let sm: CGFloat = @@icon_sm@@
     static let md: CGFloat = @@icon_md@@
     static let lg: CGFloat = @@icon_lg@@
-    static let weight: Font.Weight = .semibold
-    static let variant: SymbolVariants = .fill
+    static let weight: Font.Weight = .regular
 }
 
 /// Brand surfaces: the onboarding and paywall hero, empty-state art, the about tile, the launch screen and the
 /// export-complete page carry the app icon's material in light and dark mode alike: its graphite base lit from the top,
-/// its light body and its own accent. The working screens stay as they are. A panel is a dark island: .brandPanel()
+/// its light line colour and its own accent. The working screens stay as they are. A panel is a dark island: .brandPanel()
 /// sets the dark colour scheme inside it. A tile (about page, launch screen) has the icon's corner, 22.37 % of its side.
 enum Brand {
     static let surface = LinearGradient(colors: [Palette.brandSurfaceTop, Palette.brandSurfaceBottom], startPoint: .top, endPoint: .bottom)
@@ -1264,8 +1251,6 @@ extension View {
             .clipShape(RoundedRectangle(cornerRadius: side * Brand.tileRadius, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: side * Brand.tileRadius, style: .continuous).strokeBorder(Palette.brandEdge, lineWidth: 1))
     }
-    /// a solid SF Symbol at the icon weight
-    func appIcon(_ size: CGFloat = Icon.md) -> some View { symbolVariant(Icon.variant).font(.system(size: size, weight: Icon.weight)) }
     /// Long text (notes, descriptions, Chinese paragraphs): the body style with @@long_spacing@@ pt between lines.
     func longText() -> some View { font(.longText).lineSpacing(@@long_spacing@@) }
     /// Put it on a background shape, never on a view with text in it.
@@ -1547,9 +1532,7 @@ object IconSize {
     val sm = @@icon_sm@@.dp
     val md = @@icon_md@@.dp
     val lg = @@icon_lg@@.dp
-    /** solid, like the app icon's pieces: Material Symbols Rounded with FILL 1 and weight 500 */
-    const val WEIGHT = @@icon_weight@@
-    const val FILL = @@icon_fill@@
+    const val WEIGHT = 300
 }
 
 /** Corner radii; tags and avatars are TagShape (CircleShape). */
@@ -1729,7 +1712,7 @@ fun AppTheme(
 
 /** Brand surfaces: the onboarding and paywall hero, empty-state art, the about tile, the launch screen and the
  *  export-complete page carry the app icon's material in light and dark mode alike: its graphite base lit from the top
- *  (brandSurfaceTop -> brandSurfaceBottom), its light body and its own accent (brandAccentLight -> brandAccent: brand
+ *  (brandSurfaceTop -> brandSurfaceBottom), its light line colour and its own accent (brandAccentLight -> brandAccent: brand
  *  art only, never a control). The working screens stay as they are. A tile has the iOS icon corner, 22.37 % of its side. */
 object Brand {
     fun surface(colors: ExtendedColors) = Brush.verticalGradient(listOf(colors.brandSurfaceTop, colors.brandSurfaceBottom))
@@ -2031,7 +2014,6 @@ def kotlin(t):
         frost_pct=round(t["blur"]["opacity"]["standard"] * 100), frost_hc_pct=round(t["blur"]["opacity"]["high"] * 100),
         blur=t["blur"]["frost"], saturate=num(t["blur"]["saturate"]),
         icon_sm=t["icon"]["size"]["sm"], icon_md=t["icon"]["size"]["md"], icon_lg=t["icon"]["size"]["lg"],
-        icon_weight=t["icon"]["weight"], icon_fill=t["icon"]["fill"],
         tile_pct=num(S["brand"]["tile-radius"] * 100), tile_radius=num(S["brand"]["tile-radius"]),
         mark_hero=S["brand"]["mark-hero"], mark_empty=S["brand"]["mark-empty"], mark_min=S["brand"]["mark-min"],
         radius="\n".join(f"    val {k} = {v}.dp" for k, v in r.items() if k != "full"),

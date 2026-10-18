@@ -47,7 +47,7 @@ extension Color {
 /// mediaGuide the white guides (thirds grid, waveform), mediaTrack the video scrubber's track (its played part is
 /// onMedia, not the primary: the primary falls short over a bright frame), mediaSelected the outline of a selected picture.
 /// Brand surfaces carry the app icon's material, the same in every scheme: brandSurfaceTop / Bottom its graphite base,
-/// brandBodyTop / Bottom its light pieces, brandAccentLight / brandAccent its own accent (only in brand art, never on a
+/// brandBodyTop / Bottom its light lines, brandAccentLight / brandAccent its own accent (only in brand art, never on a
 /// control); onBrand / onBrand2 are the text on them; brandEdge is a white hairline round a panel or tile in dark mode
 /// (clear in light mode), so the graphite does not sink into a dark page. Use them through Brand below.
 enum Palette {
@@ -269,20 +269,17 @@ enum Haptic {
     }
 }
 
-/// Icons are solid, like the app icon's pieces: SF Symbols' .fill variant at .semibold. Put .symbolVariant(Icon.variant)
-/// on the root view once, and size single icons with .appIcon(); default colour Palette.text3, clickable accents
-/// Palette.primaryText.
+/// Icons: SF Symbols at .regular weight; default colour Palette.text3, clickable accents Palette.primaryText.
 enum Icon {
     static let sm: CGFloat = 16
     static let md: CGFloat = 20
     static let lg: CGFloat = 24
-    static let weight: Font.Weight = .semibold
-    static let variant: SymbolVariants = .fill
+    static let weight: Font.Weight = .regular
 }
 
 /// Brand surfaces: the onboarding and paywall hero, empty-state art, the about tile, the launch screen and the
 /// export-complete page carry the app icon's material in light and dark mode alike: its graphite base lit from the top,
-/// its light body and its own accent. The working screens stay as they are. A panel is a dark island: .brandPanel()
+/// its light line colour and its own accent. The working screens stay as they are. A panel is a dark island: .brandPanel()
 /// sets the dark colour scheme inside it. A tile (about page, launch screen) has the icon's corner, 22.37 % of its side.
 enum Brand {
     static let surface = LinearGradient(colors: [Palette.brandSurfaceTop, Palette.brandSurfaceBottom], startPoint: .top, endPoint: .bottom)
@@ -538,8 +535,6 @@ extension View {
             .clipShape(RoundedRectangle(cornerRadius: side * Brand.tileRadius, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: side * Brand.tileRadius, style: .continuous).strokeBorder(Palette.brandEdge, lineWidth: 1))
     }
-    /// a solid SF Symbol at the icon weight
-    func appIcon(_ size: CGFloat = Icon.md) -> some View { symbolVariant(Icon.variant).font(.system(size: size, weight: Icon.weight)) }
     /// Long text (notes, descriptions, Chinese paragraphs): the body style with 6 pt between lines.
     func longText() -> some View { font(.longText).lineSpacing(6) }
     /// Put it on a background shape, never on a view with text in it.

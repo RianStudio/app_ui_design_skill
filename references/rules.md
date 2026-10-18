@@ -1,6 +1,6 @@
 # 主题规则：石墨
 
-一句话：**深石墨和纸白两套 LCh 中性色阶梯，用 1 px 发丝线和明度差分层，单一强调色，排得密但不挤；照片、视频和生成结果放在彩度 0 的中性画布上，界面退到后面。** 中性色和 app 图标的底是同一种石墨（色相 265）。图标的语言也进界面：界面图标是实心的（和图标的实形一样），启动页、引导、付费墙、空状态、关于页这些品牌位用图标自己的石墨底、顶光、主体和强调色，图标和界面读起来是一个牌子。只有这一种风格；键盘层、桌面窗口这些是可选的附加层，不是另一种风格。
+一句话：**深石墨和纸白两套 LCh 中性色阶梯，用 1 px 发丝线和明度差分层，单一强调色，排得密但不挤；照片、视频和生成结果放在彩度 0 的中性画布上，界面退到后面。** 中性色和 app 图标的底是同一种石墨（色相 265）。图标的语言也进界面：界面图标和图标一样是统一粗细的圆头细线（图标是 1024 上 60 px 的线，界面是 1.5 px 的 Lucide），启动页、引导、付费墙、空状态、关于页这些品牌位用图标自己的石墨底、顶光、线稿和强调色，图标和界面读起来是一个牌子。只有这一种风格；键盘层、桌面窗口这些是可选的附加层，不是另一种风格。
 
 线条、密度和克制来自 Linear；材质、字体和图标规格来自 Apple；无障碍硬指标和动效参数来自 Google。
 
@@ -113,7 +113,6 @@ L 来自 `assets/palette.json` 的 `ladder` 和 `text`；文字和 `border-stron
 - 只在状态出现时用。红色只用于错误和危险操作。
 - `in-progress` 等于 `info`：进行中、处理中、生成中、队列里正在跑的那一项都用它。`warning` 只给真要注意的事（有冲突、快满了、余额不足），不然处理队列里的「进行中」会被读成出错。
 - 状态图标是一组 16 px 的圆：待办 `text-3` 空心圈；积压虚线圈；进行中 `in-progress` 部分填充的饼；完成 `success` 实心勾；取消 `text-3` 实心叉。
-- 状态圆的环线 2 px（和实心图标一样重），进行中的饼是实心的。
 - 「完成」是默认态的列表（记账：已入账）不画状态图标，只留 16 px 列宽让标题对齐，只给例外画：待确认（空心圈）、报销中（`in-progress` 饼）、已退款（`text-3` 实心叉，标题和金额加删除线）。
 - 优先级：三根递增竖条（`text-3`）；紧急是 `danger` 实心圆角方块加「!」。
 
@@ -215,7 +214,7 @@ token 名是 `build.py`、`tokens.json` 和各平台输出共用的契约，写�
 | 手势 | `motion.gesture`：放大倍数、惯性、边缘阻尼、下滑关闭、吸附范围，见「动效 → 手势」 |
 | 触感 | `haptic`：`selection`、`snap`、`success`、`failure` 四种，见「动效 → 触感」 |
 | 模糊 | frost：模糊 24、饱和度 1.5、不透明度 .80（高对比 .94） |
-| 图标 | 尺寸 16 / 20 / 24；实心（`icon.fill` 1），字重 500（见「图标」） |
+| 图标 | 尺寸 16 / 20 / 24，线宽 1.5 px，不随尺寸缩放 |
 
 从旧版（极简线条）改名的 token 见「接入 → 从旧版升级」。
 
@@ -337,7 +336,7 @@ Android 用 M3 type scale（sp）：列表行标题 `bodyLarge` 16；元数据 `
 | 列表行（桌面） | 高 36（紧凑 32），左右内边距 12。依次是：优先级 16、编号 `caption` 等宽 `text-3`、状态图标 16、标题 `small` 510 `text`、右侧标签、头像 18、日期 `caption` `text-3`。悬停叠 `hover`（0 ms 进、150 ms 出）；键盘光标行 `surface-2`；多选行 `selected` 加复选框 |
 | 记账行（桌面变体） | 分类图标 16 `text-3`、状态图标列（只画例外）、标题 510 `text`、备注 `text-3`、右侧标签、账户、时间 `caption` `text-3`、金额 tabular 右对齐（支出 `text`，收入 `primary-text`） |
 | 组头（桌面） | 高 36，吸顶，13 / 590 `text` 加 `text-3` 计数（比 `title-3` 小一档） |
-| 列表行（iOS） | 双行 60：行首是裸的 20 pt 实心分类图标（`text-3`，不加底块），贴 16 pt 边距；标题 15 / 510，元数据 13 `text-2`；右侧金额 tabular；分隔线从标题左边开始。单行 44 |
+| 列表行（iOS） | 双行 60：行首是裸的 20 pt 线性分类图标（`text-3`，不加底块），贴 16 pt 边距；标题 15 / 510，元数据 13 `text-2`；右侧金额 tabular；分隔线从标题左边开始。单行 44 |
 | 列表行（Android） | 双行 72 dp：图标 24、标题 `bodyLarge` 16、元数据 `bodyMedium` 14 `text-2`，不画分隔线。单行 48 |
 | 标签 | 高 20（手机 24），圆角 full，左右内边距 8，`caption` `text-2`，1 px `border`，可选 8 px 状态色圆点 |
 | 筛选 pill | 选中用 `surface-3` 底加 `text`（中性），不用主色。iOS 视觉高 36、左右内边距 14，点击区用 `.contentShape(Capsule())` 加上下 padding 补到 44。Android 用 M3 FilterChip：高 32、点击区 48、圆角 6，选中带 18 dp 的勾 |
@@ -405,7 +404,7 @@ Android 用 M3 type scale（sp）：列表行标题 `bodyLarge` 16；元数据 `
 | 消息 | 用户的话在右边的气泡里：`surface-2` 底、圆角 xl 16、最大宽 75 %、`long-text`。回复不加气泡，铺满宽度，`long-text` `text`；代码块 `surface-2`、圆角 8、等宽字体。附的图片 120 × 160，圆角 12 |
 | 操作行 | 回复下面一行 18 的图标，`text-3`，点击区 44：复制、重新生成、赞、踩、举报。长按回复调出同样几项（菜单里带字） |
 | 流式输出 | 字随到随显示，末尾跟一个 10 px 的 `text` 圆点；不逐字淡入，不放打字音效。用户往上滚就停止自动跟随，右下出现回到底部的按钮 |
-| 生成的四种状态 | 排队、生成中（流式）、失败可重试、被拒，四种都要有；另加完成。**排队**：实心时钟（Material Symbols `schedule`，SF `clock.fill`）、「排队中」、「前面还有 2 个」，格子是 `surface-2` 实底，不用虚线框。**生成中**：图片是确定进度（步数「18 / 30」或百分比，`timecode`），有中间结果时显示模糊的预览，进度环用 `on-media`，没有时 `surface-2` 底，进度环用 `in-progress`；文字回复见「流式输出」。**失败**：实心的错误图标（`error`，SF `exclamationmark.circle.fill`）、「生成失败」、写清有没有扣点数，加「重试」次按钮。**被拒**：见下一行。**完成**：直接显示结果，给 `success` 触感 |
+| 生成的四种状态 | 排队、生成中（流式）、失败可重试、被拒，四种都要有；另加完成。**排队**：待办空心圈、「排队中」、「前面还有 2 个」。**生成中**：图片是确定进度（步数「18 / 30」或百分比，`timecode`），有中间结果时显示模糊的预览，进度环用 `on-media`，没有时 `surface-2` 底，进度环用 `in-progress`；文字回复见「流式输出」。**失败**：重试图标、「生成失败」、写清有没有扣点数，加「重试」次按钮。**被拒**：见下一行。**完成**：直接显示结果，给 `success` 触感 |
 | 被拒的提示词 | 单独一张卡：盾牌图标 `text-3`、「这条提示词不能生成」、一句原因、「这次没有扣点数」、「查看内容规则」链接。不用 `danger` 红底，不责备用户 |
 | 点数 | 余额是导航栏右边的 chip（`coins` 图标 `text-2` 加等宽数字）。生成前在参数行写「消耗 4 点」（`row-meta` `text-3`）。失败和被拒都不扣，并写出来。余额不够时 chip 换 `warning`，点生成弹出点数版付费墙 |
 | 模型选择 | 点导航栏中间的模型名（`card-title` 加 16 的下箭头），弹出底部弹窗：单选，每项写名字和「1 点 / 张 · 约 15 秒」 |
@@ -425,7 +424,7 @@ Android 用 M3 type scale（sp）：列表行标题 `bodyLarge` 16；元数据 `
 | 后台继续（iOS） | iOS 26 起用 `BGContinuedProcessingTaskRequest`，必须由用户的操作触发（点「导出」），不能自己在后台发起。用户点「导出」时先 `BGTaskScheduler.shared.register(forTaskWithIdentifier:using:)` 再 `submit(BGContinuedProcessingTaskRequest(identifier:title:subtitle:))`（Apple 的写法：不在启动时注册）；标识符用 bundle ID 开头，每个任务唯一（如 `<bundle-id>.export.<任务 ID>`），并在 Info.plist 的 `BGTaskSchedulerPermittedIdentifiers` 里允许（用通配前缀 `<bundle-id>.export.*`）。系统用实时活动显示标题、副标题和进度，用户能在那里取消。处理中更新 `task.progress` 和 `updateTitle(_:subtitle:)`，进度要真实（看起来卡住的任务系统会建议取消）；写好 `expirationHandler`（用户取消或系统停掉时调用）；完成调 `setTaskCompleted(success:)`。用户在 app 切换器里划掉 app 时任务直接停，app 收不到通知：边做边存已完成的部分。iOS 26 以下只有 `beginBackgroundTask`，大约 30 s 而且不保证：切到后台时存好进度，回到前台接着做，界面上不写「可以离开 app」 |
 | 后台继续（Android） | WorkManager 的长任务（`setForeground`）或前台服务。服务类型 Android 15 起用 `mediaProcessing`（每 24 小时最多 6 小时），更早用 `dataSync`；声明对应的 `FOREGROUND_SERVICE_*` 权限。通知里放进度条（`setProgress`）、剩余时间和「取消」动作；Android 13 起要 `POST_NOTIFICATIONS`，先放预请求页 |
 | 服务器上的任务 | AI 生成这类在服务器上跑的任务不需要上面两项：离开 app 也会继续，完成后发推送，回来时结果已经在列表里 |
-| 队列 | 多项任务排成行：手机是单行列表行，iOS 高 44、Android 高 48（`row.mobile-single`、`hit-min`），桌面高 36；状态图标用那组 16 px 的圆：进行中 `in-progress` 饼，右边百分比也是 `in-progress`；完成 `success` 勾，右边写体积；排队 `text-3` 空心圈加「排队中」（AI 生成的格子里用实心时钟，见「AI」）；失败 `danger` 图标加「失败 · 重试」。进行中不用 `warning` |
+| 队列 | 多项任务排成行：手机是单行列表行，iOS 高 44、Android 高 48（`row.mobile-single`、`hit-min`），桌面高 36；状态图标用那组 16 px 的圆：进行中 `in-progress` 饼，右边百分比也是 `in-progress`；完成 `success` 勾，右边写体积；排队 `text-3` 空心圈加「排队中」；失败 `danger` 图标加「失败 · 重试」。进行中不用 `warning` |
 | 完成 | 都给 `success` 触感。导出弹窗还开着时，弹窗换成结果态，就是「导出完成页」：结果区是一块品牌面板（图标主体 88，下面一行 `success` 勾加 `on-brand`「已导出 4 张 · 9.6 MB」，视频写「已导出 1 段 · 48 MB」；勾不压在主体上）、主按钮「保存到相册」和次按钮「分享」（导出目标本来就是相册时写「已保存到相册」，只给「分享」），最下面可以放一张交叉推广小卡片（见「共用外壳」）。弹窗已经关了、用户在 app 里做别的：toast 写同样的结果，带「保存到相册」「分享」。app 在后台：通知写同样的结果，点按打开导出完成页。失败时给 `failure` 触感和 `danger` toast「导出失败 · 重试」，写出原因（空间不够、格式不支持） |
 
 ## 转化界面
@@ -447,11 +446,11 @@ Android 用 M3 type scale（sp）：列表行标题 `bodyLarge` 16；元数据 `
 
 **品牌插图**（引导、付费墙、权限预请求、同意页、空状态、启动页）：
 
-- **素材**：`rian-app-icon` 的 `render.py --variants` 写出的 `<name>-mark.svg` / `.png`：`#subject` 一组（主体的几块用主体渐变，强调色块用强调色渐变，辉光保留），透明底，裁到主体外框。只有图标 PNG 时，把石墨底抠掉也行（`preview.py` 没有 mark 文件时就这么做）。
+- **素材**：`rian-app-icon` 的 `render.py --variants` 写出的 `<name>-mark.svg` / `.png`：`#subject` 一组（线稿用主体渐变描边，强调色块用强调色渐变，辉光保留），透明底，裁到主体外框。只有图标 PNG 时，把石墨底抠掉也行（`preview.py` 没有 mark 文件时就这么做）。
 - **放法**：放在品牌面板上，水平居中，不放进品牌方块（那就成了 app 图标）。主体上下各留至少面板高的 18 %（和图标里主体的留白一样），也就是主体高 ≤ 面板高的 64 %；左右各留至少 48。有界面片段（一条通知、一行示例）时片段贴面板下部（下边距 14），主体在片段上面的空间里居中，离片段 ≥ 24，不盖住、不挨着。
-- **大小**：主体高 `mark-hero` 120 给启动页和 ≥ 188 高的头图；手机上的引导、付费墙、同意页、空状态（面板约 240 × 140）用 `mark-empty` 88；带界面片段的权限预请求、点数付费墙、对话页的新对话头图用 `mark-min` 64。低于 64 不再用主体，直接放 app 图标（64 及以下要用图标的 small 版，切口才不糊）。
+- **大小**：主体高 `mark-hero` 120 给启动页和 ≥ 188 高的头图；手机上的引导、付费墙、同意页、空状态（面板约 240 × 140）用 `mark-empty` 88；带界面片段的权限预请求、点数付费墙、对话页的新对话头图用 `mark-min` 64。低于 64 不再用主体，直接放 app 图标（64 及以下要用图标的 small 版，线加粗到 76 / 1024 才不糊）。
 - **关闭按钮**：付费墙、同意页左上角的关闭按钮单独一行，面板从它下面开始（iOS 顶部 112），不压在面板角上。
-- **切口跟着缩放**：主体只整体缩放，不重画、不改切口宽，切口始终是图标的 48 / 1024（在 120 高的主体上约 8–10 pt）。不拆开重排几块、不换强调色、不加描边或别的装饰。
+- **线宽跟着缩放**：主体只整体缩放，不重画、不改线宽，线始终是图标的 60 / 1024（在 120 高的主体上约 10–11 pt：和界面图标是同一种圆头线，放大了）。不拆开重排、不换强调色、不加别的装饰。
 - 一屏只放一个主体；同一个 app 的所有品牌位用同一个主体。
 
 **付费墙**（iOS 用 StoreKit 2，也可以用系统的 `SubscriptionStoreView`（iOS 17）；Android 用 Google Play Billing）。所有 app 用同一个组件、同一个版式和文案结构，只换标题和权益列表：
@@ -564,26 +563,26 @@ iOS 用 `.insetGrouped` 列表，导航标题 inline；Android 用单行列表�
 
 ## 图标
 
-界面图标是**实心、偏粗、粗细统一**的一套，和 app 图标的实形是同一种语言（图标没有描边，界面图标也不用细线）。一个 app 只用一套图标库、一种字重。
+界面图标是**线性、细、粗细统一**的一套。一个 app 只用一套图标库、一种线宽。
 
 | 平台 | 图标库 | 设置 |
 |---|---|---|
-| Web / 桌面 | Material Symbols **Rounded** | FILL 1、wght 500、GRAD 0，opsz 20（24 px 时 24）；用 `currentColor` 着色。`theme.css` 的 `.icon` 已经写好（连字写法 `<span class="icon">home</span>`，或实心 SVG `<svg class="icon">`） |
-| iOS | SF Symbols | `.fill` 变体（根视图 `.symbolVariant(.fill)`），`.semibold`；和文字并排时跟随文字样式，字重用 `.semibold` |
-| Android | Material Symbols **Rounded** | FILL 1、weight 500、grade 0 |
+| Web / 桌面 | Lucide | 线宽 1.5 px，加 `vector-effect: non-scaling-stroke`，各尺寸下线宽都是 1.5 px；用 `currentColor` 着色 |
+| iOS | SF Symbols | `.regular`；和文字并排时跟随文字样式 |
+| Android | Material Symbols **Rounded** | weight 300、fill 0、grade 0 |
 
 | 项目 | 规则 |
 |---|---|
 | 尺寸 | 16（桌面默认：列表、侧栏、菜单、按钮）· 20（手机列表）· 24（栏、空状态） |
 | 颜色 | 默认 `text-3`；可点的强调和选中用 `primary-text`；状态图标用对应状态色 |
-| 选中态 | 只换颜色（选中 `primary-text`），图标本来就是实心的，不靠「线性换实心」表示选中。没有实心版的符号（箭头、×、勾、加号）用同一字重，不另找细线版 |
+| 选中态 | 只换颜色，线宽不变。iOS 标签栏、Android 导航栏的选中项可以换实心版（Android FILL 1）；别的地方不混用实心和线性 |
 | 列表图标 | 裸图标，不加底块、不加线框方块 |
 | 状态和优先级 | 用「颜色 → 状态色」里那组 16 px 的圆和竖条，不用库里的通用图标代替 |
 | 对齐 | 和文字垂直居中；图标和文字间距 8（行内、菜单）或 12（手机列表） |
 
-**不用 Font Awesome 当主力图标库**：它的 Solid 圆角和笔画比例不统一，和 SF Symbols、Material Symbols 并排时一套方一套圆。也不用 Lucide、Feather 这类只有线性版的库：细线和 app 图标的实形不是一家。
+**不用 Font Awesome 当主力图标库**：免费版只有粗的 Solid 和 Regular，细的 Light / Thin 只在付费版；线宽和圆角不统一，和 1.5 px 的细线、和系统图标并排时显得粗笨。已经在用 Pro 版时，可以全站统一用 Light，不和 Solid 混用。
 
-也不要：混用两套图标库，或同一屏里混用实心和线性；彩色或渐变图标；给图标加投影。App 图标（主屏图标）不在此列，用 `rian-app-icon` 做；界面里要放 app 图标或它的主体时按「转化界面 → 品牌插图」。
+也不要：混用两套图标库；彩色或渐变图标；给图标加投影。App 图标（主屏图标）不在此列，用 `rian-app-icon` 做；界面里要放 app 图标或它的线稿时按「转化界面 → 品牌插图」。
 
 ## 平台适配
 
@@ -637,8 +636,7 @@ iOS 用 `.insetGrouped` 列表，导航标题 inline；Android 用单行列表�
 - 同一个动作在不同地方叫不同的名字，或有两个快捷键
 - 品牌位以外铺品牌面板（列表、编辑器、对话页的背景）；品牌面板加高光、内阴影、玻璃，或 `brand-edge` 以外的描边；浅色模式下把品牌面板换成浅色；品牌方块套进品牌面板
 - 用 `brand-accent` 做按钮、开关、链接、进度或选中；把图标的珊瑚、黄当界面主色
-- 插图用灰色通用几何块、人物插画、3D 渲染、渐变光斑；拆开图标主体重排、换强调色、单独改切口宽；主体顶到面板边（上下留白不到 18 %），或被界面片段、勾、关闭按钮压住
-- 线性细图标（Lucide 1.5 px、SF Symbols regular 的线性版、Material Symbols FILL 0）；同一屏混用实心和线性
+- 插图用灰色通用几何块、人物插画、3D 渲染、渐变光斑；拆开图标线稿重排、换强调色、单独改线宽；主体顶到面板边（上下留白不到 18 %），或被界面片段、勾、关闭按钮压住
 - 手机上显示 kbd、快捷键提示或悬停效果；某件事只能用快捷键做
 - 付费墙的关闭按钮延迟出现或做得很淡；藏起「恢复购买」、总价或自动续费说明；默认选最贵的方案又不写总价
 - 启动时、出错后请求评分；自己弹「喜欢这个 app 吗」
@@ -659,7 +657,7 @@ iOS 用 `.insetGrouped` 列表，导航标题 inline；Android 用单行列表�
 - [ ] 本地操作乐观更新，失败回滚并给 `danger` toast；可撤销的操作在 toast 里给「撤销」（接了键盘时加 kbd ⌘Z）
 - [ ] 悬停 0 ms 进、150 ms 出，只在有指针时；触屏上是按下态；「减弱动态效果」下没有位移和缩放
 - [ ] 桌面行高 36、正文 13–14；手机点击区 ≥ 44 / 48，字号跟平台
-- [ ] 图标只用一套库，都是实心：Material Symbols Rounded FILL 1 500（Web、Android）/ SF Symbols `.fill` `.semibold`；默认 `text-3`
+- [ ] 图标只用一套库：Lucide 1.5 px 不缩放 / SF Symbols regular / Material Symbols Rounded 300；默认 `text-3`
 - [ ] 启动页、引导、付费墙、权限预请求、同意页、空状态、关于页、导出完成页用品牌面板或品牌方块，插图是图标自己的主体；深浅模式下都是石墨；`brand-accent` 没有出现在控件上
 - [ ] iOS 用系统栏和 Liquid Glass，栏没有自定义背景；Android TopAppBar 不透明、无色调提升
 - [ ] 金额带符号和货币、tabular 数字；日期、数量按「文案格式」
@@ -688,7 +686,6 @@ API 名称以 `build.py` 的实际输出为准（下面按当前版本写）；�
 | Kotlin `AppChip(leadingIcon = if (selected) 勾 else null)` | `AppChip(selectedIcon = 勾)` | 编译报错；勾只在选中时出现，不用自己判断 |
 | Swift `Font.appBody` 等、`.bodyLong()`、`.elev1()`、`Size.controlSm`；Kotlin `Motion.SPRING_MS`、`FastEasing`、`AppSize.controlSm` | 「手机字号」的语义名、`.longText()`、`.card()`、`Size.pill`；`Motion.Enter` / `Exit` | 已删除，编译报错，按报错改 |
 | 「进行中」用 `warning`（状态饼、标签、队列） | `in-progress`（= `info`） | 不报错，必须搜出来改；`warning` 只留给真要注意的事 |
-| 线性图标：Lucide 1.5 px、SF Symbols `.regular`、Material Symbols weight 300 fill 0；`--icon-stroke`、Kotlin `IconSize.WEIGHT` 300 | 实心：Material Symbols Rounded FILL 1 wght 500（Web 也用它）、SF Symbols `.fill` `.semibold`；`--icon-fill`、`--icon-weight`，Kotlin `IconSize.WEIGHT` 500 和 `IconSize.FILL`，Swift `Icon.weight` `.semibold` 和 `Icon.variant` | **不报错，样子变了**：`<svg class="icon">` 现在是实心填充，Lucide 的线条会被填成色块，必须换成 Material Symbols；来不及换的先把类名改成 `.icon-line`（保留一个版本）。iOS 根视图加 `.symbolVariant(.fill)` |
 | 引导、付费墙、空状态的几何切片插图（`slices()`） | 品牌插图：图标主体放在品牌面板上（`--brand-surface`、`.brand-panel`、`.brand-tile`；Swift `Brand`、`.brandPanel()`、`.brandTile()`；Compose `Brand`、`BrandPanel`） | 手动改；主体用 `rian-app-icon` 的 `render.py --variants` 写出的 `<name>-mark.svg` |
 | kbd 一直显示 | kbd 是键盘层：Web 触屏上自动隐藏；Swift 的 `.kbd()` 要根视图加了 `.keyboardLayer()` 才画 | 不加 `.keyboardLayer()` 时 iPad 上的 kbd 也不画了，必须手动加 |
 
@@ -701,7 +698,7 @@ API 名称以 `build.py` 的实际输出为准（下面按当前版本写）；�
   - 金额、时间和计数加 `class="num"`（等宽数字），可以和字号类写在一起：`class="td-caption num"`。`.num` 带 `!important`，因为 `font:` 简写会把等宽数字重置掉，你自己 CSS 里的 `font: var(--td-*)` 也一样。
   - 中日韩文字自动去掉字距（`lang="zh-CN"` 等）。中文页面里需要 Inter 字距的拉丁词和数字，包一层 `lang="en"` 或加 `.num`：`<span class="td-display">记一笔 <span lang="en">Ledger</span></span>`。
   - 阴影 `var(--elev-0 / 2 / 3)`（按深浅自动换）；动效 `var(--m-fast)`、`var(--m-standard-exit)`、`var(--ease-enter)`、`var(--ease-exit)`，`prefers-reduced-motion` 下时长自动归零。
-  - 现成的类：`.hoverable`（行、菜单项、幽灵按钮：悬停 0 ms 出现、150 ms 淡出；按下立刻叠 `pressed`，触屏上松手 `fast` 淡出）；`.frost`（玻璃，带顶部内高光），浮动的写 `class="frost floating"`（多一层 `elev-2`）；`.kbd`，序列键写成 `<kbd class="kbd">G</kbd><span class="kbd-then">然后</span><kbd class="kbd">S</kbd>`；`.icon`（16 px 实心：Material Symbols Rounded 的连字 `<span class="icon">home</span>`，字体自己从 Google Fonts 加载 `Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200`；或实心 SVG `<svg class="icon">`，填 `currentColor`；默认 `text-3`），`.icon.md` 20、`.icon.lg` 24，`.icon.active` 换成 `primary-text`。
+  - 现成的类：`.hoverable`（行、菜单项、幽灵按钮：悬停 0 ms 出现、150 ms 淡出；按下立刻叠 `pressed`，触屏上松手 `fast` 淡出）；`.frost`（玻璃，带顶部内高光），浮动的写 `class="frost floating"`（多一层 `elev-2`）；`.kbd`，序列键写成 `<kbd class="kbd">G</kbd><span class="kbd-then">然后</span><kbd class="kbd">S</kbd>`；`.icon`（16 px、1.5 px 不缩放、默认 `text-3`），`.icon.md` 20、`.icon.lg` 24，`.icon.active` 换成 `primary-text`。
   - 品牌位：`<div class="brand-panel" data-theme="dark">`（`brand-surface` 渐变、圆角 xl，里面的字和控件取深色 token），`.brand-tile`（正方形，圆角 `--brand-tile-radius` 22.37 %；两者外面都有一圈 `--c-brand-edge`，浅色时透明），`.brand-mark`（图标主体，高 `--brand-mark-hero`，`.brand-mark.empty` 是 `--brand-mark-empty`）；渐变 `var(--brand-surface)`、`var(--brand-body)`、`var(--brand-accent)`；颜色 `var(--c-on-brand)`、`var(--c-on-brand-2)`、`var(--c-brand-accent)`（只给插图和类别徽章的圆点）。
   - `:focus-visible`（2 px `focus`，offset 2）和 `::selection` 已经写好。
   - 媒体：颜色 `var(--c-media-dark)`、`var(--c-on-media)`、`var(--c-media-track)`、`var(--c-media-selected)`、`var(--c-in-progress)` 等；类 `.checker`（棋盘格）、`.viewer-scrim-top` / `.viewer-scrim-bottom`（高 `--viewer-scrim-h`）、`.media-selected`（只画描边，勾自己放：`primary` 圆、白勾、1.5 px 白圈）；尺寸 `--tool-tray-h`、`--tool-item-w`、`--slider-track-h`、`--slider-thumb`、`--crop-handle`、`--crop-stroke`、`--playhead-w`、`--timeline-h`、`--waveform-h`、`--thumb-gap`、`--select-outline`、`--select-check`、`--prompt-min-h`、`--prompt-max-lines` 等；时间码 `.t-timecode`（自带等宽数字）；动效 `--m-zoom`、`--m-zoom-exit`；手势参数 `--gesture-*`；触感 `--haptic-*`（`navigator.vibrate` 用的毫秒数，iOS Safari 不振动）。
@@ -741,7 +738,6 @@ API 名称以 `build.py` 的实际输出为准（下面按当前版本写）；�
   - 媒体：`Palette.mediaBlack / mediaDark / mediaMid / mediaWhite`、`checkerA / checkerB`、`onMedia`、`viewerScrim`、`mediaEdge`、`mediaGuide`、`mediaTrack`、`mediaSelected`、`inProgress`；视图 `Checkerboard()`、`ViewerScrim(edge: .top)`，修饰 `.mediaSelected(isSelected)`（描边加勾）；尺寸 `Size.toolTray`、`Size.sliderThumb`、`Size.cropHandle`、`Size.timeline`、`Size.waveform`、`Size.selectOutline`、`Size.viewerScrim`、`Size.promptMin`、`Size.promptMaxLines` 等；时间码 `.font(.timecode)`。
   - 手势和触感：`MediaGesture.zoomDoubleTap`、`.zoomMax`、`.deceleration`、`.dismissDistance`、`.dismissVelocity`；滑块吸附 `MediaGesture.snapped(value, in: -100...100)`；触感 iOS 17 起 `.sensoryFeedback(Haptic.snap.feedback, trigger: value) { old, new in new == 0 && old != 0 }`（`sensoryFeedback` 在 trigger 每次变化时都会震，滑块要带这个条件，只在落到 0 点时震），更早在落到 0 点的那次 `onChange` 里调 `Haptic.snap.play()`；转场 `Motion.zoom` / `Motion.zoomExit`。
   - 键盘层：根视图加 `.keyboardLayer()`；`Text("⌘K").kbd()` 只在 iPad、Mac 接了硬件键盘时画，iPhone 上不画。
-  - 图标：根视图加 `.symbolVariant(Icon.variant)`（`.fill`）；单个图标 `Image(systemName: "bell").appIcon(Icon.md)`（`.fill` 加 `.semibold`）。
   - 品牌位：`VStack { … }.padding().brandPanel()`（石墨渐变、圆角 xl、里面是深色；整屏宽头图传 `radius: 0`），插图 `Image("mark").resizable().scaledToFit().frame(height: Brand.markEmpty).frame(width: 240, height: 140).brandPanel()`（主体高 ≤ 面板高的 64 %），关于页的图标 `Image("AppIconImage").resizable().brandTile(72)`；渐变 `Brand.surface`、`Brand.body`、`Brand.accent`；字 `Palette.onBrand`、`Palette.onBrand2`。
 - **Jetpack Compose**：把 `Theme.kt` 放进 `theme` 包，用 `AppTheme { … }` 包住界面。需要 Compose UI 1.8 以上（Compose BOM 2025.04.01 起，对应 Material 3 1.3.2；`Haptic` 用到 1.8 新增的触感类型），基线是 Material 3 1.4（BOM 2025.09.01 起）。
   - `AppTheme(dark, highContrast, fontFamily)`：深浅跟随系统；`highContrast` 默认读 `isSystemHighContrast()`（API 34 以上的系统对比度 ≥ 0.5）；固定品牌色，没有动态取色。
@@ -755,7 +751,6 @@ API 名称以 `build.py` 的实际输出为准（下面按当前版本写）；�
   - 媒体：`AppTheme.colors.mediaBlack` …、`onMedia`、`mediaTrack`、`mediaSelected`、`inProgress`；`Modifier.checkerboard(AppTheme.colors)`、`Modifier.mediaSelected(selected, AppTheme.colors)`（只画描边，勾按 `AppSize.selectCheck` 自己放）、`ViewerScrim.top` / `ViewerScrim.bottom` 加 `ViewerScrim.height`；尺寸 `AppSize.toolTray`、`AppSize.cropHandle`、`AppSize.timeline`、`AppSize.waveform`、`AppSize.promptMin`、`AppSize.PROMPT_MAX_LINES` 等；时间码 `MaterialTheme.typography.timecode`；滑块 `Slider(colors = appSliderColors())`。
   - 手势和触感：`MediaGesture.ZOOM_DOUBLE_TAP`、`ZOOM_MAX`、`DISMISS_DISTANCE`、`dismissVelocity`，吸附 `MediaGesture.snapped(v, range)`；触感 `LocalHapticFeedback.current.performHapticFeedback(Haptic.snap)`（Compose UI 1.8 起）；转场 `Motion.ZOOM_MS` / `ZOOM_EXIT_MS`。
   - 键盘层：`if (hasHardwareKeyboard())` 才画快捷键提示（只在平板和 Chromebook 接了键盘时为 true）。
-  - 图标：Material Symbols Rounded，`FILL` 用 `IconSize.FILL`（1），字重 `IconSize.WEIGHT`（500）。
   - 品牌位：`BrandPanel { … }`（石墨渐变、圆角 xl，里面换成深色方案；整屏宽传 `shape = RectangleShape`），方块 `Box(Brand.tile(72.dp, AppTheme.colors))`（`TileShape` 的圆角按边长的 22.37 % 算，带 `brandEdge`）；`Brand.body(…)`、`Brand.accent(…)`，`Brand.markHero`、`Brand.markEmpty`；字 `AppTheme.colors.onBrand`、`onBrand2`。
   - 玻璃：Compose 没有系统背景模糊，栏默认不透明；要玻璃时用 Haze 这类库，参数取 `Frost.blur`、`Frost.SATURATION` 和 `AppTheme.colors.frost / frostBorder / frostHighlight`。
   - M3 Expressive（1.5.0-beta01 以上）：把 `AppTheme` 里的 `MaterialTheme` 换成 `MaterialExpressiveTheme(colorScheme = colors, motionScheme = MotionScheme.standard(), shapes = AppShapes, typography = typography, content = content)`，见 `Theme.kt` 的注释；不用 `MotionScheme.expressive()`。

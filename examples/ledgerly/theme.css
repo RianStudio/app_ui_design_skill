@@ -136,8 +136,7 @@
   --icon-sm: 16px;
   --icon-md: 20px;
   --icon-lg: 24px;
-  --icon-fill: 1;
-  --icon-weight: 500;
+  --icon-stroke: 1.5;
   --frost-blur: 24px;
   --frost-saturate: 1.5;
   /* the viewer scrim, from the screen edge inward: white controls of the photo and video viewer sit on it */
@@ -1107,23 +1106,14 @@ textarea.input { height: auto; min-height: var(--control-h-lg); padding: 6px 10p
    own font: var(--td-*)) resets font-variant-numeric, so class="td-caption num" would otherwise lose it */
 .num { font-variant-numeric: tabular-nums !important; }
 
-/* icons are solid, like the app icon's pieces: Material Symbols Rounded, FILL 1, weight 500, as a ligature
-   (<span class="icon">home</span>; load the font from Google Fonts), or a filled SVG (<svg class="icon">) that takes
-   currentColor; default text-3, clickable accents primary-text */
-.icon { width: var(--icon-sm); height: var(--icon-sm); flex: none; color: var(--c-text-3); display: inline-block;
-  font-family: "Material Symbols Rounded"; font-size: var(--icon-sm); line-height: 1; font-style: normal; font-weight: normal;
-  overflow: hidden; white-space: nowrap; font-feature-settings: "liga";
-  font-variation-settings: "FILL" var(--icon-fill), "wght" var(--icon-weight), "GRAD" 0, "opsz" 20; }
-svg.icon { fill: currentColor; stroke: none; }
-.icon.md { width: var(--icon-md); height: var(--icon-md); font-size: var(--icon-md); }
-.icon.lg { width: var(--icon-lg); height: var(--icon-lg); font-size: var(--icon-lg);
-  font-variation-settings: "FILL" var(--icon-fill), "wght" var(--icon-weight), "GRAD" 0, "opsz" 24; }
-.icon.xl { width: var(--icon-lg); height: var(--icon-lg); font-size: var(--icon-lg); } /* old name (28 px), kept for one version */
+/* line icons: Lucide, 1.5 px at every size; default text-3, clickable accents primary-text */
+.icon { width: var(--icon-sm); height: var(--icon-sm); flex: none; fill: none; stroke: currentColor;
+  stroke-width: var(--icon-stroke); stroke-linecap: round; stroke-linejoin: round; color: var(--c-text-3); }
+.icon * { vector-effect: non-scaling-stroke; }
+.icon.md { width: var(--icon-md); height: var(--icon-md); }
+.icon.lg { width: var(--icon-lg); height: var(--icon-lg); }
+.icon.xl { width: var(--icon-lg); height: var(--icon-lg); } /* old name (28 px), kept for one version */
 .is-active > .icon, .icon.active { color: var(--c-primary-text); }
-/* old Lucide line icons, kept for one version: rename class="icon" to "icon-line" until they are replaced */
-.icon-line { width: var(--icon-sm); height: var(--icon-sm); flex: none; fill: none; stroke: currentColor; stroke-width: 1.5;
-  stroke-linecap: round; stroke-linejoin: round; color: var(--c-text-3); }
-.icon-line * { vector-effect: non-scaling-stroke; }
 
 /* brand surfaces: the icon's graphite with its top light. A panel is a dark island in a light page: write
    <div class="brand-panel" data-theme="dark"> so the text and controls inside take the dark tokens (on-brand is the

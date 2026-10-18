@@ -598,9 +598,7 @@ object IconSize {
     val sm = 16.dp
     val md = 20.dp
     val lg = 24.dp
-    /** solid, like the app icon's pieces: Material Symbols Rounded with FILL 1 and weight 500 */
-    const val WEIGHT = 500
-    const val FILL = 1
+    const val WEIGHT = 300
 }
 
 /** Corner radii; tags and avatars are TagShape (CircleShape). */
@@ -848,7 +846,7 @@ fun AppTheme(
 
 /** Brand surfaces: the onboarding and paywall hero, empty-state art, the about tile, the launch screen and the
  *  export-complete page carry the app icon's material in light and dark mode alike: its graphite base lit from the top
- *  (brandSurfaceTop -> brandSurfaceBottom), its light body and its own accent (brandAccentLight -> brandAccent: brand
+ *  (brandSurfaceTop -> brandSurfaceBottom), its light line colour and its own accent (brandAccentLight -> brandAccent: brand
  *  art only, never a control). The working screens stay as they are. A tile has the iOS icon corner, 22.37 % of its side. */
 object Brand {
     fun surface(colors: ExtendedColors) = Brush.verticalGradient(listOf(colors.brandSurfaceTop, colors.brandSurfaceBottom))

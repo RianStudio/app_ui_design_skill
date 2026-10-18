@@ -1,6 +1,6 @@
 ---
 name: rian-app-theme
-description: Design an app's UI theme in Rian's house style, the graphite style after Linear with Apple and Google platform specs - graphite and paper-white neutral ladders in LCh, hairlines instead of card shadows, one accent from the app icon, solid icons and brand surfaces that reuse the icon's graphite and mark, a high-contrast set alongside. Phone first. Exports colour, type, spacing, radii, elevation, motion, haptics, media tokens and a frost material as CSS, SwiftUI, Jetpack Compose and Tailwind, asserts WCAG contrast, and renders a phone preview (list, photo editor or AI chat screens; a desktop window is optional). Also covers editors and viewers, AI chat and generation, long tasks, paywalls, onboarding, settings and an optional keyboard layer. Use when asked for an app theme, design tokens, colour scheme, dark mode or UI style, and when building screens of an app that uses this theme. Not for chart palettes, slides or marketing sites. 用于按 Rian 的石墨风格生成 app UI 主题、配色、深色和高对比模式、设计 token，以及用这套主题写界面。
+description: Design an app's UI theme in Rian's house style, the graphite style after Linear with Apple and Google platform specs - graphite and paper-white neutral ladders in LCh, hairlines instead of card shadows, one accent from the app icon, thin line icons and brand surfaces that reuse the icon's graphite and line mark, a high-contrast set alongside. Phone first. Exports colour, type, spacing, radii, elevation, motion, haptics, media tokens and a frost material as CSS, SwiftUI, Jetpack Compose and Tailwind, asserts WCAG contrast, and renders a phone preview (list, photo editor or AI chat screens; a desktop window is optional). Also covers editors and viewers, AI chat and generation, long tasks, paywalls, onboarding, settings and an optional keyboard layer. Use when asked for an app theme, design tokens, colour scheme, dark mode or UI style, and when building screens of an app that uses this theme. Not for chart palettes, slides or marketing sites. 用于按 Rian 的石墨风格生成 app UI 主题、配色、深色和高对比模式、设计 token，以及用这套主题写界面。
 ---
 
 # Rian App Theme
@@ -83,9 +83,9 @@ python3 scripts/preview.py themes/tide --screen timer \
 
   组件条、字号表和色板的示例字也跟着界面换。翻译、天气这类不贴的用 `timer`。
 - `--icon` 用 `rian-app-icon` 的 `render.py` 写出的 `<name>-1024.png`（默认石墨外观）；`--icon-dark` 用加 `--variants` 时同一个 `-o` 目录里的 `<name>-dark.png`。已经渲染过就直接用那个目录；没有深色版就省略，深色界面沿用 `--icon`。还没有图标就两个都省略：图标位置画一个石墨占位图，标题行注明「未传 --icon」。
-- 品牌插图用图标自己的主体：`--mark` 传 `render.py --variants` 写出的 `<name>-mark.png`（或 `.svg`）；不传时自动找 `--icon` 旁边的 `<name>-mark.png`，再没有就从 `--icon` 的 PNG 里把石墨底抠掉；连 `--icon` 也没有时画一个占位主体（一块主体加一块强调色，中间的切口是边长的 48 / 1024）。
+- 品牌插图用图标自己的主体：`--mark` 传 `render.py --variants` 写出的 `<name>-mark.png`（或 `.svg`）；不传时自动找 `--icon` 旁边的 `<name>-mark.png`，再没有就从 `--icon` 的 PNG 里把石墨底抠掉；连 `--icon` 也没有时画一个占位主体（一圈 60 / 1024 的圆角线框加一块强调色）。
 - `--desktop`（可选，只给 `timer`、`notes`、`list`）：再加一行 1280 × 800 的桌面窗口，倒 L 布局，有键盘光标行和两行多选，⌘K 命令菜单打开，旁边是另一种模式的桌面字号表和一个确认弹窗。桌面窗口默认深色，`--desktop-mode light` 换成浅色。app 有 iPad、Mac 或 Web 版时才加。
-- 第一次运行会从 Google Fonts 下载 Inter、Roboto Flex、Material Symbols Rounded 和用到的 Noto Sans SC 字，缓存在 `~/.cache/rian-app-theme/fonts`。没有网络时自动退回本机字体（`--offline` 强制），界面图标退回 Lucide 线性 2.25 px，标题行注明，断言照常。iPhone 屏上用 Inter 代替 SF Pro，用实心的 Material Symbols Rounded（FILL 1、500）代替 SF Symbols 的 `.fill`。照片是脚本自己画的，不需要图片文件。
+- 第一次运行会从 Google Fonts 下载 Inter、Roboto Flex、Material Symbols Rounded 和用到的 Noto Sans SC 字，缓存在 `~/.cache/rian-app-theme/fonts`。没有网络时自动退回本机字体（`--offline` 强制），标题行注明，断言照常。iPhone 屏上用 Inter 代替 SF Pro。照片是脚本自己画的，不需要图片文件。
 
 预览图是 1960 宽的画板，按 2x 截图（3920 px 宽），从上到下：
 
@@ -106,7 +106,7 @@ python3 scripts/preview.py themes/tide --screen timer \
 
 打开 `preview.png` 亲眼看，**只查三件事**：
 
-1. **主色符合第 1 步的表，图标和界面是一家**。标题行写着主色和图标色；有「图标 × 界面」那一格时，暖色图标和蓝色界面放在一起站得住；引导、付费墙、权限预请求、同意页和品牌位那一行里，插图就是图标的主体，放在石墨面板上，浅色模式里也是。
+1. **主色符合第 1 步的表，图标和界面是一家**。标题行写着主色和图标色；有「图标 × 界面」那一格时，暖色图标和蓝色界面放在一起站得住；引导、付费墙、权限预请求、同意页和品牌位那一行里，插图就是图标的线稿主体，放在石墨面板上，浅色模式里也是；界面图标是 1.5 px 的细线，和图标的线是一家。
 2. **`build.py` 打印了 `contrast: all pass (standard, high)`**。
 3. **`preview.py` 的断言全是 PASS**（frost 四行、`viewer scrim`、`accent area` 各行、`safe area`）。
 
@@ -130,7 +130,7 @@ python3 scripts/preview.py themes/tide --screen timer \
 | 插图里是珊瑚、黄，按钮却是蓝 | 正常：图标强调色原色（`brand-accent`）只进插图和类别徽章；控件用界面主色 |
 | 桌面太挤或太松 | 桌面正文 13–14、列表行 36（紧凑 32）。手机不套桌面密度，沿用平台字号和 44 / 48 点击区 |
 | 用户想要红色或橙色主按钮 | 不改：红色只给错误和危险操作；危险操作用次按钮样式加 `danger` 字 |
-| 用户想用 Font Awesome、Lucide 这类图标库 | 说明不合适的原因（见 `rules.md`「图标」：要实心、和图标的实形一家），推荐下面各平台的图标库 |
+| 用户想用 Font Awesome 等粗图标 | 说明不合适的原因（见 `rules.md`「图标」），推荐下面各平台的图标库 |
 
 ### 4. 交付
 
@@ -138,11 +138,11 @@ python3 scripts/preview.py themes/tide --screen timer \
 
 | 平台 | 图标库 | 设置 |
 |---|---|---|
-| Web / 桌面 | Material Symbols Rounded | FILL 1、wght 500，16 / 20 / 24 三种尺寸 |
-| iOS | SF Symbols | `.fill` 变体、`.semibold` |
-| Android | Material Symbols Rounded | FILL 1、weight 500 |
+| Web / 桌面 | Lucide | 线宽 1.5 px，加 `vector-effect: non-scaling-stroke`，16 / 20 / 24 三种尺寸下线宽都不缩放 |
+| iOS | SF Symbols | `.regular` |
+| Android | Material Symbols Rounded | weight 300、fill 0 |
 
-品牌位（启动页、引导、付费墙、空状态、关于页、导出完成页）的插图用图标的 `<name>-mark.svg`，放在品牌面板上（`rules.md`「转化界面 → 品牌插图」）；品牌方块只给 app 图标本身。
+图标的线稿和界面图标是同一种圆头细线（图标 60 / 1024，界面 1.5 px），不要换成实心图标。品牌位（启动页、引导、付费墙、空状态、关于页、导出完成页）的插图用图标的 `<name>-mark.svg`，放在品牌面板上（`rules.md`「转化界面 → 品牌插图」）；品牌方块只给 app 图标本身。
 
 用户用什么语言说话，说明就用什么语言。
 

@@ -23,8 +23,6 @@ Writes out/preview.png: a 1960 px wide sheet of phones, saved at --scale 2 (3920
      keyed out of the --icon PNG, else a stand-in); the paywall, onboarding, permission and consent art is the same;
   6. swatches of the four schemes (light, dark, light-hc, dark-hc) and of the media tokens.
 
-UI icons are solid (Material Symbols Rounded, FILL 1, weight 500; on the iPhone screens in place of SF Symbols' .fill).
-
 Screens: timer (focus timer), notes (long Chinese text, highlight, search field), list (ledger: amounts, filter
 pills, list grouped by day), editor (photo editor, a dark page in every scheme: neutral canvas, before/after divider,
 slider with a zero detent, tool tray, checkerboard cut-out, export progress, crop handles, viewer scrim) and chat
@@ -67,9 +65,7 @@ FROST_MIN, SCRIM_MIN, DESK_MAX, PHONE_MAX, CONVERSION_MAX = 3.0, 4.5, 5.0, 8.0, 
 HUE_BAND, STRONG_CHROMA, FAINT_CHROMA = 25, 20, 4
 
 
-# ---------- icons: solid, like the app icon's pieces ----------
-# The sheet draws every UI icon from Material Symbols Rounded, FILL 1, weight 500 (the iPhone screens use it in place of
-# SF Symbols' .fill variant at .semibold). LUCIDE is only the offline fallback, drawn at a heavier 2.25 px.
+# ---------- icons: Lucide on a 24 grid, 1.5 px non-scaling stroke ----------
 LUCIDE = {
     "search": '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
     "plus": '<path d="M5 12h14"/><path d="M12 5v14"/>',
@@ -100,7 +96,6 @@ LUCIDE = {
     "pin": '<path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>',
     "archive": '<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',
     "clock": '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
-    "alert": '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
     "book": '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
     "briefcase": '<path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/>',
     "mail": '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
@@ -157,25 +152,6 @@ LUCIDE = {
     "grid": '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
     "layers": '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
 }
-# the sheet's icon names -> Material Symbols Rounded
-MS_NAME = {"search": "search", "plus": "add", "inbox": "inbox", "list": "list", "chart": "bar_chart", "target": "target",
-           "card": "credit_card", "wallet": "account_balance_wallet", "settings": "settings", "hash": "tag",
-           "chev-down": "expand_more", "chev-left": "chevron_left", "chev-right": "chevron_right", "filter": "filter_list",
-           "sliders": "tune", "utensils": "restaurant", "train": "train", "coffee": "coffee", "bag": "shopping_bag",
-           "cart": "shopping_cart", "banknote": "payments", "phone": "smartphone", "car": "directions_car",
-           "file-down": "download", "file-text": "description", "folder": "folder", "pin": "push_pin", "archive": "archive",
-           "clock": "schedule", "alert": "error", "book": "menu_book", "briefcase": "work", "mail": "mail", "bulb": "lightbulb",
-           "history": "history", "star": "star", "play": "play_arrow", "home": "home", "pen": "edit_square", "help": "help",
-           "receipt": "receipt_long", "dumbbell": "fitness_center", "zap": "bolt", "x": "close", "trash": "delete",
-           "tag": "sell", "merge": "merge", "arrow-in": "south_west", "copy": "content_copy", "timer": "timer",
-           "sun": "light_mode", "square": "square", "check": "check", "more": "more_vert", "more-h": "more_horiz",
-           "wand": "auto_fix_high", "contrast": "contrast", "droplet": "water_drop", "thermometer": "thermostat",
-           "crop": "crop", "scissors": "content_cut", "share": "ios_share", "heart": "favorite", "arrow-up": "arrow_upward",
-           "paperclip": "attach_file", "image": "image", "refresh": "refresh", "thumbs-up": "thumb_up",
-           "thumbs-down": "thumb_down", "flag": "flag", "bell": "notifications", "globe": "language", "info": "info",
-           "shield": "shield", "updown": "unfold_more", "rotate-ccw": "rotate_left", "flip": "flip", "coins": "toll",
-           "panel": "menu", "move-h": "swap_horiz", "palette": "palette", "gem": "diamond", "buoy": "support",
-           "grid": "grid_view", "layers": "layers"}
 # Material Symbols Rounded names for the Android screen; LUCIDE stands in when the font is unavailable
 MS_FALLBACK = {"add": "plus", "check": "check", "search": "search", "more_vert": "more", "settings": "settings",
                "receipt_long": "receipt", "bar_chart": "chart", "savings": "wallet", "payments": "banknote",
@@ -192,18 +168,14 @@ MS_FALLBACK = {"add": "plus", "check": "check", "search": "search", "more_vert":
 
 
 def ic(name, size=16, cls="", bar=""):
-    """a solid UI icon (Material Symbols Rounded, FILL 1, weight 500); bar names it as something on a glass bar, which
-    the frost check measures. Without the font, a Lucide line icon at 2.25 px stands in"""
+    """a Lucide icon; bar names it as something on a glass bar, which the frost check measures"""
     attr = f' data-bar="{bar}"' if bar else ""
-    if Glyphs.msr:
-        Glyphs.used.add(MS_NAME[name])
-        return (f'<i class="ms ic {cls}"{attr} style="font-size:{size}px;width:{size}px;height:{size}px">{MS_NAME[name]}</i>')
     return (f'<svg class="ic {cls}"{attr} width="{size}" height="{size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
-            f'stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">{LUCIDE[name]}</svg>')
+            f'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">{LUCIDE[name]}</svg>')
 
 
 class Glyphs:
-    """Material Symbols Rounded (FILL 1, weight 500: solid like the app icon), or Lucide without the font"""
+    """Material Symbols Rounded (weight 300, fill 0; 'fill' for the selected navigation item), or Lucide without the font"""
     msr = True
     used = set()
 
@@ -216,22 +188,21 @@ class Glyphs:
 
 
 def status_icon(kind):
-    """Linear-style status circles, 16 px, with 2 px rings so they weigh the same as the solid icons; a ledger draws only
-    the exceptions"""
+    """Linear-style status circles, 16 px; a ledger draws only the exceptions"""
     if kind == "booked":  # the default state of a ledger row: nothing to say, keep the slot so titles align
         return '<span class="st-empty"></span>'
     if kind == "done":
         return ('<svg class="st" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="var(--c-success)"/>'
                 '<path d="M5 8.2l2 2 4-4.3" stroke="var(--c-on-success)" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>')
     if kind == "todo":
-        return ('<svg class="st" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" '
-                'stroke="var(--c-text-3)" stroke-width="2"/></svg>')
+        return ('<svg class="st" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.25" fill="none" '
+                'stroke="var(--c-text-3)" stroke-width="1.5"/></svg>')
     if kind == "backlog":
-        return ('<svg class="st" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" '
-                'stroke="var(--c-text-3)" stroke-width="2" stroke-dasharray="2.6 2.1"/></svg>')
+        return ('<svg class="st" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.25" fill="none" '
+                'stroke="var(--c-text-3)" stroke-width="1.5" stroke-dasharray="2.2 2"/></svg>')
     if kind == "progress":  # in progress is information (in-progress = info), never a warning
-        return ('<svg class="st" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="var(--c-in-progress)" stroke-width="2"/>'
-                '<path d="M8 8V4.5a3.5 3.5 0 0 1 0 7z" fill="var(--c-in-progress)"/></svg>')
+        return ('<svg class="st" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.25" fill="none" stroke="var(--c-in-progress)" stroke-width="1.5"/>'
+                '<path d="M8 8V4a4 4 0 0 1 0 8z" fill="var(--c-in-progress)"/></svg>')
     if kind == "cancel":
         return ('<svg class="st" width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="7" fill="var(--c-text-3)"/>'
                 '<path d="M5.6 5.6l4.8 4.8M10.4 5.6l-4.8 4.8" stroke="var(--c-bg)" stroke-width="1.6" stroke-linecap="round"/></svg>')
@@ -285,8 +256,8 @@ class AppIcon:
         svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"><defs>'
                f'<linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#26282B"/><stop offset="1" stop-color="#191C1F"/></linearGradient>'
                f'<linearGradient id="a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{a}"/><stop offset="1" stop-color="{b}"/></linearGradient></defs>'
-               f'<rect width="1024" height="1024" fill="url(#g)"/><circle cx="470" cy="560" r="230" fill="#E6E8EB"/>'
-               f'<circle cx="720" cy="300" r="110" fill="url(#a)"/></svg>')
+               f'<rect width="1024" height="1024" fill="url(#g)"/><rect x="232" y="252" width="560" height="520" rx="120" fill="none" '
+               f'stroke="#E6E8EB" stroke-width="60" stroke-linejoin="round"/><circle cx="420" cy="430" r="90" fill="url(#a)"/></svg>')
         return "data:image/svg+xml;base64," + base64.b64encode(svg.encode()).decode()
 
     def css(self):
@@ -297,10 +268,10 @@ class AppIcon:
 
 
 class BrandMark:
-    """the icon's subject alone (its body pieces and accent piece, glow kept, no background) for brand art on the
+    """the icon's subject alone (its line drawing and accent shape, glow kept, no background) for brand art on the
     graphite brand panel: --mark (rian-app-icon render.py --variants' <name>-mark.png or .svg), else the <name>-mark.png
     next to --icon, else keyed out of the --icon PNG (its base is the known graphite gradient), else a stand-in in the
-    icon accent. It is only ever scaled as a whole, so the cuts stay 48 / 1024 of the icon."""
+    icon accent. It is only ever scaled as a whole, so its line keeps the icon's 60 / 1024 weight."""
 
     def __init__(self, mark, icon, tones):
         self.how = "stand-in"
@@ -348,15 +319,15 @@ class BrandMark:
 
     @staticmethod
     def _stand_in(tones):
-        """a body piece and an accent piece in the icon's gradients, the cut between them 48 / 1024 of the box (28 in 600)"""
+        """a line drawing in the icon's style: one outline in the body gradient (the icon's 60 / 1024 line, 34 in this
+        600 box) and one filled accent shape 40 / 1024 clear of it"""
         a, b = tones
         body_a, body_b = PALETTE["brand"]["body"]
         svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><defs>'
-               f'<linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{body_a}"/><stop offset="1" stop-color="{body_b}"/></linearGradient>'
-               f'<linearGradient id="a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{a}"/><stop offset="1" stop-color="{b}"/></linearGradient>'
-               f'<mask id="m"><rect width="600" height="600" fill="#fff"/><circle cx="430" cy="170" r="158" fill="#000"/></mask></defs>'
-               f'<rect x="20" y="120" width="460" height="460" rx="110" fill="url(#b)" mask="url(#m)"/>'
-               f'<circle cx="430" cy="170" r="130" fill="url(#a)"/></svg>')
+               f'<linearGradient id="b" x1="0" y1="40" x2="0" y2="560" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="{body_a}"/><stop offset="1" stop-color="{body_b}"/></linearGradient>'
+               f'<linearGradient id="a" x1="0" y1="80" x2="0" y2="300" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="{a}"/><stop offset="1" stop-color="{b}"/></linearGradient></defs>'
+               f'<rect x="40" y="60" width="520" height="480" rx="110" fill="none" stroke="url(#b)" stroke-width="34" stroke-linejoin="round"/>'
+               f'<circle cx="190" cy="210" r="70" fill="url(#a)"/></svg>')
         return "data:image/svg+xml;base64," + base64.b64encode(svg.encode()).decode()
 
     def __call__(self, h, max_w=None):
@@ -1255,9 +1226,9 @@ def generate_ios(scr, mode, caption=""):
              '<circle cx="28" cy="28" r="24" fill="none" stroke="rgba(255,255,255,.32)" stroke-width="4"/>'
              '<circle cx="28" cy="28" r="24" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-dasharray="90.5 151" '
              'transform="rotate(-90 28 28)"/></svg><b class="t-timecode num">18 / 30</b></span></div>'
-             f'<div class="gcell fail">{ic("alert", 22)}<b class="t-row-title">生成失败</b><span class="t-row-meta">没有扣点数</span>'
+             f'<div class="gcell fail">{ic("refresh", 22)}<b class="t-row-title">生成失败</b><span class="t-row-meta">没有扣点数</span>'
              f'<span class="pbtn second sm">重试</span></div>'
-             f'<div class="gcell queue">{ic("clock", 22, "t2")}<b class="t-row-title">排队中</b><span class="t-row-meta">前面还有 <span class="num">2</span> 个</span></div>')
+             f'<div class="gcell queue">{status_icon("todo")}<b class="t-row-title">排队中</b><span class="t-row-meta">前面还有 <span class="num">2</span> 个</span></div>')
     inner = f'''<div class="pc gen">
     <div class="pcard"><p class="t-row-title">{scr["prompt"]}</p>
       <div class="gchips"><span class="tagp">1:1</span><span class="tagp">4 张</span><span class="tagp">胶片</span>
@@ -1874,15 +1845,15 @@ mark { background: var(--c-selection); color: inherit; padding: 1px 2px; border-
   box-shadow: var(--elev-2); }
 .ptoast .undo { height: 44px; display: grid; place-items: center; padding: 0 12px; color: var(--c-primary-text); }
 
-/* ---------- Android (Material 3, Roboto Flex, Material Symbols Rounded, FILL 1, 500) ---------- */
+/* ---------- Android (Material 3, Roboto Flex, Material Symbols Rounded 300) ---------- */
 .android { width: 432px; }
 .aframe { padding: 10px; border-radius: 48px; background: #0B0C0E; box-shadow: 0 0 0 1.5px #3A3B3E, 0 24px 56px rgba(15,17,21,.22); }
 .ascreen { position: relative; width: 412px; height: 915px; border-radius: 38px; overflow: hidden; background: var(--c-bg); color: var(--c-text);
   font-family: "Roboto Flex", "Noto Sans SC", sans-serif; }
 .ascreen [class^="m3-"] { font-family: "Roboto Flex", "Noto Sans SC", sans-serif; }
 .ms { font-family: "Material Symbols Rounded"; font-style: normal; font-weight: normal; line-height: 1; display: inline-block; flex: none;
-  overflow: hidden; white-space: nowrap; font-feature-settings: "liga"; font-variation-settings: "FILL" 1, "wght" 500, "GRAD" 0, "opsz" 24; }
-.ms.ic { display: block; }
+  overflow: hidden; white-space: nowrap; font-feature-settings: "liga"; font-variation-settings: "FILL" 0, "wght" 300, "GRAD" 0, "opsz" 24; }
+.ms.fill { font-variation-settings: "FILL" 1, "wght" 300, "GRAD" 0, "opsz" 24; }
 .asb { position: absolute; top: 0; left: 0; right: 0; height: 44px; z-index: 3; display: flex; align-items: center; padding: 4px 24px 0; background: var(--c-bg); }
 .asb b { font: 500 14px/20px "Roboto Flex", sans-serif; }
 .aglyphs { display: flex; gap: 6px; align-items: center; }
@@ -2242,7 +2213,7 @@ mark { background: var(--c-selection); color: inherit; padding: 1px 2px; border-
 .gcell.fail { background: var(--c-surface-2); color: var(--c-text-2); }
 .gcell.fail .t-row-meta { color: var(--c-text-3); }
 .gcell.fail .pbtn { margin-top: 6px; }
-.gcell.queue { background: var(--c-surface-2); color: var(--c-text); }
+.gcell.queue { background: var(--c-surface); border: 1px dashed var(--c-border-strong); color: var(--c-text); }
 .gcell.queue .t-row-meta { color: var(--c-text-2); }
 .refused { display: flex; gap: 12px; margin-top: 12px; padding: 12px 14px; border-radius: var(--r-lg); background: var(--c-surface-2); color: var(--c-text); }
 .refused > .ic { flex: none; margin-top: 1px; color: var(--c-text-2); }
@@ -2467,7 +2438,7 @@ def embed(css_url, tag, family, keep=None):
 def fonts(html, offline=False):
     """@font-face rules for the sheet, and a note on what was used"""
     if offline:
-        return "", "字体：本机（离线；界面图标退回 Lucide 线性 2.25 px）", False
+        return "", "字体：本机（离线）", False
     rules, miss = [], []
     q = urllib.parse.quote
     try:  # the family name theme.css asks for first
@@ -2494,10 +2465,9 @@ def fonts(html, offline=False):
         rules += embed(GF + "Noto+Sans+SC:wght@100..900&text=" + q(chars), tag, "Noto Sans SC")
     except Exception as e:
         miss.append(f"Noto Sans SC（{e}）")
-    note = "字体 Inter 可变 + Noto Sans SC（iPhone 屏用 Inter 代替 SF Pro），Android 屏 Roboto Flex；界面图标 Material Symbols Rounded 实心 500（iPhone 屏代替 SF Symbols .fill）"
+    note = "字体 Inter 可变 + Noto Sans SC（iPhone 屏用 Inter 代替 SF Pro），Android 屏 Roboto Flex + Material Symbols Rounded 300"
     if miss:
-        note = "字体缺 " + "、".join(m.split("（")[0] for m in miss) + "，用本机字体代替" + (
-            "；界面图标退回 Lucide 线性 2.25 px" if not msr else "")
+        note = "字体缺 " + "、".join(m.split("（")[0] for m in miss) + "，用本机字体代替"
         print("fonts: missing " + "; ".join(miss))
     return "\n".join(rules), note, msr
 
