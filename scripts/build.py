@@ -22,11 +22,14 @@ dark pages in every scheme): four chroma-0 canvas steps, the transparency checke
 handles and guides, the video scrubber's track and the media selection outline; white controls are checked on the scrim
 over a white photo, and the scrubber's white played part on its track there.
 
-Brand surfaces (onboarding and paywall hero, empty-state art, the about tile, launch screen, export-complete page) carry
-the app icon's own material in every scheme: its graphite base gradient, its light line colour and its own accent (the icon
-accent before it is mapped to the UI primary, so a coral icon keeps coral there). on-brand and on-brand-2 are the dark
-scheme's text and text-2 of the same contrast level (a brand panel is a dark island in a light page) and are checked on
-both ends of the gradient, as are the primary fill and the brand accent.
+Brand surfaces (onboarding and paywall hero, empty-state art, permission and consent art, launch screen, export-complete
+page) carry the app icon's material: in the dark schemes the icon's graphite base gradient with the mark in light lines, in
+the light schemes a light graphite neutral (hue 265, lit from the top like the icon's light look) with the mark in dark
+lines; brand-line is that flat line colour and brand-accent the icon's own accent (before it is mapped to the UI primary, so
+a coral icon keeps coral there). The app icon tile (about page) stays graphite in every scheme: brand-tile-top / -bottom.
+on-brand and on-brand-2 are the scheme's own text and text-2 and are checked on both ends of the panel gradient, as are the
+primary fill, focus and brand-line (7:1, like the icon's lines on its base); the brand accent is checked at 3:1 on the dark
+panel and only reported on the light one (the mark reads by its dark lines there, like the icon's light look).
 
 The script prints the contrast matrix of every scheme. If any pair falls short, or a high-contrast
 row is lower than its standard row, it exits with status 1 and writes nothing.
@@ -64,9 +67,10 @@ ORDER = ["canvas", "bg", "surface", "surface-2", "surface-3", "elevated", "menu-
          "frost", "frost-border", "frost-highlight", "inverse-surface", "on-inverse", "inverse-primary",
          "media-black", "media-dark", "media-mid", "media-white", "checker-a", "checker-b",
          "on-media", "viewer-scrim", "media-edge", "media-guide", "media-track", "media-selected",
-         "brand-surface-top", "brand-surface-bottom", "brand-edge", "on-brand", "on-brand-2", "brand-body-top",
-         "brand-body-bottom", "brand-accent-light", "brand-accent"]
+         "brand-surface-top", "brand-surface-bottom", "brand-tile-top", "brand-tile-bottom", "brand-edge", "on-brand",
+         "on-brand-2", "brand-line", "brand-accent"]
 BRAND = PALETTE["brand"]
+BRAND_LINE = 7.0  # the mark's lines on the brand panel, like the icon's lines on its base (rian-app-icon CONTRAST_BODY)
 
 
 # ---------- colour maths ----------
@@ -347,17 +351,19 @@ def derive(name, accent=None, category=None):
         for mode, other in (("light", "dark"), ("dark", "light")):
             C, O = colors[key(mode, level)], colors[key(other, level)]
             C["inverse-surface"], C["on-inverse"], C["inverse-primary"] = O["surface-3"], O["text"], O["primary-text"]
-        # brand surfaces: the icon's graphite, body and accent, the same in light and dark; text on them is the dark
-        # scheme's (a brand panel is a dark island in a light page)
-        D = colors[key("dark", level)]
+        # brand surfaces: the panel follows the scheme (the icon's graphite in dark, a light graphite neutral lit from the
+        # top in light, with the mark in light or dark flat lines); the app icon tile is the graphite in every scheme;
+        # text on the panel is the scheme's own
         for mode in MODES:
             C = colors[key(mode, level)]
-            C["brand-surface-top"], C["brand-surface-bottom"] = BRAND["surface"]
-            # a white hairline round the panel in the dark schemes only: on a light page the graphite already stands out
+            C["brand-surface-top"], C["brand-surface-bottom"] = (
+                BRAND["surface"] if mode == "dark" else [neutral(l, mode) for l in BRAND["surface_light"]])
+            C["brand-tile-top"], C["brand-tile-bottom"] = BRAND["surface"]
+            # a white hairline round the panel and the tile in the dark schemes only: on a light page they stand out already
             C["brand-edge"] = rgba("#FFFFFF", BRAND["edge"][LEVELS.index(level)] if mode == "dark" else 0)
-            C["on-brand"], C["on-brand-2"] = D["text"], D["text-2"]
-            C["brand-body-top"], C["brand-body-bottom"] = BRAND["body"]
-            C["brand-accent-light"], C["brand-accent"] = brand
+            C["on-brand"], C["on-brand-2"] = C["text"], C["text-2"]
+            C["brand-line"] = BRAND["line"][mode]
+            C["brand-accent"] = brand[1]
     colors = {k: {t: colors[k][t] for t in ORDER} for k in (key(m, lv) for lv in LEVELS for m in MODES)}
 
     return {
@@ -385,10 +391,9 @@ def derive(name, accent=None, category=None):
         "haptic": HAPTIC,
         "gradient": {"viewer-scrim": {"color": PALETTE["media"]["alpha"]["viewer-scrim"][0],
                                       "stops": PALETTE["media"]["scrim_stops"]},
-                     # top -> bottom, like the icon: the base over the panel's height, the accent over its piece
+                     # top -> bottom, like the icon's base: the panel (per scheme) and the app icon tile (graphite)
                      "brand-surface": ["brand-surface-top", "brand-surface-bottom"],
-                     "brand-body": ["brand-body-top", "brand-body-bottom"],
-                     "brand-accent": ["brand-accent-light", "brand-accent"]},
+                     "brand-tile": ["brand-tile-top", "brand-tile-bottom"]},
         "blur": {"frost": 24, "saturate": 1.5,
                  "opacity": {"standard": PALETTE["alpha"]["light"]["frost"][1], "high": PALETTE["alpha"]["frost_high"]}},
         "icon": {"size": {"sm": 16, "md": 20, "lg": 24}, "stroke": 1.5, "non-scaling": True,
@@ -572,20 +577,23 @@ def audit(t):
                     checks += [(f"primary-text / {b}", C["primary-text"], C[b], acc),
                                (f"media-selected / {b}", C["media-selected"], C[b], NON_TEXT),
                                (f"playhead primary / {b}", C["primary"], C[b], NON_TEXT)]
-            # brand surfaces: text, the primary fill and the brand accent on both ends of the icon's graphite gradient
+            # brand panel: text, the primary fill, focus and the mark's lines on both ends of the panel gradient (graphite in
+            # dark, light graphite in light); the brand accent is asserted on the dark panel and reported on the light one
             for b in ("brand-surface-top", "brand-surface-bottom"):
                 checks += [(f"on-brand / {b}", C["on-brand"], C[b], N["text"][0]),
                            (f"on-brand-2 / {b}", C["on-brand-2"], C[b], N["text-2"][0]),
                            (f"primary / {b}", C["primary"], C[b], NON_TEXT),
-                           (f"focus (dark) / {b}", t["color"][key("dark", level)]["focus"], C[b], NON_TEXT),
-                           (f"brand-accent / {b}", C["brand-accent"], C[b], NON_TEXT)]
+                           (f"focus / {b}", C["focus"], C[b], NON_TEXT),
+                           (f"brand-line / {b}", C["brand-line"], C[b], BRAND_LINE),
+                           (f"brand-accent / {b}", C["brand-accent"], C[b], NON_TEXT if mode == "dark" else None)]
             row = []
             for label, f, b, need in checks:
                 r = contrast(f, b)
-                row.append(f"{label} {r:.2f}{'!' if r < need else ''}")
-                if r < need:
+                row.append(f"{label} {r:.2f}{'' if need is None else '!' if r < need else ''}{' (info)' if need is None else ''}")
+                if need is not None and r < need:
                     fails.append(f"{k}: {label} {r:.2f} < {need:g}")
-            out.append("  pairs (on-* and fills 4.5; borders, focus, slider fill, scrubber, media outline, playhead, brand accent 3; on-brand as text / text-2; the rest as the matrix):")
+            out.append("  pairs (on-* and fills 4.5; borders, focus, slider fill, scrubber, media outline, playhead, brand accent 3; "
+                       "on-brand as text / text-2; brand-line 7; (info) is reported only; the rest as the matrix):")
             for i in range(0, len(row), 4):
                 out.append("    " + "   ".join(row[i:i + 4]))
     # the viewer scrim holds at least the checked opacity under the controls: every stop but the last, which fades out
@@ -703,9 +711,8 @@ def css(t):
                f"  --viewer-scrim-bottom: linear-gradient(to top, {stops});",
                "  --checker-image: repeating-conic-gradient(var(--c-checker-a) 0 25%, var(--c-checker-b) 0 50%);"]
     B = S["brand"]
-    common += ["  /* brand surfaces (onboarding and paywall hero, empty-state art, about tile, launch screen, export-complete page):\n"
-               "     the app icon's graphite, top-lit like the icon, the same in light and dark; the icon's own accent only there */"]
-    common += [f"  --{g}: linear-gradient(to bottom, var(--c-{a}), var(--c-{b}));" for g, (a, b) in t["gradient"].items() if g.startswith("brand")]
+    common += ["  /* brand surfaces (onboarding and paywall hero, empty-state art, launch screen, export-complete page, about tile):\n"
+               "     the gradients --brand-surface and --brand-tile are set with each scheme's colours below */"]
     common += [f"  --brand-tile-radius: {B['tile-radius'] * 100:g}%;"]
     common += [f"  --brand-{k}: {v}px;" for k, v in B.items() if k.startswith("mark")]
     common.append("  /* gestures, for your scripts: zoom range from fit, pan momentum per ms, rubber band, viewer dismissal\n"
@@ -726,6 +733,13 @@ def css(t):
         lines = [f"  --c-{n}: {v};" for n, v in C.items()]
         lines += [f"  --c-{n}-rgb: {' '.join(str(x) for x in rgb(C[n]))};" for n in ORDER if n in rgb_keys]
         lines += [f"  --elev-{n}: {shadow_css(layers)};" for n, layers in t["elevation"][mode].items()]
+        # set here, not on :root: a var() inside a custom property is resolved where it is declared, so a gradient declared
+        # once on :root would keep the light colours inside a data-theme="dark" element
+        lines.append("  /* brand panel (graphite in dark, light graphite in light) and the app icon tile (graphite in both); the mark\n"
+                     "     in dark lines (<name>-mark-light) shows in light schemes, the one in light lines (<name>-mark) in dark */")
+        lines += [f"  --{g}: linear-gradient(to bottom, var(--c-{a}), var(--c-{b}));" for g, (a, b) in t["gradient"].items() if g.startswith("brand")]
+        lines += [f"  --brand-mark-for-light: {'block' if mode == 'light' else 'none'};",
+                  f"  --brand-mark-for-dark: {'block' if mode == 'dark' else 'none'};"]
         lines.append("  /* old names, kept for one version; elev-1 was the card shadow, and cards now have none */")
         lines += ["  --c-state-hover: var(--c-hover);", "  --c-state-pressed: var(--c-pressed);", "  --elev-1: var(--elev-0);"]
         lines.append(f"  color-scheme: {mode};")
@@ -828,16 +842,20 @@ textarea.input { height: auto; min-height: var(--control-h-lg); padding: 6px 10p
 .icon.lg { width: var(--icon-lg); height: var(--icon-lg); }
 .icon.xl { width: var(--icon-lg); height: var(--icon-lg); } /* old name (28 px), kept for one version */
 .is-active > .icon, .icon.active { color: var(--c-primary-text); }""")
-    out.append("""/* brand surfaces: the icon's graphite with its top light. A panel is a dark island in a light page: write
-   <div class="brand-panel" data-theme="dark"> so the text and controls inside take the dark tokens (on-brand is the
-   dark text). A brand tile (about page, launch screen, the icon's mark on a square) has the iOS icon corner, 22.37 %
-   of its side. The brand accent fills only the art (the icon's accent piece, a category dot), never a control. */
+    out.append("""/* brand surfaces, lit from the top like the icon. A panel follows the page: the icon's graphite in dark mode, a light
+   graphite neutral in light mode; its text and controls take the page's own tokens (on-brand is text). A brand tile is
+   the app icon's graphite in both modes (about page), with the iOS icon corner, 22.37 % of its side. The mark is the
+   icon's subject in flat lines: put both files in and the scheme shows one,
+   <img class="brand-mark for-light" src="name-mark-light.svg" alt=""><img class="brand-mark for-dark" src="name-mark.svg" alt="">
+   The brand accent fills only the art (the icon's accent piece, a category dot), never a control. */
 .brand-panel { background: var(--brand-surface); color: var(--c-on-brand); border-radius: var(--r-xl); }
-.brand-tile { aspect-ratio: 1; background: var(--brand-surface); border-radius: var(--brand-tile-radius); }
+.brand-tile { aspect-ratio: 1; background: var(--brand-tile); border-radius: var(--brand-tile-radius); }
 /* the edge is drawn outside: white over a light page shows nothing, over a dark page it is the hairline that keeps the
    graphite from sinking in (brand-edge is clear in the light schemes) */
 .brand-panel, .brand-tile { box-shadow: 0 0 0 1px var(--c-brand-edge); }
 .brand-mark { display: block; height: var(--brand-mark-hero); width: auto; }
+.brand-mark.for-light { display: var(--brand-mark-for-light); }
+.brand-mark.for-dark { display: var(--brand-mark-for-dark); }
 .brand-mark.empty { height: var(--brand-mark-empty); }""")
     out.append("@media (prefers-reduced-motion: reduce) {\n  /* no movement or scaling: every duration goes to 0 */\n  :root {\n"
                + "\n".join(f"    --m-{k}: 0ms;" for k in M["duration"]) + "\n"
@@ -901,10 +919,11 @@ extension Color {
 /// transparency checkerboard, onMedia the white controls on viewerScrim, mediaEdge the dark edge under white handles,
 /// mediaGuide the white guides (thirds grid, waveform), mediaTrack the video scrubber's track (its played part is
 /// onMedia, not the primary: the primary falls short over a bright frame), mediaSelected the outline of a selected picture.
-/// Brand surfaces carry the app icon's material, the same in every scheme: brandSurfaceTop / Bottom its graphite base,
-/// brandBodyTop / Bottom its light lines, brandAccentLight / brandAccent its own accent (only in brand art, never on a
-/// control); onBrand / onBrand2 are the text on them; brandEdge is a white hairline round a panel or tile in dark mode
-/// (clear in light mode), so the graphite does not sink into a dark page. Use them through Brand below.
+/// Brand surfaces carry the app icon's material: brandSurfaceTop / Bottom is the panel, the icon's graphite in dark mode
+/// and a light graphite neutral in light mode; brandTileTop / Bottom the app icon tile, graphite in both; brandLine the
+/// mark's flat line colour in this scheme and brandAccent the icon's own accent (only in brand art, never on a control);
+/// onBrand / onBrand2 are the text on a panel; brandEdge is a white hairline round a panel or tile in dark mode (clear in
+/// light mode), so the graphite does not sink into a dark page. Use them through Brand below.
 enum Palette {
 @@palette@@
 
@@ -998,14 +1017,15 @@ enum Icon {
     static let weight: Font.Weight = .regular
 }
 
-/// Brand surfaces: the onboarding and paywall hero, empty-state art, the about tile, the launch screen and the
-/// export-complete page carry the app icon's material in light and dark mode alike: its graphite base lit from the top,
-/// its light line colour and its own accent. The working screens stay as they are. A panel is a dark island: .brandPanel()
-/// sets the dark colour scheme inside it. A tile (about page, launch screen) has the icon's corner, 22.37 % of its side.
+/// Brand surfaces: the onboarding and paywall hero, empty-state, permission and consent art, the launch screen and the
+/// export-complete page carry the app icon's material, lit from the top: in dark mode its graphite with the mark in light
+/// lines, in light mode a light graphite with the mark in dark lines. The working screens stay as they are. A panel follows
+/// the page's colour scheme. The mark is one image set with two appearances: Any = <name>-mark-light (dark lines),
+/// Dark = <name>-mark (light lines), both flat. A tile (the app icon on the about page) is graphite in both modes and has
+/// the icon's corner, 22.37 % of its side.
 enum Brand {
     static let surface = LinearGradient(colors: [Palette.brandSurfaceTop, Palette.brandSurfaceBottom], startPoint: .top, endPoint: .bottom)
-    static let body = LinearGradient(colors: [Palette.brandBodyTop, Palette.brandBodyBottom], startPoint: .top, endPoint: .bottom)
-    static let accent = LinearGradient(colors: [Palette.brandAccentLight, Palette.brandAccent], startPoint: .top, endPoint: .bottom)
+    static let tile = LinearGradient(colors: [Palette.brandTileTop, Palette.brandTileBottom], startPoint: .top, endPoint: .bottom)
     static let tileRadius: CGFloat = @@tile_radius@@
     /// the icon mark's height: hero art (onboarding, paywall, consent), empty states; below markMin show the app icon
     static let markHero: CGFloat = @@mark_hero@@
@@ -1019,9 +1039,8 @@ struct BrandPanel: ViewModifier {
     func body(content: Content) -> some View {
         content
             .foregroundStyle(Palette.onBrand)
-            .environment(\\.colorScheme, .dark)
             .background(Brand.surface, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
-            // outside the .dark environment, so the edge follows the page: a hairline in dark mode, clear in light mode
+            // a hairline in dark mode, clear in light mode
             .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(Palette.brandEdge, lineWidth: 1))
     }
 }
@@ -1242,12 +1261,12 @@ extension View {
     func kbd() -> some View { modifier(Kbd()) }
     func keyboardLayer() -> some View { modifier(KeyboardLayer()) }
     func mediaSelected(_ selected: Bool) -> some View { modifier(MediaSelected(selected: selected)) }
-    /// a brand panel: the icon's graphite, top-lit, dark inside; radius 0 for a full-bleed header
+    /// a brand panel: top-lit, graphite in dark mode and light graphite in light mode; radius 0 for a full-bleed header
     func brandPanel(radius: CGFloat = Radius.xl) -> some View { modifier(BrandPanel(radius: radius)) }
     /// a square brand tile of `side` with the app icon's corner (continuous, 22.37 % of the side)
     func brandTile(_ side: CGFloat) -> some View {
         frame(width: side, height: side)
-            .background(Brand.surface, in: RoundedRectangle(cornerRadius: side * Brand.tileRadius, style: .continuous))
+            .background(Brand.tile, in: RoundedRectangle(cornerRadius: side * Brand.tileRadius, style: .continuous))
             .clipShape(RoundedRectangle(cornerRadius: side * Brand.tileRadius, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: side * Brand.tileRadius, style: .continuous).strokeBorder(Palette.brandEdge, lineWidth: 1))
     }
@@ -1357,8 +1376,8 @@ EXTENDED = ["canvas", "surface", "surface-2", "surface-3", "elevated", "menu-act
             "scrim", "scrim-menu", "frost", "frost-border", "frost-highlight",
             "media-black", "media-dark", "media-mid", "media-white", "checker-a", "checker-b",
             "on-media", "viewer-scrim", "media-edge", "media-guide", "media-track", "media-selected",
-            "brand-surface-top", "brand-surface-bottom", "brand-edge", "on-brand", "on-brand-2", "brand-body-top",
-            "brand-body-bottom", "brand-accent-light", "brand-accent"]
+            "brand-surface-top", "brand-surface-bottom", "brand-tile-top", "brand-tile-bottom", "brand-edge", "on-brand",
+            "on-brand-2", "brand-line", "brand-accent"]
 KT_NAME = {"primary": "primaryFill", "on-primary": "onPrimaryFill", "primary-hover": "primaryFillHover",
            "primary-pressed": "primaryFillPressed"}
 
@@ -1710,20 +1729,21 @@ fun AppTheme(
     }
 }
 
-/** Brand surfaces: the onboarding and paywall hero, empty-state art, the about tile, the launch screen and the
- *  export-complete page carry the app icon's material in light and dark mode alike: its graphite base lit from the top
- *  (brandSurfaceTop -> brandSurfaceBottom), its light line colour and its own accent (brandAccentLight -> brandAccent: brand
- *  art only, never a control). The working screens stay as they are. A tile has the iOS icon corner, 22.37 % of its side. */
+/** Brand surfaces: the onboarding and paywall hero, empty-state, permission and consent art, the launch screen and the
+ *  export-complete page carry the app icon's material, lit from the top (brandSurfaceTop -> brandSurfaceBottom): the
+ *  icon's graphite in dark mode, a light graphite in light mode. The mark is flat: res/drawable/brand_mark from
+ *  <name>-mark-light (dark lines), res/drawable-night/brand_mark from <name>-mark (light lines); brandLine is that line
+ *  colour and brandAccent the icon's own accent (brand art only, never a control). The working screens stay as they are.
+ *  A tile (the app icon on the about page) is graphite in both modes, with the iOS icon corner, 22.37 % of its side. */
 object Brand {
     fun surface(colors: ExtendedColors) = Brush.verticalGradient(listOf(colors.brandSurfaceTop, colors.brandSurfaceBottom))
-    fun body(colors: ExtendedColors) = Brush.verticalGradient(listOf(colors.brandBodyTop, colors.brandBodyBottom))
-    fun accent(colors: ExtendedColors) = Brush.verticalGradient(listOf(colors.brandAccentLight, colors.brandAccent))
+    fun tileSurface(colors: ExtendedColors) = Brush.verticalGradient(listOf(colors.brandTileTop, colors.brandTileBottom))
     /** the icon's corner, @@tile_pct@@ % of the side at every size (CornerSize(Float) would be fixed pixels) */
     val TileShape = RoundedCornerShape(object : CornerSize {
         override fun toPx(shapeSize: Size, density: Density) = shapeSize.minDimension * @@tile_radius@@f
     })
-    /** a square brand tile: the graphite with the icon's corner, and the brandEdge hairline (dark mode only) */
-    fun tile(side: Dp, colors: ExtendedColors) = Modifier.size(side).clip(TileShape).background(surface(colors))
+    /** a square brand tile: the graphite in both modes with the icon's corner, and the brandEdge hairline (dark mode only) */
+    fun tile(side: Dp, colors: ExtendedColors) = Modifier.size(side).clip(TileShape).background(tileSurface(colors))
         .border(1.dp, colors.brandEdge, TileShape)
     /** the icon mark's height: hero art (onboarding, paywall, consent), empty states; below markMin show the app icon */
     val markHero = @@mark_hero@@.dp
@@ -1731,22 +1751,16 @@ object Brand {
     val markMin = @@mark_min@@.dp
 }
 
-/** A brand panel: the icon's graphite, a dark island in a light page (text and controls inside take the dark scheme;
- *  onBrand is its text). Pass RectangleShape for a full-bleed header. */
+/** A brand panel: top-lit, the icon's graphite in dark mode and a light graphite in light mode; text and controls inside
+ *  take the page's own scheme (onBrand is its text). Pass RectangleShape for a full-bleed header. */
 @Composable
 fun BrandPanel(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(Radius.xl),
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val hc = isSystemHighContrast()
-    val edge = AppTheme.colors.brandEdge  // the page's, read before the dark scheme: a hairline in dark mode, clear in light
-    CompositionLocalProvider(LocalExtendedColors provides if (hc) DarkHighContrastExtendedColors else DarkExtendedColors) {
-        MaterialTheme(colorScheme = if (hc) DarkHighContrastColors else DarkColors, shapes = MaterialTheme.shapes,
-                      typography = MaterialTheme.typography) {
-            Column(modifier.clip(shape).background(Brand.surface(AppTheme.colors)).border(1.dp, edge, shape), content = content)
-        }
-    }
+    val colors = AppTheme.colors  // brandEdge: a hairline in dark mode, clear in light
+    Column(modifier.clip(shape).background(Brand.surface(colors)).border(1.dp, colors.brandEdge, shape), content = content)
 }
 
 /** TopAppBar: opaque bg, and the same when content scrolls under it (no tonal lift); once scrolled, a 1 dp
@@ -2072,8 +2086,9 @@ def tailwind(t):
 // is the same. text-timecode is the phone timecode size: add tabular-nums. The kbd hints and hover are an optional
 // layer: theme.css hides .kbd on touch screens, and future.hoverOnlyWhenSupported keeps hover: off touch screens (a
 // future block in your own config replaces this one: add the flag there). Brand surfaces: bg-brand-surface with
-// rounded-xl (a panel; add data-theme="dark" so the text inside is the dark set) or aspect-square rounded-brand-tile
-// (the icon's 22.37 % corner); the brand-accent colours are for brand art only, never for a control.
+// rounded-xl (a panel: graphite in dark mode, light graphite in light mode; the text inside is the page's) or
+// aspect-square bg-brand-tile rounded-brand-tile (the app icon tile: graphite in both, the icon's 22.37 % corner);
+// brand-accent is for brand art only, never for a control.
 module.exports = {{
   future: {{ hoverOnlyWhenSupported: true }},
   theme: {{
@@ -2106,7 +2121,7 @@ module.exports = {{
       width: {{ {', '.join(widths)} }},
       gap: {{ thumb: 'var(--thumb-gap)' }},
       backgroundImage: {{ checker: 'var(--checker-image)', 'viewer-scrim-top': 'var(--viewer-scrim-top)', 'viewer-scrim-bottom': 'var(--viewer-scrim-bottom)',
-        'brand-surface': 'var(--brand-surface)', 'brand-body': 'var(--brand-body)', 'brand-accent-fill': 'var(--brand-accent)' }},
+        'brand-surface': 'var(--brand-surface)', 'brand-tile': 'var(--brand-tile)' }},
       backgroundSize: {{ checker: 'calc(2 * var(--checker-size)) calc(2 * var(--checker-size))' }},
     }},
   }},
@@ -2141,9 +2156,10 @@ def main():
     for k, C in t["color"].items():
         print(f"{k:9} primary {C['primary']}  primary-text {C['primary-text']}  text {C['text']}  "
               f"text-2 {C['text-2']}  text-3 {C['text-3']}  placeholder {C['text-placeholder']}")
-    C = t["color"]["dark"]
-    print(f"brand     surface {C['brand-surface-top']} -> {C['brand-surface-bottom']}  accent {t['source']['brand-accent']} "
-          f"{C['brand-accent-light']} -> {C['brand-accent']} (brand art only; controls use primary)")
+    D, Lt = t["color"]["dark"], t["color"]["light"]
+    print(f"brand     panel light {Lt['brand-surface-top']} -> {Lt['brand-surface-bottom']} (lines {Lt['brand-line']}), "
+          f"dark {D['brand-surface-top']} -> {D['brand-surface-bottom']} (lines {D['brand-line']}); tile {D['brand-tile-top']} -> "
+          f"{D['brand-tile-bottom']}; accent {t['source']['brand-accent']} {D['brand-accent']} (brand art only; controls use primary)")
     print("wrote", ", ".join(files), "to", a.out)
     print(near_summary(near))
     print("contrast: all pass (standard, high)")

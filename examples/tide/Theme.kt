@@ -297,12 +297,12 @@ data class ExtendedColors(
     val mediaSelected: Color,
     val brandSurfaceTop: Color,
     val brandSurfaceBottom: Color,
+    val brandTileTop: Color,
+    val brandTileBottom: Color,
     val brandEdge: Color,
     val onBrand: Color,
     val onBrand2: Color,
-    val brandBodyTop: Color,
-    val brandBodyBottom: Color,
-    val brandAccentLight: Color,
+    val brandLine: Color,
     val brandAccent: Color,
 )
 
@@ -357,14 +357,14 @@ val LightExtendedColors = ExtendedColors(
     mediaGuide = Color(0x80FFFFFF),
     mediaTrack = Color(0x3DFFFFFF),
     mediaSelected = Color(0xFF0064CD),
-    brandSurfaceTop = Color(0xFF26282B),
-    brandSurfaceBottom = Color(0xFF191C1F),
+    brandSurfaceTop = Color(0xFFF2F4F6),
+    brandSurfaceBottom = Color(0xFFE7E8EA),
+    brandTileTop = Color(0xFF26282B),
+    brandTileBottom = Color(0xFF191C1F),
     brandEdge = Color(0x00FFFFFF),
-    onBrand = Color(0xFFF2F4F7),
-    onBrand2 = Color(0xFFBFC1C4),
-    brandBodyTop = Color(0xFFF8F9FB),
-    brandBodyBottom = Color(0xFFC6C8CB),
-    brandAccentLight = Color(0xFFFF9C86),
+    onBrand = Color(0xFF1B1C1D),
+    onBrand2 = Color(0xFF48494B),
+    brandLine = Color(0xFF2A2C2F),
     brandAccent = Color(0xFFEC5B45),
 )
 
@@ -421,12 +421,12 @@ val DarkExtendedColors = ExtendedColors(
     mediaSelected = Color(0xFF6E97FF),
     brandSurfaceTop = Color(0xFF26282B),
     brandSurfaceBottom = Color(0xFF191C1F),
+    brandTileTop = Color(0xFF26282B),
+    brandTileBottom = Color(0xFF191C1F),
     brandEdge = Color(0x1FFFFFFF),
     onBrand = Color(0xFFF2F4F7),
     onBrand2 = Color(0xFFBFC1C4),
-    brandBodyTop = Color(0xFFF8F9FB),
-    brandBodyBottom = Color(0xFFC6C8CB),
-    brandAccentLight = Color(0xFFFF9C86),
+    brandLine = Color(0xFFE6E8EB),
     brandAccent = Color(0xFFEC5B45),
 )
 
@@ -481,14 +481,14 @@ val LightHighContrastExtendedColors = ExtendedColors(
     mediaGuide = Color(0x80FFFFFF),
     mediaTrack = Color(0x3DFFFFFF),
     mediaSelected = Color(0xFF004CA0),
-    brandSurfaceTop = Color(0xFF26282B),
-    brandSurfaceBottom = Color(0xFF191C1F),
+    brandSurfaceTop = Color(0xFFF2F4F6),
+    brandSurfaceBottom = Color(0xFFE7E8EA),
+    brandTileTop = Color(0xFF26282B),
+    brandTileBottom = Color(0xFF191C1F),
     brandEdge = Color(0x00FFFFFF),
-    onBrand = Color(0xFFFFFFFF),
-    onBrand2 = Color(0xFFE3E5E8),
-    brandBodyTop = Color(0xFFF8F9FB),
-    brandBodyBottom = Color(0xFFC6C8CB),
-    brandAccentLight = Color(0xFFFF9C86),
+    onBrand = Color(0xFF121315),
+    onBrand2 = Color(0xFF313334),
+    brandLine = Color(0xFF2A2C2F),
     brandAccent = Color(0xFFEC5B45),
 )
 
@@ -545,12 +545,12 @@ val DarkHighContrastExtendedColors = ExtendedColors(
     mediaSelected = Color(0xFFADBDFF),
     brandSurfaceTop = Color(0xFF26282B),
     brandSurfaceBottom = Color(0xFF191C1F),
+    brandTileTop = Color(0xFF26282B),
+    brandTileBottom = Color(0xFF191C1F),
     brandEdge = Color(0x33FFFFFF),
     onBrand = Color(0xFFFFFFFF),
     onBrand2 = Color(0xFFE3E5E8),
-    brandBodyTop = Color(0xFFF8F9FB),
-    brandBodyBottom = Color(0xFFC6C8CB),
-    brandAccentLight = Color(0xFFFF9C86),
+    brandLine = Color(0xFFE6E8EB),
     brandAccent = Color(0xFFEC5B45),
 )
 
@@ -844,20 +844,21 @@ fun AppTheme(
     }
 }
 
-/** Brand surfaces: the onboarding and paywall hero, empty-state art, the about tile, the launch screen and the
- *  export-complete page carry the app icon's material in light and dark mode alike: its graphite base lit from the top
- *  (brandSurfaceTop -> brandSurfaceBottom), its light line colour and its own accent (brandAccentLight -> brandAccent: brand
- *  art only, never a control). The working screens stay as they are. A tile has the iOS icon corner, 22.37 % of its side. */
+/** Brand surfaces: the onboarding and paywall hero, empty-state, permission and consent art, the launch screen and the
+ *  export-complete page carry the app icon's material, lit from the top (brandSurfaceTop -> brandSurfaceBottom): the
+ *  icon's graphite in dark mode, a light graphite in light mode. The mark is flat: res/drawable/brand_mark from
+ *  <name>-mark-light (dark lines), res/drawable-night/brand_mark from <name>-mark (light lines); brandLine is that line
+ *  colour and brandAccent the icon's own accent (brand art only, never a control). The working screens stay as they are.
+ *  A tile (the app icon on the about page) is graphite in both modes, with the iOS icon corner, 22.37 % of its side. */
 object Brand {
     fun surface(colors: ExtendedColors) = Brush.verticalGradient(listOf(colors.brandSurfaceTop, colors.brandSurfaceBottom))
-    fun body(colors: ExtendedColors) = Brush.verticalGradient(listOf(colors.brandBodyTop, colors.brandBodyBottom))
-    fun accent(colors: ExtendedColors) = Brush.verticalGradient(listOf(colors.brandAccentLight, colors.brandAccent))
+    fun tileSurface(colors: ExtendedColors) = Brush.verticalGradient(listOf(colors.brandTileTop, colors.brandTileBottom))
     /** the icon's corner, 22.37 % of the side at every size (CornerSize(Float) would be fixed pixels) */
     val TileShape = RoundedCornerShape(object : CornerSize {
         override fun toPx(shapeSize: Size, density: Density) = shapeSize.minDimension * 0.2237f
     })
-    /** a square brand tile: the graphite with the icon's corner, and the brandEdge hairline (dark mode only) */
-    fun tile(side: Dp, colors: ExtendedColors) = Modifier.size(side).clip(TileShape).background(surface(colors))
+    /** a square brand tile: the graphite in both modes with the icon's corner, and the brandEdge hairline (dark mode only) */
+    fun tile(side: Dp, colors: ExtendedColors) = Modifier.size(side).clip(TileShape).background(tileSurface(colors))
         .border(1.dp, colors.brandEdge, TileShape)
     /** the icon mark's height: hero art (onboarding, paywall, consent), empty states; below markMin show the app icon */
     val markHero = 120.dp
@@ -865,22 +866,16 @@ object Brand {
     val markMin = 64.dp
 }
 
-/** A brand panel: the icon's graphite, a dark island in a light page (text and controls inside take the dark scheme;
- *  onBrand is its text). Pass RectangleShape for a full-bleed header. */
+/** A brand panel: top-lit, the icon's graphite in dark mode and a light graphite in light mode; text and controls inside
+ *  take the page's own scheme (onBrand is its text). Pass RectangleShape for a full-bleed header. */
 @Composable
 fun BrandPanel(
     modifier: Modifier = Modifier,
     shape: Shape = RoundedCornerShape(Radius.xl),
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val hc = isSystemHighContrast()
-    val edge = AppTheme.colors.brandEdge  // the page's, read before the dark scheme: a hairline in dark mode, clear in light
-    CompositionLocalProvider(LocalExtendedColors provides if (hc) DarkHighContrastExtendedColors else DarkExtendedColors) {
-        MaterialTheme(colorScheme = if (hc) DarkHighContrastColors else DarkColors, shapes = MaterialTheme.shapes,
-                      typography = MaterialTheme.typography) {
-            Column(modifier.clip(shape).background(Brand.surface(AppTheme.colors)).border(1.dp, edge, shape), content = content)
-        }
-    }
+    val colors = AppTheme.colors  // brandEdge: a hairline in dark mode, clear in light
+    Column(modifier.clip(shape).background(Brand.surface(colors)).border(1.dp, colors.brandEdge, shape), content = content)
 }
 
 /** TopAppBar: opaque bg, and the same when content scrolls under it (no tonal lift); once scrolled, a 1 dp

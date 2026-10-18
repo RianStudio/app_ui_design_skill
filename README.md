@@ -2,7 +2,7 @@
 
 一个 Claude skill：用 app 图标的强调色生成整套 UI 主题。颜色 token 有深浅两种模式 × 标准和高对比两档，共四套；另有手机和桌面两套字号，以及间距、圆角、阴影、尺寸、动效、触感、媒体色组（编辑器和查看器的中性画布、遮罩、棋盘格）、frost 材质和界面图标规范。一次导出 CSS 变量、SwiftUI、Jetpack Compose 和 Tailwind，并渲染一张以手机为主的对照图：样例界面的 iPhone 浅色和深色、Android，加上设置、付费墙、引导这些共用外壳，或者编辑器、查看器、AI 对话这些页面；桌面窗口可选。所有文字色和主色都放在每个表面和玻璃上检查 WCAG 对比度，标准和高对比两档任何一项不过，脚本就不输出。
 
-风格是**石墨**（Linear 式，结合 Apple 与 Google）：深石墨和纸白两套中性色阶梯，在 CIE LCh 里从同一个色相（265）推导出来；用 1 px 发丝线和明度差分层，卡片不加投影；单一强调色，只用在主按钮、焦点、链接、进度这几处；照片和生成结果放在彩度 0 的中性画布上；手机优先，沿用平台字号和点击区；每个动作一个名字，能搜到；键盘层（⌘K 命令菜单、快捷键提示）是可选的，只在桌面、Web 和接了键盘的 iPad / Mac 上出现，桌面排得密（正文 13–14、行高 36）。规则里还写了编辑器和查看器、视频、AI 对话和生成、长任务（确定进度、取消、后台继续）、引导和付费墙、设置和关于页，以及简繁英三语的术语表。线条、密度和克制学 Linear，材质、字体和图标规格学 Apple（iOS 26 Liquid Glass），无障碍硬指标和动效参数学 Google（Material 3）。它和图标 skill [rian-app-icon](https://github.com/RianStudio/app_logo_design_skill) 用同一套强调色和同一种石墨：界面图标是 1.5 px 的 Lucide 细线，图标是同一种圆头细线（1024 上 60 px）；启动页、引导、付费墙、空状态、关于页、导出完成页这些品牌位铺图标的石墨渐变，插图就是图标自己的线稿（线宽跟着整体缩放），图标的强调色原色只出现在那里，按钮仍用界面主色。
+风格是**石墨**（Linear 式，结合 Apple 与 Google）：深石墨和纸白两套中性色阶梯，在 CIE LCh 里从同一个色相（265）推导出来；用 1 px 发丝线和明度差分层，卡片不加投影；单一强调色，只用在主按钮、焦点、链接、进度这几处；照片和生成结果放在彩度 0 的中性画布上；手机优先，沿用平台字号和点击区；每个动作一个名字，能搜到；键盘层（⌘K 命令菜单、快捷键提示）是可选的，只在桌面、Web 和接了键盘的 iPad / Mac 上出现，桌面排得密（正文 13–14、行高 36）。规则里还写了编辑器和查看器、视频、AI 对话和生成、长任务（确定进度、取消、后台继续）、引导和付费墙、设置和关于页，以及简繁英三语的术语表。线条、密度和克制学 Linear，材质、字体和图标规格学 Apple（iOS 26 Liquid Glass），无障碍硬指标和动效参数学 Google（Material 3）。它和图标 skill [rian-app-icon](https://github.com/RianStudio/app_logo_design_skill) 用同一套强调色和同一种石墨：界面图标是 1.5 px 的 Lucide 细线，图标是同一种圆头细线（1024 上 60 px）；启动页、引导、付费墙、空状态、导出完成页这些品牌位放一块顶光的品牌面板（深色是图标的石墨，浅色是浅石墨），插图就是图标自己的线稿，平涂、线宽跟着整体缩放（浅色深线，深色亮线），图标的强调色原色只出现在那里，按钮仍用界面主色；关于页的 app 图标深浅都是石墨。
 
 ![Ledgerly 主题](examples/ledgerly/preview.png)
 
@@ -39,7 +39,7 @@ python3 scripts/build.py --name Ask --category AI -o themes/ask           # 还�
 python3 scripts/preview.py themes/ask --screen chat                       # 不传 --icon 时是石墨占位图
 ```
 
-`icons/` 是 rian-app-icon 的 `render.py ledgerly.svg -o icons --variants` 的输出目录，里面有默认外观 `ledgerly-1024.png`、深色外观 `ledgerly-dark.png` 和图标主体 `ledgerly-mark.png`（引导、付费墙、空状态这些品牌位的插图用它，`preview.py` 在 `--icon` 旁边自动找到；没有时从图标 PNG 里抠出来）。
+`icons/` 是 rian-app-icon 的 `render.py ledgerly.svg -o icons --variants` 的输出目录，里面有默认外观 `ledgerly-1024.png`、深色外观 `ledgerly-dark.png` 和平涂的图标主体 `ledgerly-mark.png`（亮线，深色面板）、`ledgerly-mark-light.png`（深线，浅色面板）。引导、付费墙、空状态这些品牌位的插图用它们，`preview.py` 在 `--icon` 旁边自动找到；没有时从图标 PNG 里抠出来再压平。
 
 `build.py` 全部通过时打印 `contrast: all pass (standard, high)`；`preview.py` 在主题目录里写出 `preview.png`（1960 宽的画板，2x 截图），最后打印断言，都应该是 PASS，有 FAIL 时退出码是 1：
 
@@ -63,7 +63,7 @@ python3 scripts/preview.py themes/ask --screen chat                       # 不�
 
 ```bash
 ICON_SKILL=~/.claude/skills/rian-app-icon   # rian-app-icon 仓库的位置，按实际改
-python3 $ICON_SKILL/scripts/render.py $ICON_SKILL/examples/ledgerly.svg -o /tmp/icons --variants   # 写出 /tmp/icons/ledgerly-1024.png、ledgerly-dark.png 和 ledgerly-mark.png
+python3 $ICON_SKILL/scripts/render.py $ICON_SKILL/examples/ledgerly.svg -o /tmp/icons --variants   # 写出 /tmp/icons/ledgerly-1024.png、ledgerly-dark.png 和两份 mark
 python3 scripts/build.py --name Ledgerly --accent 绿 -o examples/ledgerly
 python3 scripts/preview.py examples/ledgerly --screen list \
   --icon /tmp/icons/ledgerly-1024.png --icon-dark /tmp/icons/ledgerly-dark.png

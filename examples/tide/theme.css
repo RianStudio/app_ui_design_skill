@@ -143,11 +143,8 @@
   --viewer-scrim-top: linear-gradient(to bottom, rgba(0, 0, 0, 0.64) 0%, rgba(0, 0, 0, 0.56) 70%, rgba(0, 0, 0, 0) 100%);
   --viewer-scrim-bottom: linear-gradient(to top, rgba(0, 0, 0, 0.64) 0%, rgba(0, 0, 0, 0.56) 70%, rgba(0, 0, 0, 0) 100%);
   --checker-image: repeating-conic-gradient(var(--c-checker-a) 0 25%, var(--c-checker-b) 0 50%);
-  /* brand surfaces (onboarding and paywall hero, empty-state art, about tile, launch screen, export-complete page):
-     the app icon's graphite, top-lit like the icon, the same in light and dark; the icon's own accent only there */
-  --brand-surface: linear-gradient(to bottom, var(--c-brand-surface-top), var(--c-brand-surface-bottom));
-  --brand-body: linear-gradient(to bottom, var(--c-brand-body-top), var(--c-brand-body-bottom));
-  --brand-accent: linear-gradient(to bottom, var(--c-brand-accent-light), var(--c-brand-accent));
+  /* brand surfaces (onboarding and paywall hero, empty-state art, launch screen, export-complete page, about tile):
+     the gradients --brand-surface and --brand-tile are set with each scheme's colours below */
   --brand-tile-radius: 22.37%;
   --brand-mark-hero: 120px;
   --brand-mark-empty: 88px;
@@ -234,14 +231,14 @@
   --c-media-guide: rgba(255, 255, 255, 0.5);
   --c-media-track: rgba(255, 255, 255, 0.24);
   --c-media-selected: #0064CD;
-  --c-brand-surface-top: #26282B;
-  --c-brand-surface-bottom: #191C1F;
+  --c-brand-surface-top: #F2F4F6;
+  --c-brand-surface-bottom: #E7E8EA;
+  --c-brand-tile-top: #26282B;
+  --c-brand-tile-bottom: #191C1F;
   --c-brand-edge: rgba(255, 255, 255, 0);
-  --c-on-brand: #F2F4F7;
-  --c-on-brand-2: #BFC1C4;
-  --c-brand-body-top: #F8F9FB;
-  --c-brand-body-bottom: #C6C8CB;
-  --c-brand-accent-light: #FF9C86;
+  --c-on-brand: #1B1C1D;
+  --c-on-brand-2: #48494B;
+  --c-brand-line: #2A2C2F;
   --c-brand-accent: #EC5B45;
   --c-canvas-rgb: 246 248 250;
   --c-bg-rgb: 255 255 255;
@@ -291,17 +288,23 @@
   --c-checker-b-rgb: 215 215 215;
   --c-on-media-rgb: 255 255 255;
   --c-media-selected-rgb: 0 100 205;
-  --c-brand-surface-top-rgb: 38 40 43;
-  --c-brand-surface-bottom-rgb: 25 28 31;
-  --c-on-brand-rgb: 242 244 247;
-  --c-on-brand-2-rgb: 191 193 196;
-  --c-brand-body-top-rgb: 248 249 251;
-  --c-brand-body-bottom-rgb: 198 200 203;
-  --c-brand-accent-light-rgb: 255 156 134;
+  --c-brand-surface-top-rgb: 242 244 246;
+  --c-brand-surface-bottom-rgb: 231 232 234;
+  --c-brand-tile-top-rgb: 38 40 43;
+  --c-brand-tile-bottom-rgb: 25 28 31;
+  --c-on-brand-rgb: 27 28 29;
+  --c-on-brand-2-rgb: 72 73 75;
+  --c-brand-line-rgb: 42 44 47;
   --c-brand-accent-rgb: 236 91 69;
   --elev-0: none;
   --elev-2: 0px 4px 12px rgba(0, 0, 0, 0.06), 0px 8px 24px rgba(0, 0, 0, 0.1);
   --elev-3: 0px 8px 16px rgba(0, 0, 0, 0.06), 0px 24px 64px rgba(0, 0, 0, 0.12);
+  /* brand panel (graphite in dark, light graphite in light) and the app icon tile (graphite in both); the mark
+     in dark lines (<name>-mark-light) shows in light schemes, the one in light lines (<name>-mark) in dark */
+  --brand-surface: linear-gradient(to bottom, var(--c-brand-surface-top), var(--c-brand-surface-bottom));
+  --brand-tile: linear-gradient(to bottom, var(--c-brand-tile-top), var(--c-brand-tile-bottom));
+  --brand-mark-for-light: block;
+  --brand-mark-for-dark: none;
   /* old names, kept for one version; elev-1 was the card shadow, and cards now have none */
   --c-state-hover: var(--c-hover);
   --c-state-pressed: var(--c-pressed);
@@ -373,12 +376,12 @@
     --c-media-selected: #6E97FF;
     --c-brand-surface-top: #26282B;
     --c-brand-surface-bottom: #191C1F;
+    --c-brand-tile-top: #26282B;
+    --c-brand-tile-bottom: #191C1F;
     --c-brand-edge: rgba(255, 255, 255, 0.12);
     --c-on-brand: #F2F4F7;
     --c-on-brand-2: #BFC1C4;
-    --c-brand-body-top: #F8F9FB;
-    --c-brand-body-bottom: #C6C8CB;
-    --c-brand-accent-light: #FF9C86;
+    --c-brand-line: #E6E8EB;
     --c-brand-accent: #EC5B45;
     --c-canvas-rgb: 17 18 21;
     --c-bg-rgb: 22 24 26;
@@ -430,15 +433,21 @@
     --c-media-selected-rgb: 110 151 255;
     --c-brand-surface-top-rgb: 38 40 43;
     --c-brand-surface-bottom-rgb: 25 28 31;
+    --c-brand-tile-top-rgb: 38 40 43;
+    --c-brand-tile-bottom-rgb: 25 28 31;
     --c-on-brand-rgb: 242 244 247;
     --c-on-brand-2-rgb: 191 193 196;
-    --c-brand-body-top-rgb: 248 249 251;
-    --c-brand-body-bottom-rgb: 198 200 203;
-    --c-brand-accent-light-rgb: 255 156 134;
+    --c-brand-line-rgb: 230 232 235;
     --c-brand-accent-rgb: 236 91 69;
     --elev-0: none;
     --elev-2: 0px 8px 24px rgba(0, 0, 0, 0.5);
     --elev-3: 0px 16px 48px rgba(0, 0, 0, 0.6);
+    /* brand panel (graphite in dark, light graphite in light) and the app icon tile (graphite in both); the mark
+       in dark lines (<name>-mark-light) shows in light schemes, the one in light lines (<name>-mark) in dark */
+    --brand-surface: linear-gradient(to bottom, var(--c-brand-surface-top), var(--c-brand-surface-bottom));
+    --brand-tile: linear-gradient(to bottom, var(--c-brand-tile-top), var(--c-brand-tile-bottom));
+    --brand-mark-for-light: none;
+    --brand-mark-for-dark: block;
     /* old names, kept for one version; elev-1 was the card shadow, and cards now have none */
     --c-state-hover: var(--c-hover);
     --c-state-pressed: var(--c-pressed);
@@ -510,12 +519,12 @@
   --c-media-selected: #6E97FF;
   --c-brand-surface-top: #26282B;
   --c-brand-surface-bottom: #191C1F;
+  --c-brand-tile-top: #26282B;
+  --c-brand-tile-bottom: #191C1F;
   --c-brand-edge: rgba(255, 255, 255, 0.12);
   --c-on-brand: #F2F4F7;
   --c-on-brand-2: #BFC1C4;
-  --c-brand-body-top: #F8F9FB;
-  --c-brand-body-bottom: #C6C8CB;
-  --c-brand-accent-light: #FF9C86;
+  --c-brand-line: #E6E8EB;
   --c-brand-accent: #EC5B45;
   --c-canvas-rgb: 17 18 21;
   --c-bg-rgb: 22 24 26;
@@ -567,15 +576,21 @@
   --c-media-selected-rgb: 110 151 255;
   --c-brand-surface-top-rgb: 38 40 43;
   --c-brand-surface-bottom-rgb: 25 28 31;
+  --c-brand-tile-top-rgb: 38 40 43;
+  --c-brand-tile-bottom-rgb: 25 28 31;
   --c-on-brand-rgb: 242 244 247;
   --c-on-brand-2-rgb: 191 193 196;
-  --c-brand-body-top-rgb: 248 249 251;
-  --c-brand-body-bottom-rgb: 198 200 203;
-  --c-brand-accent-light-rgb: 255 156 134;
+  --c-brand-line-rgb: 230 232 235;
   --c-brand-accent-rgb: 236 91 69;
   --elev-0: none;
   --elev-2: 0px 8px 24px rgba(0, 0, 0, 0.5);
   --elev-3: 0px 16px 48px rgba(0, 0, 0, 0.6);
+  /* brand panel (graphite in dark, light graphite in light) and the app icon tile (graphite in both); the mark
+     in dark lines (<name>-mark-light) shows in light schemes, the one in light lines (<name>-mark) in dark */
+  --brand-surface: linear-gradient(to bottom, var(--c-brand-surface-top), var(--c-brand-surface-bottom));
+  --brand-tile: linear-gradient(to bottom, var(--c-brand-tile-top), var(--c-brand-tile-bottom));
+  --brand-mark-for-light: none;
+  --brand-mark-for-dark: block;
   /* old names, kept for one version; elev-1 was the card shadow, and cards now have none */
   --c-state-hover: var(--c-hover);
   --c-state-pressed: var(--c-pressed);
@@ -648,14 +663,14 @@
     --c-media-guide: rgba(255, 255, 255, 0.5);
     --c-media-track: rgba(255, 255, 255, 0.24);
     --c-media-selected: #004CA0;
-    --c-brand-surface-top: #26282B;
-    --c-brand-surface-bottom: #191C1F;
+    --c-brand-surface-top: #F2F4F6;
+    --c-brand-surface-bottom: #E7E8EA;
+    --c-brand-tile-top: #26282B;
+    --c-brand-tile-bottom: #191C1F;
     --c-brand-edge: rgba(255, 255, 255, 0);
-    --c-on-brand: #FFFFFF;
-    --c-on-brand-2: #E3E5E8;
-    --c-brand-body-top: #F8F9FB;
-    --c-brand-body-bottom: #C6C8CB;
-    --c-brand-accent-light: #FF9C86;
+    --c-on-brand: #121315;
+    --c-on-brand-2: #313334;
+    --c-brand-line: #2A2C2F;
     --c-brand-accent: #EC5B45;
     --c-canvas-rgb: 246 248 250;
     --c-bg-rgb: 255 255 255;
@@ -705,17 +720,23 @@
     --c-checker-b-rgb: 215 215 215;
     --c-on-media-rgb: 255 255 255;
     --c-media-selected-rgb: 0 76 160;
-    --c-brand-surface-top-rgb: 38 40 43;
-    --c-brand-surface-bottom-rgb: 25 28 31;
-    --c-on-brand-rgb: 255 255 255;
-    --c-on-brand-2-rgb: 227 229 232;
-    --c-brand-body-top-rgb: 248 249 251;
-    --c-brand-body-bottom-rgb: 198 200 203;
-    --c-brand-accent-light-rgb: 255 156 134;
+    --c-brand-surface-top-rgb: 242 244 246;
+    --c-brand-surface-bottom-rgb: 231 232 234;
+    --c-brand-tile-top-rgb: 38 40 43;
+    --c-brand-tile-bottom-rgb: 25 28 31;
+    --c-on-brand-rgb: 18 19 21;
+    --c-on-brand-2-rgb: 49 51 52;
+    --c-brand-line-rgb: 42 44 47;
     --c-brand-accent-rgb: 236 91 69;
     --elev-0: none;
     --elev-2: 0px 4px 12px rgba(0, 0, 0, 0.06), 0px 8px 24px rgba(0, 0, 0, 0.1);
     --elev-3: 0px 8px 16px rgba(0, 0, 0, 0.06), 0px 24px 64px rgba(0, 0, 0, 0.12);
+    /* brand panel (graphite in dark, light graphite in light) and the app icon tile (graphite in both); the mark
+       in dark lines (<name>-mark-light) shows in light schemes, the one in light lines (<name>-mark) in dark */
+    --brand-surface: linear-gradient(to bottom, var(--c-brand-surface-top), var(--c-brand-surface-bottom));
+    --brand-tile: linear-gradient(to bottom, var(--c-brand-tile-top), var(--c-brand-tile-bottom));
+    --brand-mark-for-light: block;
+    --brand-mark-for-dark: none;
     /* old names, kept for one version; elev-1 was the card shadow, and cards now have none */
     --c-state-hover: var(--c-hover);
     --c-state-pressed: var(--c-pressed);
@@ -788,12 +809,12 @@
     --c-media-selected: #ADBDFF;
     --c-brand-surface-top: #26282B;
     --c-brand-surface-bottom: #191C1F;
+    --c-brand-tile-top: #26282B;
+    --c-brand-tile-bottom: #191C1F;
     --c-brand-edge: rgba(255, 255, 255, 0.2);
     --c-on-brand: #FFFFFF;
     --c-on-brand-2: #E3E5E8;
-    --c-brand-body-top: #F8F9FB;
-    --c-brand-body-bottom: #C6C8CB;
-    --c-brand-accent-light: #FF9C86;
+    --c-brand-line: #E6E8EB;
     --c-brand-accent: #EC5B45;
     --c-canvas-rgb: 17 18 21;
     --c-bg-rgb: 22 24 26;
@@ -845,15 +866,21 @@
     --c-media-selected-rgb: 173 189 255;
     --c-brand-surface-top-rgb: 38 40 43;
     --c-brand-surface-bottom-rgb: 25 28 31;
+    --c-brand-tile-top-rgb: 38 40 43;
+    --c-brand-tile-bottom-rgb: 25 28 31;
     --c-on-brand-rgb: 255 255 255;
     --c-on-brand-2-rgb: 227 229 232;
-    --c-brand-body-top-rgb: 248 249 251;
-    --c-brand-body-bottom-rgb: 198 200 203;
-    --c-brand-accent-light-rgb: 255 156 134;
+    --c-brand-line-rgb: 230 232 235;
     --c-brand-accent-rgb: 236 91 69;
     --elev-0: none;
     --elev-2: 0px 8px 24px rgba(0, 0, 0, 0.5);
     --elev-3: 0px 16px 48px rgba(0, 0, 0, 0.6);
+    /* brand panel (graphite in dark, light graphite in light) and the app icon tile (graphite in both); the mark
+       in dark lines (<name>-mark-light) shows in light schemes, the one in light lines (<name>-mark) in dark */
+    --brand-surface: linear-gradient(to bottom, var(--c-brand-surface-top), var(--c-brand-surface-bottom));
+    --brand-tile: linear-gradient(to bottom, var(--c-brand-tile-top), var(--c-brand-tile-bottom));
+    --brand-mark-for-light: none;
+    --brand-mark-for-dark: block;
     /* old names, kept for one version; elev-1 was the card shadow, and cards now have none */
     --c-state-hover: var(--c-hover);
     --c-state-pressed: var(--c-pressed);
@@ -926,12 +953,12 @@
     --c-media-selected: #ADBDFF;
     --c-brand-surface-top: #26282B;
     --c-brand-surface-bottom: #191C1F;
+    --c-brand-tile-top: #26282B;
+    --c-brand-tile-bottom: #191C1F;
     --c-brand-edge: rgba(255, 255, 255, 0.2);
     --c-on-brand: #FFFFFF;
     --c-on-brand-2: #E3E5E8;
-    --c-brand-body-top: #F8F9FB;
-    --c-brand-body-bottom: #C6C8CB;
-    --c-brand-accent-light: #FF9C86;
+    --c-brand-line: #E6E8EB;
     --c-brand-accent: #EC5B45;
     --c-canvas-rgb: 17 18 21;
     --c-bg-rgb: 22 24 26;
@@ -983,15 +1010,21 @@
     --c-media-selected-rgb: 173 189 255;
     --c-brand-surface-top-rgb: 38 40 43;
     --c-brand-surface-bottom-rgb: 25 28 31;
+    --c-brand-tile-top-rgb: 38 40 43;
+    --c-brand-tile-bottom-rgb: 25 28 31;
     --c-on-brand-rgb: 255 255 255;
     --c-on-brand-2-rgb: 227 229 232;
-    --c-brand-body-top-rgb: 248 249 251;
-    --c-brand-body-bottom-rgb: 198 200 203;
-    --c-brand-accent-light-rgb: 255 156 134;
+    --c-brand-line-rgb: 230 232 235;
     --c-brand-accent-rgb: 236 91 69;
     --elev-0: none;
     --elev-2: 0px 8px 24px rgba(0, 0, 0, 0.5);
     --elev-3: 0px 16px 48px rgba(0, 0, 0, 0.6);
+    /* brand panel (graphite in dark, light graphite in light) and the app icon tile (graphite in both); the mark
+       in dark lines (<name>-mark-light) shows in light schemes, the one in light lines (<name>-mark) in dark */
+    --brand-surface: linear-gradient(to bottom, var(--c-brand-surface-top), var(--c-brand-surface-bottom));
+    --brand-tile: linear-gradient(to bottom, var(--c-brand-tile-top), var(--c-brand-tile-bottom));
+    --brand-mark-for-light: none;
+    --brand-mark-for-dark: block;
     /* old names, kept for one version; elev-1 was the card shadow, and cards now have none */
     --c-state-hover: var(--c-hover);
     --c-state-pressed: var(--c-pressed);
@@ -1115,16 +1148,20 @@ textarea.input { height: auto; min-height: var(--control-h-lg); padding: 6px 10p
 .icon.xl { width: var(--icon-lg); height: var(--icon-lg); } /* old name (28 px), kept for one version */
 .is-active > .icon, .icon.active { color: var(--c-primary-text); }
 
-/* brand surfaces: the icon's graphite with its top light. A panel is a dark island in a light page: write
-   <div class="brand-panel" data-theme="dark"> so the text and controls inside take the dark tokens (on-brand is the
-   dark text). A brand tile (about page, launch screen, the icon's mark on a square) has the iOS icon corner, 22.37 %
-   of its side. The brand accent fills only the art (the icon's accent piece, a category dot), never a control. */
+/* brand surfaces, lit from the top like the icon. A panel follows the page: the icon's graphite in dark mode, a light
+   graphite neutral in light mode; its text and controls take the page's own tokens (on-brand is text). A brand tile is
+   the app icon's graphite in both modes (about page), with the iOS icon corner, 22.37 % of its side. The mark is the
+   icon's subject in flat lines: put both files in and the scheme shows one,
+   <img class="brand-mark for-light" src="name-mark-light.svg" alt=""><img class="brand-mark for-dark" src="name-mark.svg" alt="">
+   The brand accent fills only the art (the icon's accent piece, a category dot), never a control. */
 .brand-panel { background: var(--brand-surface); color: var(--c-on-brand); border-radius: var(--r-xl); }
-.brand-tile { aspect-ratio: 1; background: var(--brand-surface); border-radius: var(--brand-tile-radius); }
+.brand-tile { aspect-ratio: 1; background: var(--brand-tile); border-radius: var(--brand-tile-radius); }
 /* the edge is drawn outside: white over a light page shows nothing, over a dark page it is the hairline that keeps the
    graphite from sinking in (brand-edge is clear in the light schemes) */
 .brand-panel, .brand-tile { box-shadow: 0 0 0 1px var(--c-brand-edge); }
 .brand-mark { display: block; height: var(--brand-mark-hero); width: auto; }
+.brand-mark.for-light { display: var(--brand-mark-for-light); }
+.brand-mark.for-dark { display: var(--brand-mark-for-dark); }
 .brand-mark.empty { height: var(--brand-mark-empty); }
 
 @media (prefers-reduced-motion: reduce) {

@@ -18,9 +18,11 @@ Writes out/preview.png: a 1960 px wide sheet of phones, saved at --scale 2 (3920
      when the icon accent is 珊瑚 / 黄 / 灰, an "icon x UI" cell: the warm icon next to the blue UI it falls back to;
   4. with --desktop (timer, notes and list): a 1280 x 800 desktop window (inverted-L layout, keyboard-cursor row,
      two multi-selected rows, the command menu open over scrim-menu), the desktop type scale and a dialog;
-  5. brand surfaces: the launch screen, the about panel, an empty state in light and dark and the export-complete page,
-     on the icon's graphite with the icon's own subject as the art (--mark, else <name>-mark.png next to --icon, else
-     keyed out of the --icon PNG, else a stand-in); the paywall, onboarding, permission and consent art is the same;
+  5. brand surfaces: the launch screen, the about page, an empty state and the export-complete page in light, the empty
+     state and the export-complete page in dark: the brand panel (light graphite in light, the icon's graphite in dark)
+     with the icon's own subject in flat lines as the art, dark lines in light and light lines in dark (--mark, else
+     <name>-mark.png next to --icon, else keyed out of the --icon PNG, else a stand-in; a PNG is flattened); the about
+     page's app icon stays graphite; the paywall, onboarding, permission and consent art is the same;
   6. swatches of the four schemes (light, dark, light-hc, dark-hc) and of the media tokens.
 
 Screens: timer (focus timer), notes (long Chinese text, highlight, search field), list (ledger: amounts, filter
@@ -63,6 +65,7 @@ MODE_NAME = {"light": "浅色", "dark": "深色"}
 BOARD_W = 1960  # 410 + 410 + 432 (phones) + 556 (component strip) + 3 gaps of 24 + 2 x 40 padding
 FROST_MIN, SCRIM_MIN, DESK_MAX, PHONE_MAX, CONVERSION_MAX = 3.0, 4.5, 5.0, 8.0, 15.0
 HUE_BAND, STRONG_CHROMA, FAINT_CHROMA = 25, 20, 4
+ICON_BODY = ("#F8F9FB", "#C6C8CB")  # rian-app-icon's light line gradient: what a keyed icon or an older mark's lines are
 
 
 # ---------- icons: Lucide on a 24 grid, 1.5 px non-scaling stroke ----------
@@ -268,37 +271,61 @@ class AppIcon:
 
 
 class BrandMark:
-    """the icon's subject alone (its line drawing and accent shape, glow kept, no background) for brand art on the
-    graphite brand panel: --mark (rian-app-icon render.py --variants' <name>-mark.png or .svg), else the <name>-mark.png
-    next to --icon, else keyed out of the --icon PNG (its base is the known graphite gradient), else a stand-in in the
-    icon accent. It is only ever scaled as a whole, so its line keeps the icon's 60 / 1024 weight."""
+    """the icon's subject alone in flat lines (no glow, no gradient: like the UI's Lucide icons) for brand art, in two
+    versions: light lines for the dark graphite panel and dark lines for the light panel; the scheme shows one (theme.css
+    .brand-mark.for-light / .for-dark). Source: --mark (rian-app-icon render.py --variants' <name>-mark.png or .svg), else
+    the <name>-mark.png next to --icon, else keyed out of the --icon PNG (its base is the known graphite gradient), else a
+    stand-in. A PNG is always flattened here (an older gradient mark comes out flat as well): each pixel goes to the line
+    colour or to the accent, whichever its own colour is nearer; an SVG uses its <name>-mark-light.svg sibling when there
+    is one. Only ever scaled as a whole, so the line keeps the icon's 60 / 1024 weight."""
 
-    def __init__(self, mark, icon, tones):
+    def __init__(self, mark, icon, tones, lines, accent):
         self.how = "stand-in"
+        self.lines, self.accent, self.tones = lines, accent, tones  # lines: {"light": dark lines, "dark": light lines}
+        if mark and re.search(r"-mark-light\.(png|svg)$", mark):  # the dark-line file: start from its light-line sibling
+            sib = re.sub(r"-mark-light\.(png|svg)$", r"-mark.\1", mark)
+            mark = sib if os.path.isfile(sib) else mark
         if not mark and icon:
             sib = re.sub(r"-1024\.png$", "-mark.png", icon)
             mark = sib if sib != icon and os.path.isfile(sib) else None
-        if mark:
+        if mark and mark.lower().endswith(".svg"):
             self.how = "mark"
-            data = open(mark, "rb").read()
-            if mark.lower().endswith(".svg"):
-                vb = [float(v) for v in re.search(r'viewBox="([^"]+)"', data.decode()).group(1).split()]
-                self.ratio = vb[2] / vb[3]
-                self.src = "data:image/svg+xml;base64," + base64.b64encode(data).decode()
-            else:
-                from PIL import Image
-                im = Image.open(io.BytesIO(data))
-                self.ratio = im.width / im.height
-                self.src = "data:image/png;base64," + base64.b64encode(data).decode()
+            text = open(mark, encoding="utf-8").read()
+            vb = [float(v) for v in re.search(r'viewBox="([^"]+)"', text).group(1).split()]
+            self.ratio = vb[2] / vb[3]
+            sib = re.sub(r"\.svg$", "-light.svg", mark)
+            light = open(sib, encoding="utf-8").read() if os.path.isfile(sib) else self._recolour_svg(text, lines["light"])
+            self.src = {"dark": self._svg_url(self._recolour_svg(text, lines["dark"])), "light": self._svg_url(light)}
+        elif mark:
+            self.how = "mark"
+            fg, alpha = self._unpremultiplied(mark)
+            self.src, self.ratio = self._flat(fg, alpha)
         elif icon:
             self.how = "keyed"
-            self.src, self.ratio = self._keyed(icon)
+            self.src, self.ratio = self._flat(*self._keyed(icon))
         else:
-            self.src, self.ratio = self._stand_in(tones), 1.0
+            self.src, self.ratio = {m: self._stand_in(lines[m], accent) for m in ("light", "dark")}, 1.0
+
+    @staticmethod
+    def _svg_url(text):
+        return "data:image/svg+xml;base64," + base64.b64encode(text.encode()).decode()
+
+    def _recolour_svg(self, text, line):
+        """a mark SVG in flat colours: the lines (an older mark's body gradient too) in `line`, the accent in its main tone"""
+        text = re.sub(r"url\(#body-fill\)|#E6E8EB", line, text, flags=re.I)
+        return re.sub(r"url\(#accent\)", self.accent, text)
+
+    @staticmethod
+    def _unpremultiplied(path):
+        import numpy as np
+        from PIL import Image
+        im = np.asarray(Image.open(path).convert("RGBA")).astype(float)
+        return im[..., :3], im[..., 3] / 255
 
     @staticmethod
     def _keyed(path):
-        """the icon PNG minus its graphite base: alpha from the distance to the base gradient at each row"""
+        """the icon PNG minus its graphite base: alpha from the distance to the base gradient at each row, colour
+        un-premultiplied against the base so half-covered edge pixels keep their own colour"""
         import numpy as np
         from PIL import Image
         im = Image.open(path).convert("RGB").resize((1024, 1024))
@@ -308,34 +335,54 @@ class BrandMark:
         base = top * (1 - t) + bot * t
         d = np.abs(a - base).max(axis=2)
         alpha = np.clip((d - 4) / 20, 0, 1)
-        ys, xs = np.nonzero(alpha > .02)
-        x0, y0, x1, y1 = max(xs.min() - 8, 0), max(ys.min() - 8, 0), min(xs.max() + 9, 1024), min(ys.max() + 9, 1024)
-        # un-premultiply against the base so half-covered edge pixels keep their own colour
         fg = np.where(alpha[..., None] > 0, (a - base * (1 - alpha[..., None])) / np.maximum(alpha[..., None], 1e-3), 0)
-        rgba = np.dstack([np.clip(fg, 0, 255), alpha * 255]).astype("uint8")[y0:y1, x0:x1]
-        buf = io.BytesIO()
-        Image.fromarray(rgba, "RGBA").save(buf, "PNG")
-        return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode(), (x1 - x0) / (y1 - y0)
+        return np.clip(fg, 0, 255), alpha
+
+    def _flat(self, fg, alpha):
+        """flat versions of an RGBA mark: a pixel near the icon's light line colours becomes the line colour, one near the
+        accent's tones the accent's main tone, anything else (the glow's dark tint) is dropped; cropped to what is left"""
+        import numpy as np
+        from PIL import Image
+        hexrgb = lambda h: np.array([int(h[i:i + 2], 16) for i in (1, 3, 5)], float)
+
+        def dist(a, b):  # distance from each pixel to the segment a -> b in RGB
+            a, b = hexrgb(a), hexrgb(b)
+            ab = b - a
+            u = np.clip(((fg - a) @ ab) / max(ab @ ab, 1e-6), 0, 1)
+            return np.linalg.norm(fg - (a + u[..., None] * ab), axis=-1)
+
+        d_line = dist(*ICON_BODY)
+        d_acc = dist(*self.tones)
+        keep = (alpha > .02) & (np.minimum(d_line, d_acc) < 90)
+        is_acc = d_acc < d_line
+        a = np.where(keep, alpha, 0)
+        ys, xs = np.nonzero(a > .02)
+        x0, y0, x1, y1 = max(xs.min() - 8, 0), max(ys.min() - 8, 0), min(xs.max() + 9, a.shape[1]), min(ys.max() + 9, a.shape[0])
+        out = {}
+        for mode in ("light", "dark"):
+            rgb = np.where(is_acc[..., None], hexrgb(self.accent), hexrgb(self.lines[mode]))
+            rgba = np.dstack([rgb, a * 255]).astype("uint8")[y0:y1, x0:x1]
+            buf = io.BytesIO()
+            Image.fromarray(rgba, "RGBA").save(buf, "PNG")
+            out[mode] = "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
+        return out, (x1 - x0) / (y1 - y0)
 
     @staticmethod
-    def _stand_in(tones):
-        """a line drawing in the icon's style: one outline in the body gradient (the icon's 60 / 1024 line, 34 in this
-        600 box) and one filled accent shape 40 / 1024 clear of it"""
-        a, b = tones
-        body_a, body_b = PALETTE["brand"]["body"]
-        svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><defs>'
-               f'<linearGradient id="b" x1="0" y1="40" x2="0" y2="560" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="{body_a}"/><stop offset="1" stop-color="{body_b}"/></linearGradient>'
-               f'<linearGradient id="a" x1="0" y1="80" x2="0" y2="300" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="{a}"/><stop offset="1" stop-color="{b}"/></linearGradient></defs>'
-               f'<rect x="40" y="60" width="520" height="480" rx="110" fill="none" stroke="url(#b)" stroke-width="34" stroke-linejoin="round"/>'
-               f'<circle cx="190" cy="210" r="70" fill="url(#a)"/></svg>')
+    def _stand_in(line, accent):
+        """a line drawing in the icon's style, flat: one outline (the icon's 60 / 1024 line, 34 in this 600 box) and one
+        filled accent shape 40 / 1024 clear of it"""
+        svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600">'
+               f'<rect x="40" y="60" width="520" height="480" rx="110" fill="none" stroke="{line}" stroke-width="34" stroke-linejoin="round"/>'
+               f'<circle cx="190" cy="210" r="70" fill="{accent}"/></svg>')
         return "data:image/svg+xml;base64," + base64.b64encode(svg.encode()).decode()
 
     def __call__(self, h, max_w=None):
-        """the mark at height h (the icon subject's height), in pt; a wide mark is fitted into max_w"""
+        """the mark at height h (the icon subject's height), in pt; a wide mark is fitted into max_w. Both versions go in
+        and theme.css shows the one for the scheme: dark lines in light, light lines in dark"""
         if max_w and h * self.ratio > max_w:
             h = max_w / self.ratio
-        return (f'<img class="bmark" data-brand alt="" src="{self.src}" '
-                f'style="height:{h}px;width:{h * self.ratio:.1f}px">')
+        return "".join(f'<img class="bmark brand-mark for-{m}" data-brand alt="" src="{self.src[m]}" '
+                       f'style="height:{h}px;width:{h * self.ratio:.1f}px">' for m in ("light", "dark"))
 
 
 # ---------- content ----------
@@ -860,11 +907,11 @@ class Brand:
 
 
 def brand_art(w, h, mark_h, overlay=""):
-    """onboarding, paywall, consent, permission and empty-state art: the app icon's own mark on the graphite brand panel,
-    lit from the top like the icon (light and dark mode alike). The mark keeps the icon's own margin: at most 64 % of the
-    panel's height (18 % above and below, like the subject in the icon) and the width less 48 a side. With a real UI
-    fragment (a notification, a sample row) the fragment sits at the bottom and the mark is centred in the space above
-    it, 24 or more clear of it. The icon's accent appears only in the mark; the panel's corner is r-xl"""
+    """onboarding, paywall, consent, permission and empty-state art: the app icon's own mark on the brand panel, lit from
+    the top like the icon (light graphite with dark lines in light mode, the icon's graphite with light lines in dark).
+    The mark keeps the icon's own margin: at most 64 % of the panel's height (18 % above and below, like the subject in
+    the icon) and the width less 48 a side. With a real UI fragment (a notification, a sample row) the fragment sits at
+    the bottom and the mark is centred in the space above it, 24 or more clear of it. The icon's accent appears only in the mark; the panel's corner is r-xl"""
     return (f'<div class="art bpanel{" over" if overlay else ""}" style="width:{w}px;height:{h}px"><span class="bp-mark">'
             f'{Brand.mark(min(mark_h, h * .64), w - 2 * 48)}</span>{overlay}</div>')
 
@@ -1496,8 +1543,10 @@ EXPORTED = {"视频": ("已导出 1 段 · ", "48 MB", "已保存到相册 · 0:
 
 
 def brand_row(t, screen, icon, app):
-    """launch screen, the about panel, an empty state in light and dark, the export-complete page: the icon's graphite,
-    body and accent at brand positions only; the controls keep the primary"""
+    """the launch screen, the about page, an empty state and the export-complete page in light, then the empty state and
+    the export-complete page in dark: the brand panel (light graphite in light, the icon's graphite in dark) with the mark
+    in flat lines, the icon's accent at brand positions only; the about page's app icon stays graphite; the controls keep
+    the primary"""
     hero, empty = PALETTE["brand"]["mark"]["hero"], PALETTE["brand"]["mark"]["empty"]
     title, line = EMPTY[screen]
     cat = Brand.category
@@ -1516,34 +1565,39 @@ def brand_row(t, screen, icon, app):
     def row(label):
         return f'<div class="sr"><span class="t-row-title">{label}</span><span class="grow"></span>{chev}</div>'
 
-    launch = card(f'<div class="blaunch">{Brand.mark(hero)}</div>', "dark",
-                  "<b>启动页</b> · 浅色、深色同一张：图标的石墨底加图标主体，不放字")
+    launch = card(f'<div class="blaunch">{Brand.mark(hero)}</div>', "light",
+                  "<b>启动页 · 浅色</b> · 整屏品牌面板加图标主体（深线），不放字；深色时是石墨底加亮线")
     about = card(f'<div class="bnav t-card-title">关于</div>'
                  f'<div class="babout">{icon(72, "light")}<b class="t-card-title">{app}</b>'
                  f'<span class="t-row-meta num t2">版本 2.3.0（231）</span>{badge}</div>'
                  f'<div class="sg">{row("更多 Rian Studio 的 app")}{row("隐私政策")}{row("开源许可")}</div>'
                  f'<div class="sg-f t-row-meta">A Rian Studio app</div>', "light",
-                 "<b>关于 · 浅色</b> · app 图标 72 直接放在页面上（图标自己就是品牌方块，不再套面板）"
+                 "<b>关于 · 浅色</b> · app 图标 72 直接放在页面上，深浅模式都是石墨（图标自己就是品牌方块，不套面板）"
                  + ("；类别徽章的圆点是图标强调色" if cat else ""), "grouped")
 
     def empty_state(mode):
         return card(f'<div class="bnav t-card-title">{label}</div><div class="bempty">{brand_art(240, 140, empty)}'
                     f'<b class="t-card-title">{title}</b><span class="t-row-meta t2">{line}</span>{pbtn(action)}</div>',
                     mode, f"<b>空状态 · {MODE_NAME[mode]}</b> · 品牌面板 240 × 140 放 {empty} 高的图标主体（上下各留 18 %）"
-                          + ("；深色下面板外有一圈 brand-edge 细线" if mode == "dark" else "") + "；按钮仍是 primary")
+                          + ("；深色下是石墨，外面一圈 brand-edge" if mode == "dark" else "") + "；按钮仍是 primary")
     done, size, note = EXPORTED["视频" if cat == "视频" else screen]
-    export = card(f'<div class="bnav t-card-title">导出完成</div>'
-                  f'<div class="bpanel bexport" data-theme="dark"><span class="bx-mark">{Brand.mark(empty)}</span>'
-                  f'<b class="t-card-title bx-t"><span class="bx-ok">{ic("check", 14)}</span>{done}<span class="num">{size}</span></b>'
-                  f'<span class="t-row-meta b2">{note}</span></div>'
-                  f'<div class="bact">{pbtn("分享")}{pbtn("完成", "second")}</div>', "dark",
-                  "<b>导出完成 · 深色</b> · 品牌面板上是图标主体，结果一行前面是 success 勾（不压在主体上）；「分享」是 primary，强调色不进按钮")
-    L = t["color"]["light"]
-    return (f'<div class="panel brow"><h3>品牌位 · 图标的石墨底、顶光、主体和强调色只在这些地方进界面，工作界面不变</h3>'
-            f'<div class="bcards">{launch}{about}{empty_state("light")}{empty_state("dark")}{export}</div>'
-            f'<div class="note2">brand-surface {L["brand-surface-top"]} → {L["brand-surface-bottom"]}（图标的底，深浅同值）· '
-            f'brand-accent {t["source"].get("brand-accent", "")} {L["brand-accent-light"]} → {L["brand-accent"]}（图标原色，只在图标主体和徽章圆点里，'
-            f'不进按钮和选中态）· 面板里的字和控件用深色那套 token（on-brand {L["on-brand"]}、on-brand-2 {L["on-brand-2"]}）</div></div>')
+
+    def export(mode):
+        return card(f'<div class="bnav t-card-title">导出完成</div>'
+                    f'<div class="bpanel bexport"><span class="bx-mark">{Brand.mark(empty)}</span>'
+                    f'<b class="t-card-title bx-t"><span class="bx-ok">{ic("check", 14)}</span>{done}<span class="num">{size}</span></b>'
+                    f'<span class="t-row-meta b2">{note}</span></div>'
+                    f'<div class="bact">{pbtn("分享")}{pbtn("完成", "second")}</div>', mode,
+                    f"<b>导出完成 · {MODE_NAME[mode]}</b> · 结果一行前面是 success 勾（不压在主体上）；「分享」是 primary，强调色不进按钮")
+    L, D = t["color"]["light"], t["color"]["dark"]
+    return (f'<div class="panel brow"><h3>品牌位 · 品牌面板、图标主体和强调色只在这些地方进界面，工作界面不变；'
+            f'浅色是浅石墨面板加深线主体，深色是图标的石墨加亮线主体，主体都是平涂的线，和界面图标一样</h3>'
+            f'<div class="bcards">{launch}{about}{empty_state("light")}{export("light")}{empty_state("dark")}{export("dark")}</div>'
+            f'<div class="note2">brand-surface 浅色 {L["brand-surface-top"]} → {L["brand-surface-bottom"]}、深色 {D["brand-surface-top"]} → '
+            f'{D["brand-surface-bottom"]} · brand-line 浅色 {L["brand-line"]}、深色 {D["brand-line"]}（主体的线，平涂）· '
+            f'brand-tile {D["brand-tile-top"]} → {D["brand-tile-bottom"]}（app 图标方块，深浅同值）· '
+            f'brand-accent {t["source"].get("brand-accent", "")} {L["brand-accent"]}（图标原色，只在图标主体和徽章圆点里，'
+            f'不进按钮和选中态）· 面板上的字用本模式的 text / text-2（on-brand、on-brand-2）</div></div>')
 
 
 # ---------- swatches ----------
@@ -1647,8 +1701,8 @@ kbd.on-pri { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.
 .panel .note2 { font: 400 12px/17px var(--font); color: #55575A; }
 /* brand row: launch, about, empty states, export complete */
 .brow { grid-column: 1 / -1; }
-.bcards { display: flex; gap: 24px; margin: 14px 0 12px; }
-.bslot { width: 352px; flex: none; }
+.bcards { display: flex; gap: 18px; margin: 14px 0 12px; }
+.bslot { width: 290px; flex: none; }
 .bslot .cap { margin-top: 8px; }
 .bcard { position: relative; height: 470px; border-radius: 28px; overflow: hidden; background: var(--c-bg); color: var(--c-text);
   box-shadow: 0 0 0 1px rgba(0,0,0,.10); display: flex; flex-direction: column; }
@@ -1660,10 +1714,10 @@ kbd.on-pri { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.
 .b2 { color: var(--c-on-brand-2); }
 .bbadge { margin-top: 8px; height: 24px; padding: 0 10px 0 8px; display: inline-flex; align-items: center; gap: 6px; border-radius: 12px;
   border: 1px solid var(--c-border); color: var(--c-text-2); }
-.bbadge i { width: 8px; height: 8px; border-radius: 50%; background: var(--brand-accent); }
+.bbadge i { width: 8px; height: 8px; border-radius: 50%; background: var(--c-brand-accent); }
 .bcard .sg { margin-top: 20px; }
 .bcard .sg-f { padding-top: 8px; }
-.bempty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 0 28px 40px; text-align: center; }
+.bempty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 0 24px 40px; text-align: center; }
 .bempty .bpanel { margin-bottom: 18px; }
 .bempty .pbtn { margin-top: 18px; align-self: stretch; }
 .bexport { margin: 4px 16px 0; padding: 24px 16px 20px; display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -2014,10 +2068,11 @@ mark { background: var(--c-selection); color: inherit; padding: 1px 2px; border-
 .xbar .rest { flex: 1; background: var(--c-surface-3); }
 .grab { display: block; width: 36px; height: 5px; border-radius: 3px; background: var(--c-border-strong); opacity: .6; margin: 0 auto 12px; }
 .art { position: relative; margin: 0 auto; flex: none; }
-/* brand art: the icon's graphite, top-lit, the same in light and dark; the mark is the icon's own subject */
+/* brand art: the brand panel, top-lit (light graphite in light, the icon's graphite in dark); the mark is the icon's own
+   subject in flat lines, dark or light by the scheme (theme.css .brand-mark.for-light / .for-dark) */
 .bpanel { background: var(--brand-surface); border-radius: var(--r-xl); display: grid; place-items: center; overflow: hidden;
   box-shadow: 0 0 0 1px var(--c-brand-edge); }
-.bp-mark, .bmark { display: block; }
+.bp-mark { display: block; }
 .bpanel.over { display: flex; flex-direction: column; align-items: center; padding-bottom: 14px; }
 .bpanel.over .bp-mark { flex: 1; display: grid; place-items: center; min-height: 0; padding-bottom: 24px; }
 .bpanel.over .demo, .bpanel.over .notif { position: relative; left: auto; bottom: auto; margin: 0; flex: none; }
@@ -2585,7 +2640,8 @@ def main():
     ap.add_argument("--icon", metavar="PNG", help="app icon, rian-app-icon's <name>-1024.png (default appearance)")
     ap.add_argument("--icon-dark", metavar="PNG", help="dark app icon for the dark UI, render.py --variants' <name>-dark.png (default: --icon)")
     ap.add_argument("--mark", metavar="PNG|SVG", help="the icon's subject for brand art, render.py --variants' <name>-mark.png "
-                    "(default: the <name>-mark.png next to --icon, else keyed out of --icon)")
+                    "(default: the <name>-mark.png next to --icon, else keyed out of --icon); drawn flat, in dark lines on "
+                    "the light panel and light lines on the dark one")
     ap.add_argument("--desktop", action="store_true", help="add the desktop window, its type scale and a dialog (timer, notes and list)")
     ap.add_argument("--desktop-mode", choices=("dark", "light"), default="dark", help="mode of the desktop window (default dark)")
     ap.add_argument("--offline", action="store_true", help="skip Google Fonts and use the locally installed fonts")
@@ -2603,7 +2659,8 @@ def main():
     tones = PALETTE["accent"].get(s.get("icon-accent", s["accent"]), PALETTE["accent"]["蓝"])["tones"]
     icon = AppIcon(a.icon, a.icon_dark, tones)
     Dk = t["color"]["dark"]
-    Brand.mark = BrandMark(a.mark, a.icon, (Dk["brand-accent-light"], Dk["brand-accent"]))
+    Brand.mark = BrandMark(a.mark, a.icon, PALETTE["accent"][s["brand-accent"]]["tones"],
+                           {m: t["color"][m]["brand-line"] for m in ("light", "dark")}, Dk["brand-accent"])
     Brand.category = s.get("category", "")
 
     draft = page(t, theme_css, a.screen, icon, a.desktop_mode, a.desktop)  # collects the characters and symbols in use

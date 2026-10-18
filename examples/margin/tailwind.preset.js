@@ -9,8 +9,9 @@
 // is the same. text-timecode is the phone timecode size: add tabular-nums. The kbd hints and hover are an optional
 // layer: theme.css hides .kbd on touch screens, and future.hoverOnlyWhenSupported keeps hover: off touch screens (a
 // future block in your own config replaces this one: add the flag there). Brand surfaces: bg-brand-surface with
-// rounded-xl (a panel; add data-theme="dark" so the text inside is the dark set) or aspect-square rounded-brand-tile
-// (the icon's 22.37 % corner); the brand-accent colours are for brand art only, never for a control.
+// rounded-xl (a panel: graphite in dark mode, light graphite in light mode; the text inside is the page's) or
+// aspect-square bg-brand-tile rounded-brand-tile (the app icon tile: graphite in both, the icon's 22.37 % corner);
+// brand-accent is for brand art only, never for a control.
 module.exports = {
   future: { hoverOnlyWhenSupported: true },
   theme: {
@@ -78,12 +79,12 @@ module.exports = {
         'media-selected': 'rgb(var(--c-media-selected-rgb) / <alpha-value>)',
         'brand-surface-top': 'rgb(var(--c-brand-surface-top-rgb) / <alpha-value>)',
         'brand-surface-bottom': 'rgb(var(--c-brand-surface-bottom-rgb) / <alpha-value>)',
+        'brand-tile-top': 'rgb(var(--c-brand-tile-top-rgb) / <alpha-value>)',
+        'brand-tile-bottom': 'rgb(var(--c-brand-tile-bottom-rgb) / <alpha-value>)',
         'brand-edge': 'var(--c-brand-edge)',
         'on-brand': 'rgb(var(--c-on-brand-rgb) / <alpha-value>)',
         'on-brand-2': 'rgb(var(--c-on-brand-2-rgb) / <alpha-value>)',
-        'brand-body-top': 'rgb(var(--c-brand-body-top-rgb) / <alpha-value>)',
-        'brand-body-bottom': 'rgb(var(--c-brand-body-bottom-rgb) / <alpha-value>)',
-        'brand-accent-light': 'rgb(var(--c-brand-accent-light-rgb) / <alpha-value>)',
+        'brand-line': 'rgb(var(--c-brand-line-rgb) / <alpha-value>)',
         'brand-accent': 'rgb(var(--c-brand-accent-rgb) / <alpha-value>)',
         // old names, kept for one version
         'state-hover': 'var(--c-hover)',
@@ -127,7 +128,7 @@ module.exports = {
       width: { sidebar: 'var(--sidebar-w)', 'tool-item': 'var(--tool-item-w)', playhead: 'var(--playhead-w)', 'trim-handle': 'var(--trim-handle-w)' },
       gap: { thumb: 'var(--thumb-gap)' },
       backgroundImage: { checker: 'var(--checker-image)', 'viewer-scrim-top': 'var(--viewer-scrim-top)', 'viewer-scrim-bottom': 'var(--viewer-scrim-bottom)',
-        'brand-surface': 'var(--brand-surface)', 'brand-body': 'var(--brand-body)', 'brand-accent-fill': 'var(--brand-accent)' },
+        'brand-surface': 'var(--brand-surface)', 'brand-tile': 'var(--brand-tile)' },
       backgroundSize: { checker: 'calc(2 * var(--checker-size)) calc(2 * var(--checker-size))' },
     },
   },

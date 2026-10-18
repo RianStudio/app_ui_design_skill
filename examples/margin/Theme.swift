@@ -46,10 +46,11 @@ extension Color {
 /// transparency checkerboard, onMedia the white controls on viewerScrim, mediaEdge the dark edge under white handles,
 /// mediaGuide the white guides (thirds grid, waveform), mediaTrack the video scrubber's track (its played part is
 /// onMedia, not the primary: the primary falls short over a bright frame), mediaSelected the outline of a selected picture.
-/// Brand surfaces carry the app icon's material, the same in every scheme: brandSurfaceTop / Bottom its graphite base,
-/// brandBodyTop / Bottom its light lines, brandAccentLight / brandAccent its own accent (only in brand art, never on a
-/// control); onBrand / onBrand2 are the text on them; brandEdge is a white hairline round a panel or tile in dark mode
-/// (clear in light mode), so the graphite does not sink into a dark page. Use them through Brand below.
+/// Brand surfaces carry the app icon's material: brandSurfaceTop / Bottom is the panel, the icon's graphite in dark mode
+/// and a light graphite neutral in light mode; brandTileTop / Bottom the app icon tile, graphite in both; brandLine the
+/// mark's flat line colour in this scheme and brandAccent the icon's own accent (only in brand art, never on a control);
+/// onBrand / onBrand2 are the text on a panel; brandEdge is a white hairline round a panel or tile in dark mode (clear in
+/// light mode), so the graphite does not sink into a dark page. Use them through Brand below.
 enum Palette {
     static let canvas = Color(light: 0xF6F8FA, dark: 0x111215, lightHC: 0xF6F8FA, darkHC: 0x111215)
     static let bg = Color(light: 0xFFFFFF, dark: 0x16181A, lightHC: 0xFFFFFF, darkHC: 0x16181A)
@@ -111,14 +112,14 @@ enum Palette {
     static let mediaGuide = Color(light: 0xFFFFFF, dark: 0xFFFFFF, lightHC: 0xFFFFFF, darkHC: 0xFFFFFF, alpha: (0.5, 0.5, 0.5, 0.5))
     static let mediaTrack = Color(light: 0xFFFFFF, dark: 0xFFFFFF, lightHC: 0xFFFFFF, darkHC: 0xFFFFFF, alpha: (0.24, 0.24, 0.24, 0.24))
     static let mediaSelected = Color(light: 0x0064CD, dark: 0x6E97FF, lightHC: 0x004CA0, darkHC: 0xADBDFF)
-    static let brandSurfaceTop = Color(light: 0x26282B, dark: 0x26282B, lightHC: 0x26282B, darkHC: 0x26282B)
-    static let brandSurfaceBottom = Color(light: 0x191C1F, dark: 0x191C1F, lightHC: 0x191C1F, darkHC: 0x191C1F)
+    static let brandSurfaceTop = Color(light: 0xF2F4F6, dark: 0x26282B, lightHC: 0xF2F4F6, darkHC: 0x26282B)
+    static let brandSurfaceBottom = Color(light: 0xE7E8EA, dark: 0x191C1F, lightHC: 0xE7E8EA, darkHC: 0x191C1F)
+    static let brandTileTop = Color(light: 0x26282B, dark: 0x26282B, lightHC: 0x26282B, darkHC: 0x26282B)
+    static let brandTileBottom = Color(light: 0x191C1F, dark: 0x191C1F, lightHC: 0x191C1F, darkHC: 0x191C1F)
     static let brandEdge = Color(light: 0xFFFFFF, dark: 0xFFFFFF, lightHC: 0xFFFFFF, darkHC: 0xFFFFFF, alpha: (0, 0.12, 0, 0.2))
-    static let onBrand = Color(light: 0xF2F4F7, dark: 0xF2F4F7, lightHC: 0xFFFFFF, darkHC: 0xFFFFFF)
-    static let onBrand2 = Color(light: 0xBFC1C4, dark: 0xBFC1C4, lightHC: 0xE3E5E8, darkHC: 0xE3E5E8)
-    static let brandBodyTop = Color(light: 0xF8F9FB, dark: 0xF8F9FB, lightHC: 0xF8F9FB, darkHC: 0xF8F9FB)
-    static let brandBodyBottom = Color(light: 0xC6C8CB, dark: 0xC6C8CB, lightHC: 0xC6C8CB, darkHC: 0xC6C8CB)
-    static let brandAccentLight = Color(light: 0xFFD978, dark: 0xFFD978, lightHC: 0xFFD978, darkHC: 0xFFD978)
+    static let onBrand = Color(light: 0x1B1C1D, dark: 0xF2F4F7, lightHC: 0x121315, darkHC: 0xFFFFFF)
+    static let onBrand2 = Color(light: 0x48494B, dark: 0xBFC1C4, lightHC: 0x313334, darkHC: 0xE3E5E8)
+    static let brandLine = Color(light: 0x2A2C2F, dark: 0xE6E8EB, lightHC: 0x2A2C2F, darkHC: 0xE6E8EB)
     static let brandAccent = Color(light: 0xF2AE2E, dark: 0xF2AE2E, lightHC: 0xF2AE2E, darkHC: 0xF2AE2E)
 
     // old names, kept for one version
@@ -277,14 +278,15 @@ enum Icon {
     static let weight: Font.Weight = .regular
 }
 
-/// Brand surfaces: the onboarding and paywall hero, empty-state art, the about tile, the launch screen and the
-/// export-complete page carry the app icon's material in light and dark mode alike: its graphite base lit from the top,
-/// its light line colour and its own accent. The working screens stay as they are. A panel is a dark island: .brandPanel()
-/// sets the dark colour scheme inside it. A tile (about page, launch screen) has the icon's corner, 22.37 % of its side.
+/// Brand surfaces: the onboarding and paywall hero, empty-state, permission and consent art, the launch screen and the
+/// export-complete page carry the app icon's material, lit from the top: in dark mode its graphite with the mark in light
+/// lines, in light mode a light graphite with the mark in dark lines. The working screens stay as they are. A panel follows
+/// the page's colour scheme. The mark is one image set with two appearances: Any = <name>-mark-light (dark lines),
+/// Dark = <name>-mark (light lines), both flat. A tile (the app icon on the about page) is graphite in both modes and has
+/// the icon's corner, 22.37 % of its side.
 enum Brand {
     static let surface = LinearGradient(colors: [Palette.brandSurfaceTop, Palette.brandSurfaceBottom], startPoint: .top, endPoint: .bottom)
-    static let body = LinearGradient(colors: [Palette.brandBodyTop, Palette.brandBodyBottom], startPoint: .top, endPoint: .bottom)
-    static let accent = LinearGradient(colors: [Palette.brandAccentLight, Palette.brandAccent], startPoint: .top, endPoint: .bottom)
+    static let tile = LinearGradient(colors: [Palette.brandTileTop, Palette.brandTileBottom], startPoint: .top, endPoint: .bottom)
     static let tileRadius: CGFloat = 0.2237
     /// the icon mark's height: hero art (onboarding, paywall, consent), empty states; below markMin show the app icon
     static let markHero: CGFloat = 120
@@ -298,9 +300,8 @@ struct BrandPanel: ViewModifier {
     func body(content: Content) -> some View {
         content
             .foregroundStyle(Palette.onBrand)
-            .environment(\.colorScheme, .dark)
             .background(Brand.surface, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
-            // outside the .dark environment, so the edge follows the page: a hairline in dark mode, clear in light mode
+            // a hairline in dark mode, clear in light mode
             .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(Palette.brandEdge, lineWidth: 1))
     }
 }
@@ -526,12 +527,12 @@ extension View {
     func kbd() -> some View { modifier(Kbd()) }
     func keyboardLayer() -> some View { modifier(KeyboardLayer()) }
     func mediaSelected(_ selected: Bool) -> some View { modifier(MediaSelected(selected: selected)) }
-    /// a brand panel: the icon's graphite, top-lit, dark inside; radius 0 for a full-bleed header
+    /// a brand panel: top-lit, graphite in dark mode and light graphite in light mode; radius 0 for a full-bleed header
     func brandPanel(radius: CGFloat = Radius.xl) -> some View { modifier(BrandPanel(radius: radius)) }
     /// a square brand tile of `side` with the app icon's corner (continuous, 22.37 % of the side)
     func brandTile(_ side: CGFloat) -> some View {
         frame(width: side, height: side)
-            .background(Brand.surface, in: RoundedRectangle(cornerRadius: side * Brand.tileRadius, style: .continuous))
+            .background(Brand.tile, in: RoundedRectangle(cornerRadius: side * Brand.tileRadius, style: .continuous))
             .clipShape(RoundedRectangle(cornerRadius: side * Brand.tileRadius, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: side * Brand.tileRadius, style: .continuous).strokeBorder(Palette.brandEdge, lineWidth: 1))
     }
