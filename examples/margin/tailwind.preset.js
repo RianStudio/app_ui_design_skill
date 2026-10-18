@@ -78,6 +78,7 @@ module.exports = {
         'media-selected': 'rgb(var(--c-media-selected-rgb) / <alpha-value>)',
         'brand-surface-top': 'rgb(var(--c-brand-surface-top-rgb) / <alpha-value>)',
         'brand-surface-bottom': 'rgb(var(--c-brand-surface-bottom-rgb) / <alpha-value>)',
+        'brand-edge': 'var(--c-brand-edge)',
         'on-brand': 'rgb(var(--c-on-brand-rgb) / <alpha-value>)',
         'on-brand-2': 'rgb(var(--c-on-brand-2-rgb) / <alpha-value>)',
         'brand-body-top': 'rgb(var(--c-brand-body-top-rgb) / <alpha-value>)',

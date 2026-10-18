@@ -64,8 +64,8 @@ ORDER = ["canvas", "bg", "surface", "surface-2", "surface-3", "elevated", "menu-
          "frost", "frost-border", "frost-highlight", "inverse-surface", "on-inverse", "inverse-primary",
          "media-black", "media-dark", "media-mid", "media-white", "checker-a", "checker-b",
          "on-media", "viewer-scrim", "media-edge", "media-guide", "media-track", "media-selected",
-         "brand-surface-top", "brand-surface-bottom", "on-brand", "on-brand-2", "brand-body-top", "brand-body-bottom",
-         "brand-accent-light", "brand-accent"]
+         "brand-surface-top", "brand-surface-bottom", "brand-edge", "on-brand", "on-brand-2", "brand-body-top",
+         "brand-body-bottom", "brand-accent-light", "brand-accent"]
 BRAND = PALETTE["brand"]
 
 
@@ -353,6 +353,8 @@ def derive(name, accent=None, category=None):
         for mode in MODES:
             C = colors[key(mode, level)]
             C["brand-surface-top"], C["brand-surface-bottom"] = BRAND["surface"]
+            # a white hairline round the panel in the dark schemes only: on a light page the graphite already stands out
+            C["brand-edge"] = rgba("#FFFFFF", BRAND["edge"][LEVELS.index(level)] if mode == "dark" else 0)
             C["on-brand"], C["on-brand-2"] = D["text"], D["text-2"]
             C["brand-body-top"], C["brand-body-bottom"] = BRAND["body"]
             C["brand-accent-light"], C["brand-accent"] = brand
@@ -842,6 +844,9 @@ svg.icon { fill: currentColor; stroke: none; }
    of its side. The brand accent fills only the art (the icon's accent piece, a category dot), never a control. */
 .brand-panel { background: var(--brand-surface); color: var(--c-on-brand); border-radius: var(--r-xl); }
 .brand-tile { aspect-ratio: 1; background: var(--brand-surface); border-radius: var(--brand-tile-radius); }
+/* the edge is drawn outside: white over a light page shows nothing, over a dark page it is the hairline that keeps the
+   graphite from sinking in (brand-edge is clear in the light schemes) */
+.brand-panel, .brand-tile { box-shadow: 0 0 0 1px var(--c-brand-edge); }
 .brand-mark { display: block; height: var(--brand-mark-hero); width: auto; }
 .brand-mark.empty { height: var(--brand-mark-empty); }""")
     out.append("@media (prefers-reduced-motion: reduce) {\n  /* no movement or scaling: every duration goes to 0 */\n  :root {\n"
@@ -908,7 +913,8 @@ extension Color {
 /// onMedia, not the primary: the primary falls short over a bright frame), mediaSelected the outline of a selected picture.
 /// Brand surfaces carry the app icon's material, the same in every scheme: brandSurfaceTop / Bottom its graphite base,
 /// brandBodyTop / Bottom its light pieces, brandAccentLight / brandAccent its own accent (only in brand art, never on a
-/// control); onBrand / onBrand2 are the text on them. Use them through Brand below.
+/// control); onBrand / onBrand2 are the text on them; brandEdge is a white hairline round a panel or tile in dark mode
+/// (clear in light mode), so the graphite does not sink into a dark page. Use them through Brand below.
 enum Palette {
 @@palette@@
 
@@ -1028,6 +1034,8 @@ struct BrandPanel: ViewModifier {
             .foregroundStyle(Palette.onBrand)
             .environment(\\.colorScheme, .dark)
             .background(Brand.surface, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            // outside the .dark environment, so the edge follows the page: a hairline in dark mode, clear in light mode
+            .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(Palette.brandEdge, lineWidth: 1))
     }
 }
 
@@ -1254,6 +1262,7 @@ extension View {
         frame(width: side, height: side)
             .background(Brand.surface, in: RoundedRectangle(cornerRadius: side * Brand.tileRadius, style: .continuous))
             .clipShape(RoundedRectangle(cornerRadius: side * Brand.tileRadius, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: side * Brand.tileRadius, style: .continuous).strokeBorder(Palette.brandEdge, lineWidth: 1))
     }
     /// a solid SF Symbol at the icon weight
     func appIcon(_ size: CGFloat = Icon.md) -> some View { symbolVariant(Icon.variant).font(.system(size: size, weight: Icon.weight)) }
@@ -1363,8 +1372,8 @@ EXTENDED = ["canvas", "surface", "surface-2", "surface-3", "elevated", "menu-act
             "scrim", "scrim-menu", "frost", "frost-border", "frost-highlight",
             "media-black", "media-dark", "media-mid", "media-white", "checker-a", "checker-b",
             "on-media", "viewer-scrim", "media-edge", "media-guide", "media-track", "media-selected",
-            "brand-surface-top", "brand-surface-bottom", "on-brand", "on-brand-2", "brand-body-top", "brand-body-bottom",
-            "brand-accent-light", "brand-accent"]
+            "brand-surface-top", "brand-surface-bottom", "brand-edge", "on-brand", "on-brand-2", "brand-body-top",
+            "brand-body-bottom", "brand-accent-light", "brand-accent"]
 KT_NAME = {"primary": "primaryFill", "on-primary": "onPrimaryFill", "primary-hover": "primaryFillHover",
            "primary-pressed": "primaryFillPressed"}
 
@@ -1384,6 +1393,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -1431,6 +1441,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -1724,7 +1735,13 @@ object Brand {
     fun surface(colors: ExtendedColors) = Brush.verticalGradient(listOf(colors.brandSurfaceTop, colors.brandSurfaceBottom))
     fun body(colors: ExtendedColors) = Brush.verticalGradient(listOf(colors.brandBodyTop, colors.brandBodyBottom))
     fun accent(colors: ExtendedColors) = Brush.verticalGradient(listOf(colors.brandAccentLight, colors.brandAccent))
-    val TileShape = RoundedCornerShape(CornerSize(@@tile_pct@@f))
+    /** the icon's corner, @@tile_pct@@ % of the side at every size (CornerSize(Float) would be fixed pixels) */
+    val TileShape = RoundedCornerShape(object : CornerSize {
+        override fun toPx(shapeSize: Size, density: Density) = shapeSize.minDimension * @@tile_radius@@f
+    })
+    /** a square brand tile: the graphite with the icon's corner, and the brandEdge hairline (dark mode only) */
+    fun tile(side: Dp, colors: ExtendedColors) = Modifier.size(side).clip(TileShape).background(surface(colors))
+        .border(1.dp, colors.brandEdge, TileShape)
     /** the icon mark's height: hero art (onboarding, paywall, consent), empty states; below markMin show the app icon */
     val markHero = @@mark_hero@@.dp
     val markEmpty = @@mark_empty@@.dp
@@ -1740,10 +1757,11 @@ fun BrandPanel(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val hc = isSystemHighContrast()
+    val edge = AppTheme.colors.brandEdge  // the page's, read before the dark scheme: a hairline in dark mode, clear in light
     CompositionLocalProvider(LocalExtendedColors provides if (hc) DarkHighContrastExtendedColors else DarkExtendedColors) {
         MaterialTheme(colorScheme = if (hc) DarkHighContrastColors else DarkColors, shapes = MaterialTheme.shapes,
                       typography = MaterialTheme.typography) {
-            Column(modifier.clip(shape).background(Brand.surface(AppTheme.colors)), content = content)
+            Column(modifier.clip(shape).background(Brand.surface(AppTheme.colors)).border(1.dp, edge, shape), content = content)
         }
     }
 }
@@ -2014,8 +2032,8 @@ def kotlin(t):
         blur=t["blur"]["frost"], saturate=num(t["blur"]["saturate"]),
         icon_sm=t["icon"]["size"]["sm"], icon_md=t["icon"]["size"]["md"], icon_lg=t["icon"]["size"]["lg"],
         icon_weight=t["icon"]["weight"], icon_fill=t["icon"]["fill"],
-        tile_pct=num(S["brand"]["tile-radius"] * 100), mark_hero=S["brand"]["mark-hero"], mark_empty=S["brand"]["mark-empty"],
-        mark_min=S["brand"]["mark-min"],
+        tile_pct=num(S["brand"]["tile-radius"] * 100), tile_radius=num(S["brand"]["tile-radius"]),
+        mark_hero=S["brand"]["mark-hero"], mark_empty=S["brand"]["mark-empty"], mark_min=S["brand"]["mark-min"],
         radius="\n".join(f"    val {k} = {v}.dp" for k, v in r.items() if k != "full"),
         space="\n".join(f"    val s{k.replace('.', '_')} = {v}.dp" for k, v in t["space"].items()),
         hit=S["hit-min"]["android"],

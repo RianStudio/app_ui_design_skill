@@ -237,6 +237,7 @@
   --c-media-selected: #0064CD;
   --c-brand-surface-top: #26282B;
   --c-brand-surface-bottom: #191C1F;
+  --c-brand-edge: rgba(255, 255, 255, 0);
   --c-on-brand: #F2F4F7;
   --c-on-brand-2: #BFC1C4;
   --c-brand-body-top: #F8F9FB;
@@ -373,6 +374,7 @@
     --c-media-selected: #6E97FF;
     --c-brand-surface-top: #26282B;
     --c-brand-surface-bottom: #191C1F;
+    --c-brand-edge: rgba(255, 255, 255, 0.12);
     --c-on-brand: #F2F4F7;
     --c-on-brand-2: #BFC1C4;
     --c-brand-body-top: #F8F9FB;
@@ -509,6 +511,7 @@
   --c-media-selected: #6E97FF;
   --c-brand-surface-top: #26282B;
   --c-brand-surface-bottom: #191C1F;
+  --c-brand-edge: rgba(255, 255, 255, 0.12);
   --c-on-brand: #F2F4F7;
   --c-on-brand-2: #BFC1C4;
   --c-brand-body-top: #F8F9FB;
@@ -648,6 +651,7 @@
     --c-media-selected: #004CA0;
     --c-brand-surface-top: #26282B;
     --c-brand-surface-bottom: #191C1F;
+    --c-brand-edge: rgba(255, 255, 255, 0);
     --c-on-brand: #FFFFFF;
     --c-on-brand-2: #E3E5E8;
     --c-brand-body-top: #F8F9FB;
@@ -785,6 +789,7 @@
     --c-media-selected: #ADBDFF;
     --c-brand-surface-top: #26282B;
     --c-brand-surface-bottom: #191C1F;
+    --c-brand-edge: rgba(255, 255, 255, 0.2);
     --c-on-brand: #FFFFFF;
     --c-on-brand-2: #E3E5E8;
     --c-brand-body-top: #F8F9FB;
@@ -922,6 +927,7 @@
     --c-media-selected: #ADBDFF;
     --c-brand-surface-top: #26282B;
     --c-brand-surface-bottom: #191C1F;
+    --c-brand-edge: rgba(255, 255, 255, 0.2);
     --c-on-brand: #FFFFFF;
     --c-on-brand-2: #E3E5E8;
     --c-brand-body-top: #F8F9FB;
@@ -1125,6 +1131,9 @@ svg.icon { fill: currentColor; stroke: none; }
    of its side. The brand accent fills only the art (the icon's accent piece, a category dot), never a control. */
 .brand-panel { background: var(--brand-surface); color: var(--c-on-brand); border-radius: var(--r-xl); }
 .brand-tile { aspect-ratio: 1; background: var(--brand-surface); border-radius: var(--brand-tile-radius); }
+/* the edge is drawn outside: white over a light page shows nothing, over a dark page it is the hairline that keeps the
+   graphite from sinking in (brand-edge is clear in the light schemes) */
+.brand-panel, .brand-tile { box-shadow: 0 0 0 1px var(--c-brand-edge); }
 .brand-mark { display: block; height: var(--brand-mark-hero); width: auto; }
 .brand-mark.empty { height: var(--brand-mark-empty); }
 

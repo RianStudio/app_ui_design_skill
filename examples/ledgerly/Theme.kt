@@ -14,6 +14,7 @@ import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsHoveredAsState
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -61,6 +62,7 @@ import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -295,6 +297,7 @@ data class ExtendedColors(
     val mediaSelected: Color,
     val brandSurfaceTop: Color,
     val brandSurfaceBottom: Color,
+    val brandEdge: Color,
     val onBrand: Color,
     val onBrand2: Color,
     val brandBodyTop: Color,
@@ -356,6 +359,7 @@ val LightExtendedColors = ExtendedColors(
     mediaSelected = Color(0xFF00764A),
     brandSurfaceTop = Color(0xFF26282B),
     brandSurfaceBottom = Color(0xFF191C1F),
+    brandEdge = Color(0x00FFFFFF),
     onBrand = Color(0xFFF2F4F7),
     onBrand2 = Color(0xFFBFC1C4),
     brandBodyTop = Color(0xFFF8F9FB),
@@ -417,6 +421,7 @@ val DarkExtendedColors = ExtendedColors(
     mediaSelected = Color(0xFF34AF76),
     brandSurfaceTop = Color(0xFF26282B),
     brandSurfaceBottom = Color(0xFF191C1F),
+    brandEdge = Color(0x1FFFFFFF),
     onBrand = Color(0xFFF2F4F7),
     onBrand2 = Color(0xFFBFC1C4),
     brandBodyTop = Color(0xFFF8F9FB),
@@ -478,6 +483,7 @@ val LightHighContrastExtendedColors = ExtendedColors(
     mediaSelected = Color(0xFF005B38),
     brandSurfaceTop = Color(0xFF26282B),
     brandSurfaceBottom = Color(0xFF191C1F),
+    brandEdge = Color(0x00FFFFFF),
     onBrand = Color(0xFFFFFFFF),
     onBrand2 = Color(0xFFE3E5E8),
     brandBodyTop = Color(0xFFF8F9FB),
@@ -539,6 +545,7 @@ val DarkHighContrastExtendedColors = ExtendedColors(
     mediaSelected = Color(0xFF5FD599),
     brandSurfaceTop = Color(0xFF26282B),
     brandSurfaceBottom = Color(0xFF191C1F),
+    brandEdge = Color(0x33FFFFFF),
     onBrand = Color(0xFFFFFFFF),
     onBrand2 = Color(0xFFE3E5E8),
     brandBodyTop = Color(0xFFF8F9FB),
@@ -847,7 +854,13 @@ object Brand {
     fun surface(colors: ExtendedColors) = Brush.verticalGradient(listOf(colors.brandSurfaceTop, colors.brandSurfaceBottom))
     fun body(colors: ExtendedColors) = Brush.verticalGradient(listOf(colors.brandBodyTop, colors.brandBodyBottom))
     fun accent(colors: ExtendedColors) = Brush.verticalGradient(listOf(colors.brandAccentLight, colors.brandAccent))
-    val TileShape = RoundedCornerShape(CornerSize(22.37f))
+    /** the icon's corner, 22.37 % of the side at every size (CornerSize(Float) would be fixed pixels) */
+    val TileShape = RoundedCornerShape(object : CornerSize {
+        override fun toPx(shapeSize: Size, density: Density) = shapeSize.minDimension * 0.2237f
+    })
+    /** a square brand tile: the graphite with the icon's corner, and the brandEdge hairline (dark mode only) */
+    fun tile(side: Dp, colors: ExtendedColors) = Modifier.size(side).clip(TileShape).background(surface(colors))
+        .border(1.dp, colors.brandEdge, TileShape)
     /** the icon mark's height: hero art (onboarding, paywall, consent), empty states; below markMin show the app icon */
     val markHero = 120.dp
     val markEmpty = 88.dp
@@ -863,10 +876,11 @@ fun BrandPanel(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val hc = isSystemHighContrast()
+    val edge = AppTheme.colors.brandEdge  // the page's, read before the dark scheme: a hairline in dark mode, clear in light
     CompositionLocalProvider(LocalExtendedColors provides if (hc) DarkHighContrastExtendedColors else DarkExtendedColors) {
         MaterialTheme(colorScheme = if (hc) DarkHighContrastColors else DarkColors, shapes = MaterialTheme.shapes,
                       typography = MaterialTheme.typography) {
-            Column(modifier.clip(shape).background(Brand.surface(AppTheme.colors)), content = content)
+            Column(modifier.clip(shape).background(Brand.surface(AppTheme.colors)).border(1.dp, edge, shape), content = content)
         }
     }
 }

@@ -48,7 +48,8 @@ extension Color {
 /// onMedia, not the primary: the primary falls short over a bright frame), mediaSelected the outline of a selected picture.
 /// Brand surfaces carry the app icon's material, the same in every scheme: brandSurfaceTop / Bottom its graphite base,
 /// brandBodyTop / Bottom its light pieces, brandAccentLight / brandAccent its own accent (only in brand art, never on a
-/// control); onBrand / onBrand2 are the text on them. Use them through Brand below.
+/// control); onBrand / onBrand2 are the text on them; brandEdge is a white hairline round a panel or tile in dark mode
+/// (clear in light mode), so the graphite does not sink into a dark page. Use them through Brand below.
 enum Palette {
     static let canvas = Color(light: 0xF6F8FA, dark: 0x111215, lightHC: 0xF6F8FA, darkHC: 0x111215)
     static let bg = Color(light: 0xFFFFFF, dark: 0x16181A, lightHC: 0xFFFFFF, darkHC: 0x16181A)
@@ -112,6 +113,7 @@ enum Palette {
     static let mediaSelected = Color(light: 0x0064CD, dark: 0x6E97FF, lightHC: 0x004CA0, darkHC: 0xADBDFF)
     static let brandSurfaceTop = Color(light: 0x26282B, dark: 0x26282B, lightHC: 0x26282B, darkHC: 0x26282B)
     static let brandSurfaceBottom = Color(light: 0x191C1F, dark: 0x191C1F, lightHC: 0x191C1F, darkHC: 0x191C1F)
+    static let brandEdge = Color(light: 0xFFFFFF, dark: 0xFFFFFF, lightHC: 0xFFFFFF, darkHC: 0xFFFFFF, alpha: (0, 0.12, 0, 0.2))
     static let onBrand = Color(light: 0xF2F4F7, dark: 0xF2F4F7, lightHC: 0xFFFFFF, darkHC: 0xFFFFFF)
     static let onBrand2 = Color(light: 0xBFC1C4, dark: 0xBFC1C4, lightHC: 0xE3E5E8, darkHC: 0xE3E5E8)
     static let brandBodyTop = Color(light: 0xF8F9FB, dark: 0xF8F9FB, lightHC: 0xF8F9FB, darkHC: 0xF8F9FB)
@@ -301,6 +303,8 @@ struct BrandPanel: ViewModifier {
             .foregroundStyle(Palette.onBrand)
             .environment(\.colorScheme, .dark)
             .background(Brand.surface, in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            // outside the .dark environment, so the edge follows the page: a hairline in dark mode, clear in light mode
+            .overlay(RoundedRectangle(cornerRadius: radius, style: .continuous).strokeBorder(Palette.brandEdge, lineWidth: 1))
     }
 }
 
@@ -532,6 +536,7 @@ extension View {
         frame(width: side, height: side)
             .background(Brand.surface, in: RoundedRectangle(cornerRadius: side * Brand.tileRadius, style: .continuous))
             .clipShape(RoundedRectangle(cornerRadius: side * Brand.tileRadius, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: side * Brand.tileRadius, style: .continuous).strokeBorder(Palette.brandEdge, lineWidth: 1))
     }
     /// a solid SF Symbol at the icon weight
     func appIcon(_ size: CGFloat = Icon.md) -> some View { symbolVariant(Icon.variant).font(.system(size: size, weight: Icon.weight)) }

@@ -100,6 +100,7 @@ LUCIDE = {
     "pin": '<path d="M12 17v5"/><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>',
     "archive": '<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',
     "clock": '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+    "alert": '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
     "book": '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>',
     "briefcase": '<path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="2"/>',
     "mail": '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>',
@@ -163,7 +164,7 @@ MS_NAME = {"search": "search", "plus": "add", "inbox": "inbox", "list": "list", 
            "sliders": "tune", "utensils": "restaurant", "train": "train", "coffee": "coffee", "bag": "shopping_bag",
            "cart": "shopping_cart", "banknote": "payments", "phone": "smartphone", "car": "directions_car",
            "file-down": "download", "file-text": "description", "folder": "folder", "pin": "push_pin", "archive": "archive",
-           "clock": "schedule", "book": "menu_book", "briefcase": "work", "mail": "mail", "bulb": "lightbulb",
+           "clock": "schedule", "alert": "error", "book": "menu_book", "briefcase": "work", "mail": "mail", "bulb": "lightbulb",
            "history": "history", "star": "star", "play": "play_arrow", "home": "home", "pen": "edit_square", "help": "help",
            "receipt": "receipt_long", "dumbbell": "fitness_center", "zap": "bolt", "x": "close", "trash": "delete",
            "tag": "sell", "merge": "merge", "arrow-in": "south_west", "copy": "content_copy", "timer": "timer",
@@ -347,13 +348,13 @@ class BrandMark:
 
     @staticmethod
     def _stand_in(tones):
-        """a body piece and an accent piece, 48 / 1024-proportional cut between them, in the icon's gradients"""
+        """a body piece and an accent piece in the icon's gradients, the cut between them 48 / 1024 of the box (28 in 600)"""
         a, b = tones
         body_a, body_b = PALETTE["brand"]["body"]
         svg = (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600"><defs>'
                f'<linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{body_a}"/><stop offset="1" stop-color="{body_b}"/></linearGradient>'
                f'<linearGradient id="a" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{a}"/><stop offset="1" stop-color="{b}"/></linearGradient>'
-               f'<mask id="m"><rect width="600" height="600" fill="#fff"/><circle cx="430" cy="170" r="178" fill="#000"/></mask></defs>'
+               f'<mask id="m"><rect width="600" height="600" fill="#fff"/><circle cx="430" cy="170" r="158" fill="#000"/></mask></defs>'
                f'<rect x="20" y="120" width="460" height="460" rx="110" fill="url(#b)" mask="url(#m)"/>'
                f'<circle cx="430" cy="170" r="130" fill="url(#a)"/></svg>')
         return "data:image/svg+xml;base64," + base64.b64encode(svg.encode()).decode()
@@ -882,22 +883,19 @@ def check_badge():
 
 
 class Brand:
-    """the brand mark of this sheet (set in main)"""
+    """the brand mark of this sheet and the app's category (set in main)"""
     mark = None
+    category = ""
 
 
 def brand_art(w, h, mark_h, overlay=""):
-    """onboarding, paywall, consent and permission art: the app icon's own mark on the graphite brand panel, lit from
-    the top like the icon (light and dark mode alike), with an optional real UI fragment under it that never covers it.
-    The icon's accent appears only in the mark; the panel's corner is r-xl"""
+    """onboarding, paywall, consent, permission and empty-state art: the app icon's own mark on the graphite brand panel,
+    lit from the top like the icon (light and dark mode alike). The mark keeps the icon's own margin: at most 64 % of the
+    panel's height (18 % above and below, like the subject in the icon) and the width less 48 a side. With a real UI
+    fragment (a notification, a sample row) the fragment sits at the bottom and the mark is centred in the space above
+    it, 24 or more clear of it. The icon's accent appears only in the mark; the panel's corner is r-xl"""
     return (f'<div class="art bpanel{" over" if overlay else ""}" style="width:{w}px;height:{h}px"><span class="bp-mark">'
-            f'{Brand.mark(mark_h, w - 2 * 48)}</span>{overlay}</div>')
-
-
-def brand_tile(side, mark_h):
-    """empty-state art: the mark on a square graphite tile with the app icon's corner (22.37 % of the side)"""
-    return (f'<div class="btile" style="width:{side}px;height:{side}px;border-radius:{side * PALETTE["brand"]["tile_radius"]:.2f}px">'
-            f'{Brand.mark(mark_h, side * .72)}</div>')
+            f'{Brand.mark(min(mark_h, h * .64), w - 2 * 48)}</span>{overlay}</div>')
 
 
 def demo_card(sh):
@@ -1051,7 +1049,7 @@ def paywall_ios(scr, mode, icon, app, caption="", credits=False):
     low = (f'<div class="low t-row-meta">{ic("coins", 16)}<span>点数不够这次生成（还差 <b class="num">1</b> 点）</span></div>'
            if credits else "")
     inner = f'''<div class="pw{" credits" if credits else ""}">
-    {brand_art(350, 110 if credits else 150, PALETTE["brand"]["mark"]["empty" if credits else "hero"])}
+    {brand_art(350, 100 if credits else 140, PALETTE["brand"]["mark"]["min" if credits else "empty"])}
     <div class="pw-title t-title-1">{scr["shell"]["pitch"]}</div><div class="pw-sub t-row-meta">{app} 会员 · 随时可以取消</div>
     {low}<div class="feats">{feats}</div>
     <div class="plans">{plans}</div>
@@ -1068,7 +1066,7 @@ def onboarding_android(scr, mode, caption=""):
     title, body = scr["shell"]["onboard"]
     inner = f'''<div class="onb">
     <div class="onb-skip m3-labelLarge">跳过</div>
-    {brand_art(364, 232, PALETTE["brand"]["mark"]["hero"], demo_card(scr["shell"]))}
+    {brand_art(364, 232, PALETTE["brand"]["mark"]["empty"], demo_card(scr["shell"]))}
     <div class="dots"><i class="on"></i><i></i><i></i></div>
     <div class="m3-headlineSmall onb-t">{title}</div><p class="m3-bodyLarge onb-b">{body}</p>
     <div class="grow"></div>{pbtn("继续")}
@@ -1193,9 +1191,10 @@ def viewer_ios(kind="sky", seed=21, caption="", pid="", toast=True, label="iPhon
 def permission_android(mode, icon, app, caption=""):
     """our own page first, then the system dialog: what we ask for and why (here notifications: Android 13+)"""
     card = (f'<div class="notif"><div class="nh">{icon(18, mode)}<span class="m3-labelMedium t2">{app} · 现在</span></div>'
-            f'<b class="m3-titleSmall">导出完成</b><span class="m3-bodyMedium t2">4 张照片已保存到相册，点按查看</span></div>')
+            f'<b class="m3-titleSmall">导出完成</b><span class="m3-bodyMedium t2">'
+            f'{"1 段视频" if Brand.category == "视频" else "4 张照片"}已保存到相册，点按查看</span></div>')
     inner = f'''<div class="onb perm">
-    {brand_art(364, 262, PALETTE["brand"]["mark"]["hero"], card)}
+    {brand_art(364, 262, PALETTE["brand"]["mark"]["min"], card)}
     <div class="m3-headlineSmall onb-t">导出完成时通知你</div>
     <p class="m3-bodyLarge onb-b">导出要几秒到几分钟。允许通知后可以离开 app：进度显示在通知栏，完成后提醒你。</p>
     <p class="m3-bodyMedium onb-n t3">下一步是系统的权限对话框；以后也可以在系统设置里改。</p>
@@ -1256,9 +1255,9 @@ def generate_ios(scr, mode, caption=""):
              '<circle cx="28" cy="28" r="24" fill="none" stroke="rgba(255,255,255,.32)" stroke-width="4"/>'
              '<circle cx="28" cy="28" r="24" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-dasharray="90.5 151" '
              'transform="rotate(-90 28 28)"/></svg><b class="t-timecode num">18 / 30</b></span></div>'
-             f'<div class="gcell fail">{ic("refresh", 22)}<b class="t-row-title">生成失败</b><span class="t-row-meta">没有扣点数</span>'
+             f'<div class="gcell fail">{ic("alert", 22)}<b class="t-row-title">生成失败</b><span class="t-row-meta">没有扣点数</span>'
              f'<span class="pbtn second sm">重试</span></div>'
-             f'<div class="gcell queue">{status_icon("todo")}<b class="t-row-title">排队中</b><span class="t-row-meta">前面还有 <span class="num">2</span> 个</span></div>')
+             f'<div class="gcell queue">{ic("clock", 22, "t2")}<b class="t-row-title">排队中</b><span class="t-row-meta">前面还有 <span class="num">2</span> 个</span></div>')
     inner = f'''<div class="pc gen">
     <div class="pcard"><p class="t-row-title">{scr["prompt"]}</p>
       <div class="gchips"><span class="tagp">1:1</span><span class="tagp">4 张</span><span class="tagp">胶片</span>
@@ -1281,7 +1280,7 @@ def chat_android(scr, mode, caption=""):
       {Glyphs.ms("expand_more", size=18)}</span><span class="grow"></span>
     <span class="achip m3-labelLarge credit-chip">{Glyphs.ms("bolt", size=18)}<span class="num">{scr["credits"]}</span></span></header>
   <div class="acontent ach">
-    {brand_tile(128, PALETTE["brand"]["mark"]["empty"])}
+    {brand_art(328, 100, PALETTE["brand"]["mark"]["min"])}
     <div class="m3-headlineSmall onb-t">想生成什么？</div><p class="m3-bodyMedium t2 ach-sub">点一个示例试试，或者直接描述你想要的画面</p>
     <div class="samples">{cards}</div>
   </div>
@@ -1519,6 +1518,10 @@ def phone_mini(name, scr, mode, icon, app):
 EMPTY = {"list": ("还没有记录", "记下第一笔，月底就能看到钱花在了哪里"), "timer": ("还没有专注记录", "开始第一次专注，这里会按天记下时长"),
          "notes": ("还没有笔记", "写下第一条，之后可以按标签和全文搜索"), "editor": ("还没有作品", "导出过的照片会出现在这里"),
          "chat": ("还没有作品", "生成过的图会出现在这里，可以再编辑")}
+# what the export-complete page says, by the app's category, else by the sample screen (a video app exports clips)
+EXPORTED = {"视频": ("已导出 1 段 · ", "48 MB", "已保存到相册 · 0:42 · 1080p"), "editor": ("已导出 4 张 · ", "9.6 MB", "已保存到相册"),
+            "chat": ("已导出 4 张 · ", "9.6 MB", "已保存到相册"), "notes": ("已导出 86 篇 · ", "3.2 MB", "PDF 已保存到「文件」"),
+            "list": ("已导出 128 笔 · ", "24 KB", "CSV 已保存到「文件」"), "timer": ("已导出 30 天 · ", "12 KB", "CSV 已保存到「文件」")}
 
 
 def brand_row(t, screen, icon, app):
@@ -1526,7 +1529,12 @@ def brand_row(t, screen, icon, app):
     body and accent at brand positions only; the controls keep the primary"""
     hero, empty = PALETTE["brand"]["mark"]["hero"], PALETTE["brand"]["mark"]["empty"]
     title, line = EMPTY[screen]
-    cat = t["source"].get("category")
+    cat = Brand.category
+    label, action = SCREENS[screen]["label"], ACTION[screen]
+    if screen == "editor":  # an editor's empty library asks for something to edit
+        action = "导入视频" if cat == "视频" else "导入照片"
+    if cat == "视频" and screen == "editor":
+        label, line = "视频剪辑", "导出过的视频会出现在这里"
     badge = f'<span class="bbadge t-tag-label"><i data-brand></i>{cat} app</span>' if cat else ""
     chev = ic("chev-right", 16, "t3")
 
@@ -1540,26 +1548,25 @@ def brand_row(t, screen, icon, app):
     launch = card(f'<div class="blaunch">{Brand.mark(hero)}</div>', "dark",
                   "<b>启动页</b> · 浅色、深色同一张：图标的石墨底加图标主体，不放字")
     about = card(f'<div class="bnav t-card-title">关于</div>'
-                 f'<div class="bpanel babout" data-theme="dark">{icon(72, "light")}<b class="t-card-title">{app}</b>'
-                 f'<span class="t-row-meta num">版本 2.3.0（231）</span>{badge}</div>'
+                 f'<div class="babout">{icon(72, "light")}<b class="t-card-title">{app}</b>'
+                 f'<span class="t-row-meta num t2">版本 2.3.0（231）</span>{badge}</div>'
                  f'<div class="sg">{row("更多 Rian Studio 的 app")}{row("隐私政策")}{row("开源许可")}</div>'
                  f'<div class="sg-f t-row-meta">A Rian Studio app</div>', "light",
-                 "<b>关于 · 浅色</b> · 图标在石墨品牌面板上，字是 on-brand" + ("；类别徽章的圆点是图标强调色" if cat else ""),
-                 "grouped")
+                 "<b>关于 · 浅色</b> · app 图标 72 直接放在页面上（图标自己就是品牌方块，不再套面板）"
+                 + ("；类别徽章的圆点是图标强调色" if cat else ""), "grouped")
 
     def empty_state(mode):
-        return card(f'<div class="bnav t-card-title">{SCREENS[screen]["label"]}</div><div class="bempty">{brand_tile(128, empty)}'
-                    f'<b class="t-card-title">{title}</b><span class="t-row-meta t2">{line}</span>{pbtn(ACTION[screen])}</div>',
-                    mode, f"<b>空状态 · {MODE_NAME[mode]}</b> · 128 的品牌方块（图标的圆角 22.37 %）放 {empty} 高的图标主体；"
-                          "按钮仍是 primary")
-    thumbs = "".join(f'<span class="bthumb" style="transform:translate({x}px,{y}px) rotate({r}deg)">{ph(k, 92, 116, sd)}</span>'
-                     for k, sd, r, x, y in (("sea", 41, -9, -34, 6), ("flowers", 42, 9, 34, 6), ("sky", 43, 0, 0, 0)))
+        return card(f'<div class="bnav t-card-title">{label}</div><div class="bempty">{brand_art(240, 140, empty)}'
+                    f'<b class="t-card-title">{title}</b><span class="t-row-meta t2">{line}</span>{pbtn(action)}</div>',
+                    mode, f"<b>空状态 · {MODE_NAME[mode]}</b> · 品牌面板 240 × 140 放 {empty} 高的图标主体（上下各留 18 %）"
+                          + ("；深色下面板外有一圈 brand-edge 细线" if mode == "dark" else "") + "；按钮仍是 primary")
+    done, size, note = EXPORTED["视频" if cat == "视频" else screen]
     export = card(f'<div class="bnav t-card-title">导出完成</div>'
-                  f'<div class="bpanel bexport" data-theme="dark"><span class="bstack">{thumbs}</span>'
-                  f'<b class="t-card-title">已导出 4 张 · <span class="num">9.6 MB</span></b>'
-                  f'<span class="t-row-meta b2">已保存到相册</span></div>'
+                  f'<div class="bpanel bexport" data-theme="dark"><span class="bx-mark">{Brand.mark(empty)}</span>'
+                  f'<b class="t-card-title bx-t"><span class="bx-ok">{ic("check", 14)}</span>{done}<span class="num">{size}</span></b>'
+                  f'<span class="t-row-meta b2">{note}</span></div>'
                   f'<div class="bact">{pbtn("分享")}{pbtn("完成", "second")}</div>', "dark",
-                  "<b>导出完成 · 深色</b> · 结果放在品牌面板上；「分享」是 primary，强调色不进按钮")
+                  "<b>导出完成 · 深色</b> · 品牌面板上是图标主体，结果一行前面是 success 勾（不压在主体上）；「分享」是 primary，强调色不进按钮")
     L = t["color"]["light"]
     return (f'<div class="panel brow"><h3>品牌位 · 图标的石墨底、顶光、主体和强调色只在这些地方进界面，工作界面不变</h3>'
             f'<div class="bcards">{launch}{about}{empty_state("light")}{empty_state("dark")}{export}</div>'
@@ -1677,23 +1684,22 @@ kbd.on-pri { background: rgba(255,255,255,.16); border-color: rgba(255,255,255,.
 .bcard.grouped { background: var(--c-canvas); }
 .bnav { height: 52px; display: grid; place-items: center; flex: none; }
 .blaunch { flex: 1; display: grid; place-items: center; background: var(--brand-surface); }
-.babout { margin: 4px 16px 0; padding: 22px 16px 18px; display: flex; flex-direction: column; align-items: center; gap: 4px;
-  background: var(--brand-surface); color: var(--c-on-brand); }
-.babout .appicon { box-shadow: 0 0 0 1px rgba(255,255,255,.10); margin-bottom: 8px; }
-.babout .t-row-meta, .b2 { color: var(--c-on-brand-2); }
+.babout { padding: 14px 16px 4px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.babout .appicon { box-shadow: 0 0 0 1px var(--c-brand-edge); margin-bottom: 8px; }
+.b2 { color: var(--c-on-brand-2); }
 .bbadge { margin-top: 8px; height: 24px; padding: 0 10px 0 8px; display: inline-flex; align-items: center; gap: 6px; border-radius: 12px;
-  border: 1px solid rgba(255,255,255,.14); color: var(--c-on-brand-2); }
+  border: 1px solid var(--c-border); color: var(--c-text-2); }
 .bbadge i { width: 8px; height: 8px; border-radius: 50%; background: var(--brand-accent); }
 .bcard .sg { margin-top: 20px; }
 .bcard .sg-f { padding-top: 8px; }
 .bempty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 0 28px 40px; text-align: center; }
-.bempty .btile { margin-bottom: 14px; }
+.bempty .bpanel { margin-bottom: 18px; }
 .bempty .pbtn { margin-top: 18px; align-self: stretch; }
 .bexport { margin: 4px 16px 0; padding: 24px 16px 20px; display: flex; flex-direction: column; align-items: center; gap: 2px;
   background: var(--brand-surface); color: var(--c-on-brand); }
-.bstack { position: relative; width: 92px; height: 116px; margin-bottom: 18px; }
-.bthumb { position: absolute; inset: 0; border-radius: 10px; overflow: hidden; box-shadow: 0 6px 16px rgba(0,0,0,.4); }
-.bthumb .photo { width: 100%; height: 100%; }
+.bx-mark { margin: 8px 0 22px; }
+.bx-t { display: flex; align-items: center; gap: 8px; }
+.bx-ok { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; background: var(--c-success); color: var(--c-on-success); }
 .bact { display: flex; flex-direction: column; gap: 8px; padding: 20px 16px 0; }
 .palette { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; }
 .measure { padding: 80px 40px 40px; } /* below the sheet: measured, never in preview.png */
@@ -2038,12 +2044,14 @@ mark { background: var(--c-selection); color: inherit; padding: 1px 2px; border-
 .grab { display: block; width: 36px; height: 5px; border-radius: 3px; background: var(--c-border-strong); opacity: .6; margin: 0 auto 12px; }
 .art { position: relative; margin: 0 auto; flex: none; }
 /* brand art: the icon's graphite, top-lit, the same in light and dark; the mark is the icon's own subject */
-.bpanel { background: var(--brand-surface); border-radius: var(--r-xl); display: grid; place-items: center; overflow: hidden; }
+.bpanel { background: var(--brand-surface); border-radius: var(--r-xl); display: grid; place-items: center; overflow: hidden;
+  box-shadow: 0 0 0 1px var(--c-brand-edge); }
 .bp-mark, .bmark { display: block; }
-.btile { background: var(--brand-surface); display: grid; place-items: center; flex: none; margin: 0 auto; }
-.bpanel.over { place-items: start center; padding-top: 20px; }
+.bpanel.over { display: flex; flex-direction: column; align-items: center; padding-bottom: 14px; }
+.bpanel.over .bp-mark { flex: 1; display: grid; place-items: center; min-height: 0; padding-bottom: 24px; }
+.bpanel.over .demo, .bpanel.over .notif { position: relative; left: auto; bottom: auto; margin: 0; flex: none; }
 .pw .bpanel { margin-bottom: 6px; }
-.bpanel .demo, .bpanel .notif { bottom: 14px; }
+.ach .bpanel { margin-bottom: 20px; }
 .demo { position: absolute; left: 50%; bottom: 4px; width: 288px; height: 64px; margin-left: -144px; padding: 0 16px; display: flex; align-items: center;
   gap: 12px; background: var(--c-elevated); color: var(--c-text); border: 1px solid var(--c-border); border-radius: var(--r-lg); box-shadow: var(--elev-2); }
 .demo .pt span { color: var(--c-text-2); }
@@ -2056,7 +2064,7 @@ mark { background: var(--c-selection); color: inherit; padding: 1px 2px; border-
 .sr + .sr::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; height: 1px; background: var(--c-border); }
 .sr .segc { margin-right: 4px; }
 .sg-f { padding: 6px 32px 0; color: var(--c-text-3); }
-.pw { position: absolute; inset: 0; padding: 100px 20px 34px; display: flex; flex-direction: column; }
+.pw { position: absolute; inset: 0; padding: 112px 20px 34px; display: flex; flex-direction: column; } /* the panel starts under the close button */
 .pw-title { text-align: center; margin-top: 10px; }
 .pw-sub { text-align: center; color: var(--c-text-2); margin-top: 2px; }
 .feats { display: flex; flex-direction: column; gap: 8px; margin: 16px 0 16px 12px; }
@@ -2234,7 +2242,7 @@ mark { background: var(--c-selection); color: inherit; padding: 1px 2px; border-
 .gcell.fail { background: var(--c-surface-2); color: var(--c-text-2); }
 .gcell.fail .t-row-meta { color: var(--c-text-3); }
 .gcell.fail .pbtn { margin-top: 6px; }
-.gcell.queue { background: var(--c-surface); border: 1px dashed var(--c-border-strong); color: var(--c-text); }
+.gcell.queue { background: var(--c-surface-2); color: var(--c-text); }
 .gcell.queue .t-row-meta { color: var(--c-text-2); }
 .refused { display: flex; gap: 12px; margin-top: 12px; padding: 12px 14px; border-radius: var(--r-lg); background: var(--c-surface-2); color: var(--c-text); }
 .refused > .ic { flex: none; margin-top: 1px; color: var(--c-text-2); }
@@ -2522,8 +2530,8 @@ SIZES = """() => { const out = {}; const add = (sel, what) => { const el = docum
 # each phone on the sheet: its label and whether it is a conversion screen; data-idx lets Python take its screenshot
 PHONES = """() => [...document.querySelectorAll('.board [data-label]')].map((s, i) => { s.dataset.idx = i;
   return {label: s.dataset.label, conversion: s.hasAttribute('data-conversion')}; })"""
-# the accent area is measured with photos, canvases and generated images hidden: what shows through is the neutral page
-# or canvas, and the checks and outlines drawn over the photos still count
+# the accent area is measured with photos, canvases, generated images and brand art hidden: what shows through is the
+# neutral page or canvas, and the checks and outlines drawn over the photos still count
 HIDE_PHOTOS = "[data-photo], [data-brand] { visibility: hidden !important; }"
 # full-screen pages and sheets whose content must end above the home indicator (iOS) or the gesture bar (Android):
 # the last child's bottom against the container's bottom padding
@@ -2626,6 +2634,7 @@ def main():
     icon = AppIcon(a.icon, a.icon_dark, tones)
     Dk = t["color"]["dark"]
     Brand.mark = BrandMark(a.mark, a.icon, (Dk["brand-accent-light"], Dk["brand-accent"]))
+    Brand.category = s.get("category", "")
 
     draft = page(t, theme_css, a.screen, icon, a.desktop_mode, a.desktop)  # collects the characters and symbols in use
     fonts_css, note, Glyphs.msr = fonts(draft, a.offline)
@@ -2682,7 +2691,7 @@ def main():
         ok = worst[2] <= limit
         fails += not ok
         print(f"accent area {name}: {worst[2]:.1f}% ({worst[0]}, the highest of " + ", ".join(f"{r[0]} {r[2]:.1f}%" for r in group)
-              + f"; photos, canvases and generated images hidden); target <= {limit:g}%  {'PASS' if ok else 'FAIL'}")
+              + f"; photos, canvases, generated images and brand art hidden); target <= {limit:g}%  {'PASS' if ok else 'FAIL'}")
         print("  INFO incl. the selected tint: " + ", ".join(f"{r[0]} {r[3]:.1f}%" for r in group))
         media = [r for r in group if r[4] - r[2] >= 0.5]
         if media:
